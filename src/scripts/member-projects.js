@@ -1,14 +1,11 @@
 // Member Projects Script
-// Displays, creates, edits, and deletes member projects from Memberstack tables
+// Displays, creates, edits, and deletes member projects using Memberstack JSON data
 
 (function() {
   console.log('Member projects script loaded');
 
-  const MEMBERSTACK_PUBLIC_KEY = 'pk_1afece608ededbcdce71';
-  const TABLE_ID = 'member-projects';
-
-  let memberstackApp = null;
   let currentMember = null;
+  let projects = [];
 
   // Styles
   const styles = `
@@ -86,10 +83,6 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px 20px;
-      cursor: pointer;
-    }
-    .mp-project-header:hover {
-      background: #fafafa;
     }
     .mp-project-title {
       margin: 0;
@@ -243,6 +236,11 @@
     { key: 'display_order', label: 'Display Order', type: 'number' }
   ];
 
+  // Generate unique ID
+  function generateId() {
+    return 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
   // Initialize
   async function init() {
     const container = document.querySelector('.vibe-test');
@@ -275,8 +273,11 @@
       currentMember = member;
       console.log('Current member:', currentMember.id);
 
-      // Load and render projects
-      await renderProjects(wrapper);
+      // Load projects from member JSON
+      await loadProjects();
+
+      // Render projects
+      renderProjects(wrapper);
     } catch (error) {
       console.error('Error initializing member projects:', error);
       wrapper.innerHTML = '<div class="mp-loading">Error loading projects. Please refresh the page.</div>';
@@ -299,32 +300,39 @@
     });
   }
 
-  // Fetch projects for current member
-  async function fetchProjects() {
+  // Load projects from member JSON
+  async function loadProjects() {
     try {
-      const response = await window.$memberstackDom.getTableData({
-        tableId: TABLE_ID
-      });
-
-      // Filter to only current member's projects
-      const projects = (response.data || []).filter(
-        project => project.member === currentMember.id
-      );
-
+      const { data } = await window.$memberstackDom.getMemberJSON();
+      projects = (data && data.projects) || [];
       // Sort by display_order
       projects.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-
-      return projects;
+      console.log('Loaded projects:', projects.length);
     } catch (error) {
-      console.error('Error fetching projects:', error);
-      return [];
+      console.error('Error loading projects:', error);
+      projects = [];
+    }
+  }
+
+  // Save projects to member JSON
+  async function saveProjects() {
+    try {
+      // Get existing JSON first to preserve other data
+      const { data: existingData } = await window.$memberstackDom.getMemberJSON();
+      const mergedData = { ...existingData, projects: projects };
+
+      const result = await window.$memberstackDom.updateMemberJSON({
+        json: mergedData
+      });
+      console.log('Projects saved:', result);
+    } catch (error) {
+      console.error('Error saving projects:', error);
+      throw error;
     }
   }
 
   // Render projects list
-  async function renderProjects(wrapper) {
-    const projects = await fetchProjects();
-
+  function renderProjects(wrapper) {
     if (projects.length === 0) {
       wrapper.innerHTML = `
         <div class="mp-empty">
@@ -396,7 +404,6 @@
 
   // Setup event listeners for a project card
   function setupProjectCard(card, project, wrapper) {
-    const header = card.querySelector('.mp-project-header');
     const content = card.querySelector('.mp-project-content');
     const editBtn = card.querySelector('.mp-edit-btn');
     const deleteBtn = card.querySelector('.mp-delete-btn');
@@ -408,61 +415,10 @@
       editBtn.textContent = isOpen ? 'Close' : 'Edit Project';
     });
 
-    // Inline editing
+    // Inline editing for each field
     card.querySelectorAll('.mp-field-value').forEach(fieldValue => {
       fieldValue.addEventListener('click', () => {
-        const field = fieldValue.closest('.mp-field');
-        const fieldKey = field.dataset.field;
-        const fieldDef = FIELDS.find(f => f.key === fieldKey);
-        const currentValue = project[fieldKey] || '';
-
-        // Create input
-        const isTextarea = fieldDef.type === 'textarea';
-        const input = document.createElement(isTextarea ? 'textarea' : 'input');
-        input.className = 'mp-field-input';
-        input.value = currentValue;
-        if (!isTextarea) {
-          input.type = fieldDef.type === 'number' ? 'number' : 'text';
-        }
-
-        fieldValue.replaceWith(input);
-        input.focus();
-
-        // Save on blur
-        const saveField = async () => {
-          const newValue = input.value;
-          project[fieldKey] = newValue;
-
-          // Update in Memberstack
-          try {
-            await window.$memberstackDom.updateTableData({
-              tableId: TABLE_ID,
-              rowId: project.id,
-              data: { [fieldKey]: newValue }
-            });
-          } catch (error) {
-            console.error('Error updating field:', error);
-          }
-
-          // Restore display
-          const newFieldValue = document.createElement('div');
-          newFieldValue.className = 'mp-field-value ' + (!newValue ? 'empty' : '');
-          newFieldValue.dataset.type = fieldDef.type;
-          newFieldValue.textContent = newValue || 'Click to add...';
-          input.replaceWith(newFieldValue);
-
-          // Re-attach click listener
-          newFieldValue.addEventListener('click', () => {
-            setupFieldEdit(newFieldValue, field, fieldDef, project);
-          });
-        };
-
-        input.addEventListener('blur', saveField);
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' && !isTextarea) {
-            input.blur();
-          }
-        });
+        startFieldEdit(fieldValue, project, wrapper);
       });
     });
 
@@ -470,11 +426,9 @@
     deleteBtn.addEventListener('click', async () => {
       if (confirm('Are you sure you want to delete this project?')) {
         try {
-          await window.$memberstackDom.deleteTableData({
-            tableId: TABLE_ID,
-            rowId: project.id
-          });
-          await renderProjects(wrapper);
+          projects = projects.filter(p => p.id !== project.id);
+          await saveProjects();
+          renderProjects(wrapper);
         } catch (error) {
           console.error('Error deleting project:', error);
           alert('Error deleting project. Please try again.');
@@ -483,11 +437,14 @@
     });
   }
 
-  // Setup field edit (for re-attached listeners)
-  function setupFieldEdit(fieldValue, field, fieldDef, project) {
+  // Start inline field editing
+  function startFieldEdit(fieldValue, project, wrapper) {
+    const field = fieldValue.closest('.mp-field');
     const fieldKey = field.dataset.field;
+    const fieldDef = FIELDS.find(f => f.key === fieldKey);
     const currentValue = project[fieldKey] || '';
 
+    // Create input
     const isTextarea = fieldDef.type === 'textarea';
     const input = document.createElement(isTextarea ? 'textarea' : 'input');
     input.className = 'mp-field-input';
@@ -499,34 +456,38 @@
     fieldValue.replaceWith(input);
     input.focus();
 
+    // Save on blur
     const saveField = async () => {
       const newValue = input.value;
-      project[fieldKey] = newValue;
+      project[fieldKey] = fieldDef.type === 'number' ? (parseInt(newValue) || 0) : newValue;
 
+      // Save to Memberstack
       try {
-        await window.$memberstackDom.updateTableData({
-          tableId: TABLE_ID,
-          rowId: project.id,
-          data: { [fieldKey]: newValue }
-        });
+        await saveProjects();
       } catch (error) {
         console.error('Error updating field:', error);
       }
 
+      // Restore display
       const newFieldValue = document.createElement('div');
       newFieldValue.className = 'mp-field-value ' + (!newValue ? 'empty' : '');
       newFieldValue.dataset.type = fieldDef.type;
       newFieldValue.textContent = newValue || 'Click to add...';
       input.replaceWith(newFieldValue);
 
+      // Re-attach click listener
       newFieldValue.addEventListener('click', () => {
-        setupFieldEdit(newFieldValue, field, fieldDef, project);
+        startFieldEdit(newFieldValue, project, wrapper);
       });
     };
 
     input.addEventListener('blur', saveField);
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !isTextarea) {
+        input.blur();
+      }
+      if (e.key === 'Escape') {
+        input.value = currentValue;
         input.blur();
       }
     });
@@ -597,25 +558,26 @@
         return;
       }
 
-      const projectData = {
-        member: currentMember.id,
+      const newProject = {
+        id: generateId(),
         project_name: projectName,
         short_description: modal.querySelector('#mp-form-short_description').value,
         project_description: modal.querySelector('#mp-form-project_description').value,
         key_detail: modal.querySelector('#mp-form-key_detail').value,
         external_link: modal.querySelector('#mp-form-external_link').value,
-        display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0
+        display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
+        created_at: new Date().toISOString()
       };
 
       try {
-        await window.$memberstackDom.createTableData({
-          tableId: TABLE_ID,
-          data: projectData
-        });
+        projects.push(newProject);
+        projects.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        await saveProjects();
         modal.remove();
-        await renderProjects(wrapper);
+        renderProjects(wrapper);
       } catch (error) {
         console.error('Error creating project:', error);
+        projects.pop(); // Remove the project we just added
         alert('Error creating project. Please try again.');
       }
     });
