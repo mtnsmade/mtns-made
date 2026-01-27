@@ -10,9 +10,9 @@
   // Replace these URLs with your Zapier webhook URLs
   // ============================================
   const WEBHOOKS = {
-    create: 'YOUR_ZAPIER_CREATE_WEBHOOK_URL',
-    update: 'YOUR_ZAPIER_UPDATE_WEBHOOK_URL',
-    delete: 'YOUR_ZAPIER_DELETE_WEBHOOK_URL'
+    create: 'https://hooks.zapier.com/hooks/catch/20216239/uqpimju/',
+    update: 'https://hooks.zapier.com/hooks/catch/20216239/uqpiw8v/',
+    delete: 'https://hooks.zapier.com/hooks/catch/20216239/uqps33w/'
   };
 
   let currentMember = null;
