@@ -6,10 +6,10 @@
 
   // Wait for DOM to be ready
   function init() {
-    let container = document.querySelector('.vibe-test');
+    const container = document.querySelector('.vibe-test');
     if (!container) {
-      console.log('.vibe-test not found, appending to body');
-      container = document.body;
+      console.warn('Could not find .vibe-test container');
+      return;
     }
 
     // Create the project card
