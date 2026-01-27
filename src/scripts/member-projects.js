@@ -666,6 +666,23 @@
     });
   }
 
+  // Format URL for Webflow Link field
+  function formatUrl(url) {
+    if (!url || url.trim() === '') return '';
+    let formatted = url.trim();
+    // Add https:// if no protocol specified
+    if (!/^https?:\/\//i.test(formatted)) {
+      formatted = 'https://' + formatted;
+    }
+    // Basic URL validation
+    try {
+      new URL(formatted);
+      return formatted;
+    } catch {
+      return ''; // Return empty if invalid
+    }
+  }
+
   // Send webhook to Zapier
   async function sendWebhook(action, project) {
     const webhookUrl = WEBHOOKS[action];
@@ -681,6 +698,9 @@
     // Format category IDs as JSON array string for Webflow multi-reference
     const categoryIds = JSON.stringify(project.categories || []);
 
+    // Format external link
+    const externalLink = formatUrl(project.external_link);
+
     const payload = {
       action: action,
       project_id: project.id,
@@ -692,19 +712,27 @@
       'project-short-description': project.short_description || '',
       'project-description-editable': project.project_description || '',
       'key-detail': project.key_detail || '',
-      'project-external-link': project.external_link || '',
+      'project-external-link': externalLink,
       'display-order': project.display_order || 0,
       'portfolio-item-id': project.id,
       'memberstack-id': currentMember.id,
       // Categories (multi-reference IDs)
       'category-ids': categoryIds,
-      // Images
+      // Images (empty string if not set)
       'feature-image': project.feature_image || '',
       'add-image-one': project.image_1 || '',
       'add-image-two': project.image_2 || '',
       'add-image-three': project.image_3 || '',
       'add-image-four': project.image_4 || '',
-      'add-image-five': project.image_5 || ''
+      'add-image-five': project.image_5 || '',
+      // Flags for conditional handling in Zapier
+      'has-feature-image': !!project.feature_image,
+      'has-image-one': !!project.image_1,
+      'has-image-two': !!project.image_2,
+      'has-image-three': !!project.image_3,
+      'has-image-four': !!project.image_4,
+      'has-image-five': !!project.image_5,
+      'has-external-link': !!externalLink
     };
 
     console.log(`Sending ${action} webhook:`, payload);
