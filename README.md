@@ -1,4 +1,4 @@
-# mtns-made - Webflow Scripts
+# MTNS Made - Webflow Scripts
 
 ## 📋 STEP 1: Add This Code to Webflow
 
