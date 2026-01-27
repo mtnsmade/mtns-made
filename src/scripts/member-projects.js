@@ -1,8 +1,19 @@
 // Member Projects Script
 // Displays, creates, edits, and deletes member projects using Memberstack JSON data
+// Syncs to Webflow CMS via Zapier webhooks
 
 (function() {
   console.log('Member projects script loaded');
+
+  // ============================================
+  // ZAPIER WEBHOOK CONFIGURATION
+  // Replace these URLs with your Zapier webhook URLs
+  // ============================================
+  const WEBHOOKS = {
+    create: 'YOUR_ZAPIER_CREATE_WEBHOOK_URL',
+    update: 'YOUR_ZAPIER_UPDATE_WEBHOOK_URL',
+    delete: 'YOUR_ZAPIER_DELETE_WEBHOOK_URL'
+  };
 
   let currentMember = null;
   let projects = [];
@@ -36,6 +47,10 @@
     }
     .mp-btn:hover {
       background: #555;
+    }
+    .mp-btn:disabled {
+      background: #999;
+      cursor: not-allowed;
     }
     .mp-btn-secondary {
       background: #fff;
@@ -225,6 +240,20 @@
       min-height: 80px;
       resize: vertical;
     }
+    .mp-sync-status {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .mp-sync-status.syncing {
+      color: #f0ad4e;
+    }
+    .mp-sync-status.synced {
+      color: #5cb85c;
+    }
+    .mp-sync-status.error {
+      color: #dc3545;
+    }
   `;
 
   // Field definitions
@@ -239,6 +268,55 @@
   // Generate unique ID
   function generateId() {
     return 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // Send webhook to Zapier
+  async function sendWebhook(action, project) {
+    const webhookUrl = WEBHOOKS[action];
+
+    if (!webhookUrl || webhookUrl.includes('YOUR_ZAPIER')) {
+      console.warn(`Webhook not configured for action: ${action}`);
+      return { success: false, error: 'Webhook not configured' };
+    }
+
+    // Get member's Webflow ID from custom fields
+    const memberWebflowId = currentMember.customFields?.['webflow-member-id'] || '';
+
+    const payload = {
+      action: action,
+      project_id: project.id,
+      webflow_item_id: project.webflow_item_id || '',
+      member_webflow_id: memberWebflowId,
+      memberstack_id: currentMember.id,
+      // Project fields mapped to Webflow field names
+      name: project.project_name,
+      'project-short-description': project.short_description || '',
+      'project-description-editable': project.project_description || '',
+      'key-detail': project.key_detail || '',
+      'project-external-link': project.external_link || '',
+      'display-order': project.display_order || 0,
+      'portfolio-item-id': project.id,
+      'memberstack-id': currentMember.id
+    };
+
+    console.log(`Sending ${action} webhook:`, payload);
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        mode: 'no-cors' // Zapier webhooks don't return CORS headers
+      });
+
+      console.log(`Webhook ${action} sent successfully`);
+      return { success: true };
+    } catch (error) {
+      console.error(`Webhook ${action} failed:`, error);
+      return { success: false, error: error.message };
+    }
   }
 
   // Initialize
@@ -272,6 +350,7 @@
       }
       currentMember = member;
       console.log('Current member:', currentMember.id);
+      console.log('Member Webflow ID:', currentMember.customFields?.['webflow-member-id']);
 
       // Load projects from member JSON
       await loadProjects();
@@ -425,13 +504,22 @@
     // Delete
     deleteBtn.addEventListener('click', async () => {
       if (confirm('Are you sure you want to delete this project?')) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Deleting...';
+
         try {
+          // Send delete webhook to Zapier first
+          await sendWebhook('delete', project);
+
+          // Then remove from local data
           projects = projects.filter(p => p.id !== project.id);
           await saveProjects();
           renderProjects(wrapper);
         } catch (error) {
           console.error('Error deleting project:', error);
           alert('Error deleting project. Please try again.');
+          deleteBtn.disabled = false;
+          deleteBtn.textContent = 'Delete Project';
         }
       }
     });
@@ -459,16 +547,10 @@
     // Save on blur
     const saveField = async () => {
       const newValue = input.value;
+      const oldValue = project[fieldKey];
       project[fieldKey] = fieldDef.type === 'number' ? (parseInt(newValue) || 0) : newValue;
 
-      // Save to Memberstack
-      try {
-        await saveProjects();
-      } catch (error) {
-        console.error('Error updating field:', error);
-      }
-
-      // Restore display
+      // Restore display first
       const newFieldValue = document.createElement('div');
       newFieldValue.className = 'mp-field-value ' + (!newValue ? 'empty' : '');
       newFieldValue.dataset.type = fieldDef.type;
@@ -479,6 +561,17 @@
       newFieldValue.addEventListener('click', () => {
         startFieldEdit(newFieldValue, project, wrapper);
       });
+
+      // Only save if value changed
+      if (newValue !== oldValue) {
+        try {
+          await saveProjects();
+          // Send update webhook to Zapier
+          await sendWebhook('update', project);
+        } catch (error) {
+          console.error('Error updating field:', error);
+        }
+      }
     };
 
     input.addEventListener('blur', saveField);
@@ -550,13 +643,17 @@
     });
 
     // Save button
-    modal.querySelector('#mp-modal-save').addEventListener('click', async () => {
+    const saveBtn = modal.querySelector('#mp-modal-save');
+    saveBtn.addEventListener('click', async () => {
       const projectName = modal.querySelector('#mp-form-project_name').value.trim();
 
       if (!projectName) {
         alert('Project name is required');
         return;
       }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Creating...';
 
       const newProject = {
         id: generateId(),
@@ -573,12 +670,18 @@
         projects.push(newProject);
         projects.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
         await saveProjects();
+
+        // Send create webhook to Zapier
+        await sendWebhook('create', newProject);
+
         modal.remove();
         renderProjects(wrapper);
       } catch (error) {
         console.error('Error creating project:', error);
         projects.pop(); // Remove the project we just added
         alert('Error creating project. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Create Project';
       }
     });
 
