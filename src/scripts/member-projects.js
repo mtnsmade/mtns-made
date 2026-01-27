@@ -678,8 +678,8 @@
     // Get member's Webflow ID from custom fields
     const memberWebflowId = currentMember.customFields?.['webflow-member-id'] || '';
 
-    // Get category IDs as comma-separated string for Zapier
-    const categoryIds = (project.categories || []).join(',');
+    // Format category IDs as JSON array string for Webflow multi-reference
+    const categoryIds = JSON.stringify(project.categories || []);
 
     const payload = {
       action: action,
