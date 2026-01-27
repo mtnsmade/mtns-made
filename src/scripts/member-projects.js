@@ -769,8 +769,8 @@
     // Get member's Webflow ID from custom fields
     const memberWebflowId = currentMember.customFields?.['webflow-member-id'] || '';
 
-    // Format category IDs as JSON array string for Webflow multi-reference
-    const categoryIds = JSON.stringify(project.categories || []);
+    // Format category IDs as comma-separated quoted strings for Webflow multi-reference
+    const categoryIds = (project.categories || []).map(id => `"${id}"`).join(',');
 
     // Format external link
     const externalLink = formatUrl(project.external_link);
