@@ -390,6 +390,26 @@
       min-height: 80px;
       resize: vertical;
     }
+    .mp-form-input.error {
+      border-color: #dc3545;
+    }
+    .mp-form-input.valid {
+      border-color: #28a745;
+    }
+    .mp-input-hint {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .mp-input-error {
+      font-size: 11px;
+      color: #dc3545;
+      margin-top: 4px;
+      display: none;
+    }
+    .mp-input-error.visible {
+      display: block;
+    }
 
     /* Category Selector Styles */
     .mp-category-section {
@@ -680,6 +700,60 @@
       return formatted;
     } catch {
       return ''; // Return empty if invalid
+    }
+  }
+
+  // Validate URL and show error/success state
+  function isValidUrl(url) {
+    if (!url || url.trim() === '') return true; // Empty is OK (field is optional)
+    let testUrl = url.trim();
+    if (!/^https?:\/\//i.test(testUrl)) {
+      testUrl = 'https://' + testUrl;
+    }
+    try {
+      new URL(testUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Setup URL validation on external link input
+  function setupUrlValidation(container) {
+    const input = container.querySelector('#mp-form-external_link');
+    const errorMsg = container.querySelector('#mp-url-error');
+    if (!input || !errorMsg) return;
+
+    const validate = () => {
+      const value = input.value.trim();
+      if (value === '') {
+        // Empty is fine, remove all states
+        input.classList.remove('error', 'valid');
+        errorMsg.classList.remove('visible');
+      } else if (isValidUrl(value)) {
+        input.classList.remove('error');
+        input.classList.add('valid');
+        errorMsg.classList.remove('visible');
+      } else {
+        input.classList.remove('valid');
+        input.classList.add('error');
+        errorMsg.classList.add('visible');
+      }
+    };
+
+    input.addEventListener('blur', validate);
+    input.addEventListener('input', () => {
+      // Only remove error state while typing, don't show new errors until blur
+      if (input.classList.contains('error') && isValidUrl(input.value)) {
+        input.classList.remove('error');
+        input.classList.add('valid');
+        errorMsg.classList.remove('visible');
+      }
+    });
+
+    // Validate on load if there's an existing value
+    if (input.value.trim()) {
+      validate();
     }
   }
 
@@ -1260,7 +1334,9 @@
           </div>
           <div class="mp-form-field">
             <label>External Link</label>
-            <input type="url" class="mp-form-input" id="mp-form-external_link" placeholder="https://">
+            <input type="text" class="mp-form-input" id="mp-form-external_link" placeholder="https://example.com">
+            <div class="mp-input-hint">Enter a complete URL including https://</div>
+            <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
           </div>
           <div class="mp-form-field">
             <label>Display Order</label>
@@ -1338,6 +1414,9 @@
     });
 
     modal.querySelector('#mp-form-project_name').focus();
+
+    // Setup URL validation
+    setupUrlValidation(modal);
   }
 
   // Open edit project modal
@@ -1378,7 +1457,9 @@
           </div>
           <div class="mp-form-field">
             <label>External Link</label>
-            <input type="url" class="mp-form-input" id="mp-form-external_link" value="${project.external_link || ''}" placeholder="https://">
+            <input type="text" class="mp-form-input" id="mp-form-external_link" value="${project.external_link || ''}" placeholder="https://example.com">
+            <div class="mp-input-hint">Enter a complete URL including https://</div>
+            <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
           </div>
           <div class="mp-form-field">
             <label>Display Order</label>
@@ -1399,6 +1480,9 @@
 
     setupCategorySelector(modal, selectedCategories, null);
     setupImageUploader(modal, projectData, null);
+
+    // Setup URL validation
+    setupUrlValidation(modal);
 
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
