@@ -12,7 +12,8 @@
   const WEBHOOKS = {
     create: 'https://hooks.zapier.com/hooks/catch/20216239/uqpimju/',
     update: 'https://hooks.zapier.com/hooks/catch/20216239/uqpiw8v/',
-    delete: 'https://hooks.zapier.com/hooks/catch/20216239/uqps33w/'
+    delete: 'https://hooks.zapier.com/hooks/catch/20216239/uqps33w/',
+    migrate: 'https://hooks.zapier.com/hooks/catch/20216239/ulh6cmr/'
   };
 
   const UPLOADCARE_PUBLIC_KEY = '4ab46fc683f9c002ae8b';
@@ -622,6 +623,71 @@
       grid-column: span 3;
       aspect-ratio: 16/9;
     }
+
+    /* Migration UI Styles */
+    .mp-migrate-container {
+      font-family: inherit;
+      max-width: 500px;
+      padding: 24px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      text-align: center;
+    }
+    .mp-migrate-container h3 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      color: #333;
+    }
+    .mp-migrate-container p {
+      margin: 0 0 20px 0;
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+    }
+    .mp-migrate-btn {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .mp-migrate-btn:hover {
+      background: #0056b3;
+    }
+    .mp-migrate-btn:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+    .mp-migrate-countdown {
+      margin-top: 16px;
+      padding: 16px;
+      background: #e8f4fc;
+      border-radius: 4px;
+      display: none;
+    }
+    .mp-migrate-countdown.visible {
+      display: block;
+    }
+    .mp-migrate-countdown p {
+      margin: 0;
+      color: #007bff;
+      font-weight: 500;
+    }
+    .mp-migrate-countdown .countdown-number {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .mp-migrate-success {
+      color: #28a745;
+    }
+    .mp-migrate-error {
+      color: #dc3545;
+    }
   `;
 
   // Text field definitions
@@ -684,6 +750,21 @@
         callback(fileInfo.cdnUrl);
       });
     });
+  }
+
+  // Sanitize text for JSON/API compatibility
+  // Removes control characters, normalizes whitespace, and ensures clean text
+  function sanitizeText(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+      // Replace line breaks with spaces
+      .replace(/[\r\n]+/g, ' ')
+      // Remove control characters (except space)
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      // Normalize multiple spaces to single space
+      .replace(/\s+/g, ' ')
+      // Trim leading/trailing whitespace
+      .trim();
   }
 
   // Format URL for Webflow Link field
@@ -757,6 +838,30 @@
     }
   }
 
+  // Update a project with its Webflow Item ID (called after Zapier creates the item)
+  // This can be triggered via URL parameter or called externally
+  async function updateProjectWebflowId(projectId, webflowItemId) {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) {
+      console.error('Project not found:', projectId);
+      return false;
+    }
+
+    project.webflow_item_id = webflowItemId;
+
+    try {
+      await saveProjects();
+      console.log(`Updated project ${projectId} with Webflow ID: ${webflowItemId}`);
+      return true;
+    } catch (error) {
+      console.error('Error saving Webflow ID:', error);
+      return false;
+    }
+  }
+
+  // Expose function globally for external calls (e.g., from Zapier webhook response)
+  window.updateProjectWebflowId = updateProjectWebflowId;
+
   // Send webhook to Zapier
   async function sendWebhook(action, project) {
     const webhookUrl = WEBHOOKS[action];
@@ -769,8 +874,8 @@
     // Get member's Webflow ID from custom fields
     const memberWebflowId = currentMember.customFields?.['webflow-member-id'] || '';
 
-    // Format category IDs as comma-separated quoted strings for Webflow multi-reference
-    const categoryIds = (project.categories || []).map(id => `"${id}"`).join(',');
+    // Format category IDs as JSON array for Webflow v2 multi-reference
+    const categoryIds = project.categories || [];
 
     // Format external link
     const externalLink = formatUrl(project.external_link);
@@ -781,11 +886,11 @@
       webflow_item_id: project.webflow_item_id || '',
       member_webflow_id: memberWebflowId,
       memberstack_id: currentMember.id,
-      // Project fields mapped to Webflow field names
-      name: project.project_name,
-      'project-short-description': project.short_description || '',
-      'project-description-editable': project.project_description || '',
-      'key-detail': project.key_detail || '',
+      // Project fields mapped to Webflow field names (sanitized for API compatibility)
+      name: sanitizeText(project.project_name),
+      'project-short-description': sanitizeText(project.short_description || ''),
+      'project-description-editable': sanitizeText(project.project_description || ''),
+      'key-detail': sanitizeText(project.key_detail || ''),
       'project-external-link': externalLink,
       'display-order': project.display_order || 0,
       'portfolio-item-id': project.id,
@@ -829,6 +934,90 @@
     }
   }
 
+  // Initialize migration UI
+  function initMigrationUI() {
+    const migrateContainer = document.querySelector('.migrate-projects');
+    if (!migrateContainer) {
+      console.log('No .migrate-projects container found');
+      return;
+    }
+
+    // Don't show if member already has projects
+    if (projects.length > 0) {
+      migrateContainer.style.display = 'none';
+      return;
+    }
+
+    migrateContainer.innerHTML = `
+      <div class="mp-migrate-container">
+        <h3>Migrate Your Existing Projects</h3>
+        <p>If you have projects in the old system, click below to migrate them to your new portfolio manager.</p>
+        <button class="mp-migrate-btn" id="mp-migrate-btn">Migrate My Projects</button>
+        <div class="mp-migrate-countdown" id="mp-migrate-countdown">
+          <p>Migration started! Refreshing in <span class="countdown-number" id="mp-countdown-number">10</span> seconds...</p>
+        </div>
+      </div>
+    `;
+
+    const migrateBtn = migrateContainer.querySelector('#mp-migrate-btn');
+    const countdownDiv = migrateContainer.querySelector('#mp-migrate-countdown');
+    const countdownNumber = migrateContainer.querySelector('#mp-countdown-number');
+
+    migrateBtn.addEventListener('click', async () => {
+      migrateBtn.disabled = true;
+      migrateBtn.textContent = 'Starting migration...';
+
+      try {
+        // Send migration webhook
+        const webhookUrl = WEBHOOKS.migrate;
+
+        if (!webhookUrl || webhookUrl.includes('MIGRATE_WEBHOOK_ID')) {
+          throw new Error('Migration webhook not configured');
+        }
+
+        const payload = {
+          action: 'migrate',
+          memberstack_id: currentMember.id,
+          member_email: currentMember.auth?.email || '',
+          webflow_member_id: currentMember.customFields?.['webflow-member-id'] || ''
+        };
+
+        console.log('Sending migration webhook:', payload);
+
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          mode: 'no-cors'
+        });
+
+        // Show countdown
+        migrateBtn.textContent = 'Migration started!';
+        countdownDiv.classList.add('visible');
+
+        // Start countdown
+        let seconds = 10;
+        const countdownInterval = setInterval(() => {
+          seconds--;
+          countdownNumber.textContent = seconds;
+
+          if (seconds <= 0) {
+            clearInterval(countdownInterval);
+            window.location.reload();
+          }
+        }, 1000);
+
+      } catch (error) {
+        console.error('Migration error:', error);
+        migrateBtn.disabled = false;
+        migrateBtn.textContent = 'Migration failed - Try again';
+        migrateBtn.classList.add('mp-migrate-error');
+      }
+    });
+  }
+
   // Initialize
   async function init() {
     const container = document.querySelector('.vibe-test');
@@ -868,8 +1057,25 @@
       // Load projects from member JSON
       await loadProjects();
 
+      // Check for Webflow ID callback in URL parameters
+      // URL format: ?wf_project_id=proj_xxx&wf_item_id=xxx
+      const urlParams = new URLSearchParams(window.location.search);
+      const wfProjectId = urlParams.get('wf_project_id');
+      const wfItemId = urlParams.get('wf_item_id');
+
+      if (wfProjectId && wfItemId) {
+        console.log('Received Webflow ID callback:', wfProjectId, wfItemId);
+        await updateProjectWebflowId(wfProjectId, wfItemId);
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+
       // Render projects
       renderProjects(wrapper);
+
+      // Initialize migration UI (only shows if no projects exist)
+      initMigrationUI();
     } catch (error) {
       console.error('Error initializing member projects:', error);
       wrapper.innerHTML = '<div class="mp-loading">Error loading projects. Please refresh the page.</div>';
@@ -928,9 +1134,64 @@
         <div class="mp-empty">
           <p>You don't have any projects yet</p>
           <button class="mp-btn" id="mp-add-first">Add Your First Project</button>
+          <div style="margin: 20px 0; color: #999; font-size: 14px;">— or —</div>
+          <p style="font-size: 14px; color: #666; margin-bottom: 12px;">Have existing projects in your portfolio?</p>
+          <button class="mp-btn mp-btn-secondary" id="mp-migrate-inline">Migrate My Projects</button>
+          <div class="mp-migrate-countdown" id="mp-migrate-countdown-inline" style="margin-top: 16px; display: none;">
+            <p style="color: #007bff; font-weight: 500;">Migration started! Refreshing in <span class="countdown-number" id="mp-countdown-inline">10</span> seconds...</p>
+          </div>
         </div>
       `;
       wrapper.querySelector('#mp-add-first').addEventListener('click', () => openAddModal(wrapper));
+
+      // Setup inline migrate button
+      const migrateBtn = wrapper.querySelector('#mp-migrate-inline');
+      const countdownDiv = wrapper.querySelector('#mp-migrate-countdown-inline');
+      const countdownNumber = wrapper.querySelector('#mp-countdown-inline');
+
+      migrateBtn.addEventListener('click', async () => {
+        migrateBtn.disabled = true;
+        migrateBtn.textContent = 'Starting migration...';
+
+        try {
+          const webhookUrl = WEBHOOKS.migrate;
+
+          const payload = {
+            action: 'migrate',
+            memberstack_id: currentMember.id,
+            member_email: currentMember.auth?.email || '',
+            webflow_member_id: currentMember.customFields?.['webflow-member-id'] || ''
+          };
+
+          console.log('Sending migration webhook:', payload);
+
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            mode: 'no-cors'
+          });
+
+          migrateBtn.textContent = 'Migration started!';
+          countdownDiv.style.display = 'block';
+
+          let seconds = 10;
+          const interval = setInterval(() => {
+            seconds--;
+            countdownNumber.textContent = seconds;
+            if (seconds <= 0) {
+              clearInterval(interval);
+              window.location.reload();
+            }
+          }, 1000);
+
+        } catch (error) {
+          console.error('Migration error:', error);
+          migrateBtn.disabled = false;
+          migrateBtn.textContent = 'Migration failed - Try again';
+        }
+      });
+
       return;
     }
 
@@ -1066,8 +1327,19 @@
         deleteBtn.textContent = 'Deleting...';
 
         try {
-          await sendWebhook('delete', project);
-          projects = projects.filter(p => p.id !== project.id);
+          // Reload fresh data from Memberstack to get webflow_item_id
+          // (which may have been added by Zapier after page load)
+          await loadProjects();
+          const freshProject = projects.find(p => p.id === project.id);
+
+          if (freshProject) {
+            await sendWebhook('delete', freshProject);
+            projects = projects.filter(p => p.id !== project.id);
+          } else {
+            // Project already deleted from Memberstack
+            projects = projects.filter(p => p.id !== project.id);
+          }
+
           await saveProjects();
           renderProjects(wrapper);
         } catch (error) {
