@@ -1738,39 +1738,51 @@
       customFields: customFields
     });
 
-    // Prepare webhook data
+    // Prepare webhook data - flattened for Zapier compatibility
     const webhookData = {
       memberId: memberData.id,
-      memberEmail: memberData.auth?.email,
+      memberEmail: memberData.auth?.email || '',
       membershipType: membershipType,
       bio: formData.bio,
-      businessName: formData.businessName || null,
-      businessAddress: formData.businessAddress || null,
-      displayAddress: formData.displayAddress,
-      displayOpeningHours: formData.displayOpeningHours,
-      openingHours: formData.openingHours,
-      website: formData.website || null,
-      instagram: formData.instagram || null,
-      facebook: formData.facebook || null,
-      linkedin: formData.linkedin || null,
-      tiktok: formData.tiktok || null,
-      youtube: formData.youtube || null,
-      chosenDirectories: formData.chosenDirectories,
-      spaceCategories: formData.spaceCategories,
-      supplierCategories: formData.supplierCategories,
-      isCreativeSpace: formData.spaceOrSupplier === 'space',
-      isSupplier: formData.spaceOrSupplier === 'supplier',
-      profileImageUrl: formData.profileImageUrl,
-      featureImageUrl: formData.featureImageUrl,
+      businessName: formData.businessName || '',
+      businessAddress: formData.businessAddress || '',
+      displayAddress: formData.displayAddress ? 'true' : 'false',
+      displayOpeningHours: formData.displayOpeningHours ? 'true' : 'false',
+      // Flatten opening hours
+      openingMonday: formData.openingHours.monday || '',
+      openingTuesday: formData.openingHours.tuesday || '',
+      openingWednesday: formData.openingHours.wednesday || '',
+      openingThursday: formData.openingHours.thursday || '',
+      openingFriday: formData.openingHours.friday || '',
+      openingSaturday: formData.openingHours.saturday || '',
+      openingSunday: formData.openingHours.sunday || '',
+      // Links
+      website: formData.website || '',
+      instagram: formData.instagram || '',
+      facebook: formData.facebook || '',
+      linkedin: formData.linkedin || '',
+      tiktok: formData.tiktok || '',
+      youtube: formData.youtube || '',
+      // Categories as comma-separated IDs (Zapier friendly)
+      chosenDirectories: formData.chosenDirectories.join(','),
+      spaceCategories: formData.spaceCategories.join(','),
+      supplierCategories: formData.supplierCategories.join(','),
+      // Booleans as strings
+      isCreativeSpace: formData.spaceOrSupplier === 'space' ? 'true' : 'false',
+      isSupplier: formData.spaceOrSupplier === 'supplier' ? 'true' : 'false',
+      // Images
+      profileImageUrl: formData.profileImageUrl || '',
+      featureImageUrl: formData.featureImageUrl || '',
       timestamp: new Date().toISOString()
     };
 
-    // Send to webhook
+    // Send to webhook as form-urlencoded (better Zapier compatibility)
     try {
+      const formBody = new URLSearchParams(webhookData).toString();
       await fetch(ONBOARDING_WEBHOOK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookData)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody
       });
     } catch (e) {
       console.warn('Webhook error (non-blocking):', e);
