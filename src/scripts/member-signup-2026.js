@@ -563,7 +563,7 @@
           // After successful payment, redirect to onboarding page
           await window.$memberstackDom.purchasePlansWithCheckout({
             priceId: priceId,
-            successUrl: window.location.origin + '/join/signup/onboarding'
+            successUrl: window.location.origin + '/member/onboarding'
           });
         } else {
           throw new Error('Signup failed - no member data returned');
