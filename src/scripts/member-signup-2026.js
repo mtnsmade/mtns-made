@@ -527,7 +527,9 @@
 
       try {
         // Generate slug for member profile
-        const slug = generateSlug(firstName, lastName);
+        // Individual types use firstname-lastname, business types set slug during onboarding
+        const isBusinessType = ['small-business', 'large-business', 'not-for-profit', 'spaces-suppliers'].includes(membershipType);
+        const slug = isBusinessType ? '' : generateSlug(firstName, lastName);
 
         // Get the plan and price IDs for this membership type
         const typeInfo = MEMBERSHIP_TYPES[membershipType];
