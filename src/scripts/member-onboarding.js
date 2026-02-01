@@ -738,6 +738,106 @@
     return type === SPACES_SUPPLIERS_TYPE;
   }
 
+  // Social media URL patterns and base URLs
+  const SOCIAL_PLATFORMS = {
+    instagram: {
+      baseUrl: 'https://www.instagram.com/',
+      patterns: [/instagram\.com\/([^\/\?]+)/i, /^@?([a-zA-Z0-9._]+)$/]
+    },
+    facebook: {
+      baseUrl: 'https://www.facebook.com/',
+      patterns: [/facebook\.com\/([^\/\?]+)/i, /^([a-zA-Z0-9.]+)$/]
+    },
+    linkedin: {
+      baseUrl: 'https://www.linkedin.com/in/',
+      patterns: [/linkedin\.com\/(in|company)\/([^\/\?]+)/i, /^([a-zA-Z0-9-]+)$/]
+    },
+    tiktok: {
+      baseUrl: 'https://www.tiktok.com/@',
+      patterns: [/tiktok\.com\/@?([^\/\?]+)/i, /^@?([a-zA-Z0-9._]+)$/]
+    },
+    youtube: {
+      baseUrl: 'https://www.youtube.com/',
+      patterns: [/youtube\.com\/(channel|c|user|@)\/([^\/\?]+)/i, /youtube\.com\/([^\/\?]+)/i, /^@?([a-zA-Z0-9_-]+)$/]
+    }
+  };
+
+  // Validate and normalize a URL
+  function normalizeUrl(value, platform = null) {
+    if (!value || !value.trim()) {
+      return { valid: true, url: '' };
+    }
+
+    value = value.trim();
+
+    // If it's already a valid URL, return it
+    if (/^https?:\/\//i.test(value)) {
+      try {
+        new URL(value);
+        return { valid: true, url: value };
+      } catch {
+        return { valid: false, error: 'Invalid URL format' };
+      }
+    }
+
+    // For website field, require full URL
+    if (platform === 'website') {
+      // Try adding https://
+      if (/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}/.test(value)) {
+        return { valid: true, url: 'https://' + value };
+      }
+      return { valid: false, error: 'Please enter a full website URL (e.g., https://example.com)' };
+    }
+
+    // For social platforms, try to extract username and build URL
+    if (platform && SOCIAL_PLATFORMS[platform]) {
+      const config = SOCIAL_PLATFORMS[platform];
+
+      // Check if it contains the platform domain (partial URL)
+      if (value.toLowerCase().includes(platform.toLowerCase() + '.com')) {
+        return { valid: true, url: 'https://' + value.replace(/^(https?:\/\/)?/i, '') };
+      }
+
+      // Check if it's just a username
+      for (const pattern of config.patterns) {
+        const match = value.match(pattern);
+        if (match) {
+          const username = match[match.length - 1]; // Get last capture group
+          // Don't convert if it looks like a generic word
+          if (username.toLowerCase() === platform.toLowerCase()) {
+            return { valid: false, error: `Please enter your ${platform} profile URL or username` };
+          }
+          return { valid: true, url: config.baseUrl + username.replace(/^@/, '') };
+        }
+      }
+
+      return { valid: false, error: `Please enter a valid ${platform} URL or username` };
+    }
+
+    return { valid: false, error: 'Invalid URL' };
+  }
+
+  // Validate all social links and return errors
+  function validateSocialLinks() {
+    const errors = [];
+    const platforms = ['website', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
+
+    platforms.forEach(platform => {
+      const value = formData[platform];
+      if (value && value.trim()) {
+        const result = normalizeUrl(value, platform);
+        if (!result.valid) {
+          errors.push({ platform, error: result.error });
+        } else {
+          // Update formData with normalized URL
+          formData[platform] = result.url;
+        }
+      }
+    });
+
+    return errors;
+  }
+
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1488,12 +1588,50 @@
     const submitBtn = container.querySelector('#ms-submit-btn');
     const errorBanner = container.querySelector('#ms-error-banner');
 
-    // Link inputs
+    // Link inputs with validation
     const linkInputs = ['website', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
-    linkInputs.forEach(link => {
-      const input = container.querySelector(`#ms-${link}`);
+    linkInputs.forEach(platform => {
+      const input = container.querySelector(`#ms-${platform}`);
+      const field = input.closest('.ms-link-field');
+
+      // Remove any existing error element
+      let errorEl = field.querySelector('.ms-field-error');
+      if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.className = 'ms-field-error';
+        errorEl.style.cssText = 'color: #dc3545; font-size: 12px; margin-top: 4px; grid-column: 2;';
+        field.appendChild(errorEl);
+      }
+
+      // Update formData on input
       input.addEventListener('input', () => {
-        formData[link] = input.value;
+        formData[platform] = input.value;
+        input.classList.remove('error');
+        errorEl.textContent = '';
+      });
+
+      // Validate and auto-fix on blur
+      input.addEventListener('blur', () => {
+        const value = input.value.trim();
+        if (!value) {
+          input.classList.remove('error');
+          errorEl.textContent = '';
+          return;
+        }
+
+        const result = normalizeUrl(value, platform);
+        if (result.valid) {
+          // Auto-fix the URL
+          if (result.url !== value) {
+            input.value = result.url;
+            formData[platform] = result.url;
+          }
+          input.classList.remove('error');
+          errorEl.textContent = '';
+        } else {
+          input.classList.add('error');
+          errorEl.textContent = result.error;
+        }
       });
     });
 
@@ -1510,6 +1648,29 @@
 
     // Submit button
     submitBtn.addEventListener('click', async () => {
+      // Validate all links first
+      const errors = validateSocialLinks();
+      if (errors.length > 0) {
+        // Highlight error fields
+        errors.forEach(({ platform, error }) => {
+          const input = container.querySelector(`#ms-${platform}`);
+          const field = input.closest('.ms-link-field');
+          const errorEl = field.querySelector('.ms-field-error');
+          input.classList.add('error');
+          if (errorEl) errorEl.textContent = error;
+        });
+        showError(errorBanner, 'Please fix the highlighted fields before continuing');
+        return;
+      }
+
+      // Update input values with normalized URLs
+      linkInputs.forEach(platform => {
+        const input = container.querySelector(`#ms-${platform}`);
+        if (formData[platform]) {
+          input.value = formData[platform];
+        }
+      });
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Saving...';
 
