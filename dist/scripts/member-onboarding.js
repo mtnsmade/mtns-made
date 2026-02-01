@@ -708,7 +708,7 @@
           <div style="font-size: 48px; margin-bottom: 16px;">✓</div>
           <h2 style="margin: 0 0 8px 0;">Profile Complete!</h2>
           <p style="color: #666; margin-bottom: 24px;">Your profile is now set up and ready to go.</p>
-          <a href="/member/dashboard" class="ms-btn" style="display: inline-block; text-decoration: none;">Go to Dashboard</a>
+          <a href="/profile/start" class="ms-btn" style="display: inline-block; text-decoration: none;">Go to Dashboard</a>
         </div>
       </div>
     `}function u(e){switch(p){case 1:B(e);break;case 2:W(e);break;case 3:Y(e);break;case 4:J(e);break;case 5:K(e);break}}function m(e,s){e.textContent=s,e.style.display="block",e.scrollIntoView({behavior:"smooth",block:"center"})}function se(e){e.innerHTML=`
@@ -728,7 +728,7 @@
           <div style="font-size: 48px; margin-bottom: 16px;">✓</div>
           <h2 style="margin: 0 0 8px 0;">Profile Already Complete</h2>
           <p style="color: #666; margin-bottom: 24px;">You've already completed your profile setup.</p>
-          <a href="/member/dashboard" class="ms-btn" style="display: inline-block; text-decoration: none;">Go to Dashboard</a>
+          <a href="/profile/start" class="ms-btn" style="display: inline-block; text-decoration: none;">Go to Dashboard</a>
         </div>
       </div>
     `}function ie(e,s){e.innerHTML=`
