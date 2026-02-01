@@ -10,35 +10,41 @@
   // CONFIGURATION
   // ============================================
 
-  // Membership types with their Memberstack price IDs
+  // Membership types with their Memberstack plan and price IDs
   const MEMBERSHIP_TYPES = {
     'emerging': {
       name: 'Emerging',
+      planId: 'pln_emerging-i59k0l22',
       monthlyPriceId: 'prc_emerging-monthly-pjfn0zg0',
       yearlyPriceId: 'prc_emerging-subscription-gsa206gw'
     },
     'professional': {
       name: 'Professional',
+      planId: 'pln_professional-ic970osr',
       monthlyPriceId: 'prc_professional-monthly-ilg80e59',
       yearlyPriceId: 'prc_professional-subscription-4z9m0lla'
     },
     'not-for-profit': {
       name: 'Not For Profit',
+      planId: 'pln_not-for-profit-qaa106a4',
       monthlyPriceId: 'prc_not-for-profit-monthly-t1gb0etf',
       yearlyPriceId: 'prc_not-for-profit-subscription-w69j0l9k'
     },
     'small-business': {
       name: 'Small Business',
+      planId: 'pln_small-business-qsa506lc',
       monthlyPriceId: 'prc_small-business-monthly-3zgd0ga2',
       yearlyPriceId: 'prc_small-business-subscription-jpa606e1'
     },
     'large-business': {
       name: 'Large Business',
+      planId: 'pln_medium-large-business-9qa706pj',
       monthlyPriceId: 'prc_medium-large-business-monthly-i2fl0z2d',
       yearlyPriceId: 'prc_medium-large-business-subscription-g6a806rj'
     },
     'spaces-suppliers': {
       name: 'Spaces / Suppliers',
+      planId: 'pln_creative-spaces-suppliers-ck5s08g3',
       monthlyPriceId: 'prc_spaces-suppliers-monthly-odbt0bpb',
       yearlyPriceId: 'prc_spaces-suppliers-yearly-o0bo07rj'
     }
@@ -523,7 +529,7 @@
         // Generate slug for member profile
         const slug = generateSlug(firstName, lastName);
 
-        // Get the price ID for this membership type and billing frequency
+        // Get the plan and price IDs for this membership type
         const typeInfo = MEMBERSHIP_TYPES[membershipType];
         const priceId = billingFrequency === 'yearly'
           ? typeInfo.yearlyPriceId
@@ -544,6 +550,7 @@
             'onboarding-complete': 'false'
           },
           plans: [{
+            planId: typeInfo.planId,
             priceId: priceId
           }]
         });
