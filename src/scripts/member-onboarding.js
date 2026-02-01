@@ -1689,10 +1689,13 @@
   async function submitOnboarding(container) {
     const membershipType = memberData?.customFields?.['membership-type'];
 
-    // Prepare data for Memberstack update
+    // Prepare data for Memberstack update - save ALL collected data
     const customFields = {
       'public-bio': formData.bio,
-      'onboarding-complete': 'true'
+      'onboarding-complete': 'true',
+      // Images
+      'profile-image': formData.profileImageUrl || '',
+      'feature-image': formData.featureImageUrl || ''
     };
 
     // Business name for business types
@@ -1710,12 +1713,10 @@
       customFields['display-address'] = formData.displayAddress ? 'true' : 'false';
       customFields['display-opening-hours'] = formData.displayOpeningHours ? 'true' : 'false';
 
-      // Opening hours
+      // Opening hours - save each day
       DAYS_OF_WEEK.forEach(day => {
         const hours = formData.openingHours[day.toLowerCase()];
-        if (hours) {
-          customFields[`opening-${day.toLowerCase()}`] = hours;
-        }
+        customFields[`opening-${day.toLowerCase()}`] = hours || '';
       });
     }
 
@@ -1727,10 +1728,21 @@
     if (formData.tiktok) customFields['tiktok'] = formData.tiktok;
     if (formData.youtube) customFields['youtube'] = formData.youtube;
 
-    // Space/Supplier type
+    // Categories - store as JSON string in Memberstack
+    if (formData.chosenDirectories.length > 0) {
+      customFields['chosen-directories'] = JSON.stringify(formData.chosenDirectories);
+    }
+
+    // Space/Supplier type and categories
     if (isSpacesSuppliers(membershipType)) {
       customFields['is-creative-space'] = formData.spaceOrSupplier === 'space' ? 'true' : 'false';
       customFields['is-supplier'] = formData.spaceOrSupplier === 'supplier' ? 'true' : 'false';
+      if (formData.spaceCategories.length > 0) {
+        customFields['space-categories'] = JSON.stringify(formData.spaceCategories);
+      }
+      if (formData.supplierCategories.length > 0) {
+        customFields['supplier-categories'] = JSON.stringify(formData.supplierCategories);
+      }
     }
 
     // Update Memberstack
@@ -1738,24 +1750,32 @@
       customFields: customFields
     });
 
-    // Prepare webhook data - flattened for Zapier compatibility
+    // Get member's Webflow ID from custom fields (set during initial signup)
+    const memberWebflowId = memberData.customFields?.['webflow-member-id'] || '';
+
+    // Prepare webhook data - JSON format for Webflow multi-reference fields
     const webhookData = {
+      // Member identification
       memberId: memberData.id,
+      memberWebflowId: memberWebflowId,
       memberEmail: memberData.auth?.email || '',
       membershipType: membershipType,
+      // Profile info
       bio: formData.bio,
       businessName: formData.businessName || '',
       businessAddress: formData.businessAddress || '',
-      displayAddress: formData.displayAddress ? 'true' : 'false',
-      displayOpeningHours: formData.displayOpeningHours ? 'true' : 'false',
-      // Flatten opening hours
-      openingMonday: formData.openingHours.monday || '',
-      openingTuesday: formData.openingHours.tuesday || '',
-      openingWednesday: formData.openingHours.wednesday || '',
-      openingThursday: formData.openingHours.thursday || '',
-      openingFriday: formData.openingHours.friday || '',
-      openingSaturday: formData.openingHours.saturday || '',
-      openingSunday: formData.openingHours.sunday || '',
+      displayAddress: formData.displayAddress,
+      displayOpeningHours: formData.displayOpeningHours,
+      // Opening hours as object
+      openingHours: {
+        monday: formData.openingHours.monday || '',
+        tuesday: formData.openingHours.tuesday || '',
+        wednesday: formData.openingHours.wednesday || '',
+        thursday: formData.openingHours.thursday || '',
+        friday: formData.openingHours.friday || '',
+        saturday: formData.openingHours.saturday || '',
+        sunday: formData.openingHours.sunday || ''
+      },
       // Links
       website: formData.website || '',
       instagram: formData.instagram || '',
@@ -1763,29 +1783,29 @@
       linkedin: formData.linkedin || '',
       tiktok: formData.tiktok || '',
       youtube: formData.youtube || '',
-      // Categories as comma-separated IDs (Zapier friendly)
-      chosenDirectories: formData.chosenDirectories.join(','),
-      spaceCategories: formData.spaceCategories.join(','),
-      supplierCategories: formData.supplierCategories.join(','),
-      // Booleans as strings
-      isCreativeSpace: formData.spaceOrSupplier === 'space' ? 'true' : 'false',
-      isSupplier: formData.spaceOrSupplier === 'supplier' ? 'true' : 'false',
+      // Categories as arrays for Webflow v2 multi-reference fields
+      chosenDirectories: formData.chosenDirectories,
+      spaceCategories: formData.spaceCategories,
+      supplierCategories: formData.supplierCategories,
+      // Type flags
+      isCreativeSpace: formData.spaceOrSupplier === 'space',
+      isSupplier: formData.spaceOrSupplier === 'supplier',
       // Images
       profileImageUrl: formData.profileImageUrl || '',
       featureImageUrl: formData.featureImageUrl || '',
       timestamp: new Date().toISOString()
     };
 
-    // Send to webhook as form-urlencoded (better Zapier compatibility)
+    // Send to webhook as JSON (required for Webflow multi-reference arrays)
     try {
       console.log('Sending onboarding webhook...', webhookData);
-      const formBody = new URLSearchParams(webhookData).toString();
       const response = await fetch(ONBOARDING_WEBHOOK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formBody
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookData),
+        mode: 'no-cors'
       });
-      console.log('Webhook response:', response.status, response.ok);
+      console.log('Webhook sent successfully');
     } catch (e) {
       console.warn('Webhook error (non-blocking):', e);
     }
