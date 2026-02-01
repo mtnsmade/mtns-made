@@ -1750,8 +1750,14 @@
       customFields: customFields
     });
 
-    // Get member's Webflow ID from custom fields (set during initial signup)
+    // Get all member data from Memberstack custom fields (collected during signup)
     const memberWebflowId = memberData.customFields?.['webflow-member-id'] || '';
+    const firstName = memberData.customFields?.['first-name'] || '';
+    const lastName = memberData.customFields?.['last-name'] || '';
+    const slug = memberData.customFields?.['slug'] || '';
+    const suburb = memberData.customFields?.['suburb'] || '';
+    const suburbId = memberData.customFields?.['suburb-id'] || '';
+    const billingFrequency = memberData.customFields?.['billing-frequency'] || '';
 
     // Prepare webhook data - JSON format for Webflow multi-reference fields
     const webhookData = {
@@ -1759,8 +1765,15 @@
       memberId: memberData.id,
       memberWebflowId: memberWebflowId,
       memberEmail: memberData.auth?.email || '',
+      // Data from signup
+      firstName: firstName,
+      lastName: lastName,
+      slug: slug,
+      suburb: suburb,
+      suburbId: suburbId,
       membershipType: membershipType,
-      // Profile info
+      billingFrequency: billingFrequency,
+      // Profile info from onboarding
       bio: formData.bio,
       businessName: formData.businessName || '',
       businessAddress: formData.businessAddress || '',
