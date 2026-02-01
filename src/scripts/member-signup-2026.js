@@ -373,8 +373,7 @@
     container.innerHTML = `
       <div class="ms-container">
         <div class="ms-header">
-          <h2>Join MTNS MADE</h2>
-          <p>Create your account to get started</p>
+          <h2>CREATE YOUR ACCOUNT</h2>
           <div class="ms-membership-badge">${typeInfo.name} - ${billingLabel}</div>
         </div>
 
