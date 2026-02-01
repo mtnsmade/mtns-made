@@ -19,7 +19,10 @@
   const SPACES_SUPPLIERS_TYPE = 'spaces-suppliers';
 
   // Webhook URL for updating Webflow CMS (via Zapier)
-  const ONBOARDING_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/YOUR_ZAPIER_WEBHOOK_ID';
+  const ONBOARDING_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/20216239/ulr09fx/';
+
+  // Uploadcare public key for image uploads
+  const UPLOADCARE_PUBLIC_KEY = '4ab46fc683f9c002ae8b';
 
   // Parent Directories (for grouping sub-directories)
   const PARENT_DIRECTORIES = [
@@ -666,9 +669,9 @@
   let totalSteps = 5;
   let memberData = null;
   let formData = {
-    profileImage: null,
+    profileImageUrl: null,
     profileImagePreview: null,
-    featureImage: null,
+    featureImageUrl: null,
     featureImagePreview: null,
     bio: '',
     businessName: '',
@@ -739,6 +742,27 @@
       reader.onload = () => resolve(reader.result);
       reader.onerror = error => reject(error);
     });
+  }
+
+  // Upload image to Uploadcare and return CDN URL
+  async function uploadToUploadcare(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('UPLOADCARE_PUB_KEY', UPLOADCARE_PUBLIC_KEY);
+    formData.append('UPLOADCARE_STORE', '1');
+
+    const response = await fetch('https://upload.uploadcare.com/base/', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+
+    const data = await response.json();
+    // Return the CDN URL
+    return `https://ucarecdn.com/${data.file}/`;
   }
 
   // ============================================
@@ -823,22 +847,35 @@
     profileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (file) {
-        formData.profileImage = file;
-        formData.profileImagePreview = await fileToBase64(file);
+        // Show loading state
         profileUpload.innerHTML = `
-          <img src="${formData.profileImagePreview}" class="ms-image-preview profile" alt="Profile preview">
-          <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
-          <input type="file" accept="image/*" id="profile-image-input">
+          <div class="ms-image-upload-text">
+            <strong>Uploading...</strong><br>
+            Please wait
+          </div>
         `;
-        profileUpload.classList.add('has-image');
 
-        // Re-attach handlers
-        container.querySelector('#profile-image-input').addEventListener('change', arguments.callee);
-        container.querySelector('#remove-profile').addEventListener('click', (e) => {
-          e.stopPropagation();
-          formData.profileImage = null;
-          formData.profileImagePreview = null;
-          profileUpload.classList.remove('has-image');
+        try {
+          // Get preview for display
+          const preview = await fileToBase64(file);
+          // Upload to Uploadcare
+          const uploadedUrl = await uploadToUploadcare(file);
+
+          formData.profileImageUrl = uploadedUrl;
+          formData.profileImagePreview = preview;
+
+          profileUpload.innerHTML = `
+            <img src="${preview}" class="ms-image-preview profile" alt="Profile preview">
+            <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
+            <input type="file" accept="image/*" id="profile-image-input">
+          `;
+          profileUpload.classList.add('has-image');
+
+          // Re-attach handlers
+          setupStep1Handlers(container);
+        } catch (error) {
+          console.error('Profile upload error:', error);
+          showError(errorBanner, 'Failed to upload profile image. Please try again.');
           profileUpload.innerHTML = `
             <input type="file" accept="image/*" id="profile-image-input">
             <div class="ms-image-upload-text">
@@ -847,7 +884,7 @@
             </div>
           `;
           setupStep1Handlers(container);
-        });
+        }
       }
     });
 
@@ -855,22 +892,35 @@
     featureInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (file) {
-        formData.featureImage = file;
-        formData.featureImagePreview = await fileToBase64(file);
+        // Show loading state
         featureUpload.innerHTML = `
-          <img src="${formData.featureImagePreview}" class="ms-image-preview" alt="Feature preview">
-          <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
-          <input type="file" accept="image/*" id="feature-image-input">
+          <div class="ms-image-upload-text">
+            <strong>Uploading...</strong><br>
+            Please wait
+          </div>
         `;
-        featureUpload.classList.add('has-image');
 
-        // Re-attach handlers
-        container.querySelector('#feature-image-input').addEventListener('change', arguments.callee);
-        container.querySelector('#remove-feature').addEventListener('click', (e) => {
-          e.stopPropagation();
-          formData.featureImage = null;
-          formData.featureImagePreview = null;
-          featureUpload.classList.remove('has-image');
+        try {
+          // Get preview for display
+          const preview = await fileToBase64(file);
+          // Upload to Uploadcare
+          const uploadedUrl = await uploadToUploadcare(file);
+
+          formData.featureImageUrl = uploadedUrl;
+          formData.featureImagePreview = preview;
+
+          featureUpload.innerHTML = `
+            <img src="${preview}" class="ms-image-preview" alt="Feature preview">
+            <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
+            <input type="file" accept="image/*" id="feature-image-input">
+          `;
+          featureUpload.classList.add('has-image');
+
+          // Re-attach handlers
+          setupStep1Handlers(container);
+        } catch (error) {
+          console.error('Feature upload error:', error);
+          showError(errorBanner, 'Failed to upload feature image. Please try again.');
           featureUpload.innerHTML = `
             <input type="file" accept="image/*" id="feature-image-input">
             <div class="ms-image-upload-text">
@@ -879,12 +929,50 @@
             </div>
           `;
           setupStep1Handlers(container);
-        });
+        }
       }
     });
 
+    // Remove profile image handler
+    const removeProfileBtn = container.querySelector('#remove-profile');
+    if (removeProfileBtn) {
+      removeProfileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        formData.profileImageUrl = null;
+        formData.profileImagePreview = null;
+        profileUpload.classList.remove('has-image');
+        profileUpload.innerHTML = `
+          <input type="file" accept="image/*" id="profile-image-input">
+          <div class="ms-image-upload-text">
+            <strong>Click to upload</strong><br>
+            Square image recommended
+          </div>
+        `;
+        setupStep1Handlers(container);
+      });
+    }
+
+    // Remove feature image handler
+    const removeFeatureBtn = container.querySelector('#remove-feature');
+    if (removeFeatureBtn) {
+      removeFeatureBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        formData.featureImageUrl = null;
+        formData.featureImagePreview = null;
+        featureUpload.classList.remove('has-image');
+        featureUpload.innerHTML = `
+          <input type="file" accept="image/*" id="feature-image-input">
+          <div class="ms-image-upload-text">
+            <strong>Click to upload</strong><br>
+            Landscape image recommended
+          </div>
+        `;
+        setupStep1Handlers(container);
+      });
+    }
+
     // Restore previews if going back
-    if (formData.profileImagePreview) {
+    if (formData.profileImagePreview && !container.querySelector('#remove-profile')) {
       profileUpload.innerHTML = `
         <img src="${formData.profileImagePreview}" class="ms-image-preview profile" alt="Profile preview">
         <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
@@ -892,8 +980,9 @@
       `;
       profileUpload.classList.add('has-image');
       setupStep1Handlers(container);
+      return;
     }
-    if (formData.featureImagePreview) {
+    if (formData.featureImagePreview && !container.querySelector('#remove-feature')) {
       featureUpload.innerHTML = `
         <img src="${formData.featureImagePreview}" class="ms-image-preview" alt="Feature preview">
         <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
@@ -901,15 +990,16 @@
       `;
       featureUpload.classList.add('has-image');
       setupStep1Handlers(container);
+      return;
     }
 
     // Next button
     nextBtn.addEventListener('click', () => {
-      if (!formData.profileImage && !formData.profileImagePreview) {
+      if (!formData.profileImageUrl) {
         showError(errorBanner, 'Please upload a profile image');
         return;
       }
-      if (!formData.featureImage && !formData.featureImagePreview) {
+      if (!formData.featureImageUrl) {
         showError(errorBanner, 'Please upload a feature image');
         return;
       }
@@ -1535,8 +1625,8 @@
       supplierCategories: formData.supplierCategories,
       isCreativeSpace: formData.spaceOrSupplier === 'space',
       isSupplier: formData.spaceOrSupplier === 'supplier',
-      profileImage: formData.profileImagePreview,
-      featureImage: formData.featureImagePreview,
+      profileImageUrl: formData.profileImageUrl,
+      featureImageUrl: formData.featureImageUrl,
       timestamp: new Date().toISOString()
     };
 
