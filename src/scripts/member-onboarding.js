@@ -1778,12 +1778,14 @@
 
     // Send to webhook as form-urlencoded (better Zapier compatibility)
     try {
+      console.log('Sending onboarding webhook...', webhookData);
       const formBody = new URLSearchParams(webhookData).toString();
-      await fetch(ONBOARDING_WEBHOOK_URL, {
+      const response = await fetch(ONBOARDING_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formBody
       });
+      console.log('Webhook response:', response.status, response.ok);
     } catch (e) {
       console.warn('Webhook error (non-blocking):', e);
     }
@@ -1793,16 +1795,29 @@
   }
 
   function renderSuccess(container) {
+    let countdown = 5;
+
     container.innerHTML = `
       <div class="ms-container">
         <div class="ms-form" style="text-align: center; padding: 48px 32px;">
           <div style="font-size: 48px; margin-bottom: 16px;">✓</div>
           <h2 style="margin: 0 0 8px 0;">Profile Complete!</h2>
-          <p style="color: #666; margin-bottom: 24px;">Your profile is now set up and ready to go.</p>
-          <a href="/profile/start" class="ms-btn" style="display: inline-block; text-decoration: none;">Go to Dashboard</a>
+          <p style="color: #666; margin-bottom: 16px;">Your profile is now set up and ready to go.</p>
+          <p style="color: #999; font-size: 14px;">Transferring you to your dashboard in <span id="countdown">${countdown}</span> seconds...</p>
+          <a href="/profile/start" class="ms-btn" style="display: inline-block; text-decoration: none; margin-top: 16px;">Go to Dashboard Now</a>
         </div>
       </div>
     `;
+
+    const countdownEl = container.querySelector('#countdown');
+    const timer = setInterval(() => {
+      countdown--;
+      if (countdownEl) countdownEl.textContent = countdown;
+      if (countdown <= 0) {
+        clearInterval(timer);
+        window.location.href = '/profile/start';
+      }
+    }, 1000);
   }
 
   function renderCurrentStep(container) {
