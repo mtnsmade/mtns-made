@@ -24,6 +24,9 @@
   // Uploadcare public key for image uploads
   const UPLOADCARE_PUBLIC_KEY = '4ab46fc683f9c002ae8b';
 
+  // Uploadcare widget loaded flag
+  let uploadcareLoaded = false;
+
   // Parent Directories (for grouping sub-directories)
   const PARENT_DIRECTORIES = [
     { id: '64ad5d2856cac56795029d2a', name: 'Visual Arts', slug: 'visual-arts' },
@@ -744,25 +747,53 @@
     });
   }
 
-  // Upload image to Uploadcare and return CDN URL
-  async function uploadToUploadcare(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('UPLOADCARE_PUB_KEY', UPLOADCARE_PUBLIC_KEY);
-    formData.append('UPLOADCARE_STORE', '1');
+  // Load Uploadcare widget script
+  function loadUploadcare() {
+    return new Promise((resolve) => {
+      if (uploadcareLoaded || window.uploadcare) {
+        uploadcareLoaded = true;
+        resolve();
+        return;
+      }
 
-    const response = await fetch('https://upload.uploadcare.com/base/', {
-      method: 'POST',
-      body: formData
+      const script = document.createElement('script');
+      script.src = 'https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js';
+      script.onload = () => {
+        uploadcareLoaded = true;
+        resolve();
+      };
+      document.head.appendChild(script);
     });
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to upload image');
-    }
+  // Open Uploadcare dialog and return CDN URL
+  function openUploadcareDialog(options = {}) {
+    return new Promise((resolve, reject) => {
+      if (!window.uploadcare) {
+        reject(new Error('Uploadcare not loaded'));
+        return;
+      }
 
-    const data = await response.json();
-    // Return the CDN URL
-    return `https://ucarecdn.com/${data.file}/`;
+      const dialog = uploadcare.openDialog(null, {
+        publicKey: UPLOADCARE_PUBLIC_KEY,
+        imagesOnly: true,
+        crop: options.crop || 'free',
+        tabs: 'file camera',
+        ...options
+      });
+
+      dialog.done((file) => {
+        file.promise().then((fileInfo) => {
+          resolve(fileInfo.cdnUrl);
+        }).fail((error) => {
+          reject(error);
+        });
+      });
+
+      dialog.fail((error) => {
+        reject(error);
+      });
+    });
   }
 
   // ============================================
@@ -803,7 +834,6 @@
             <div class="ms-form-field">
               <label>Profile Image <span class="required">*</span></label>
               <div class="ms-image-upload" id="profile-upload">
-                <input type="file" accept="image/*" id="profile-image-input">
                 <div class="ms-image-upload-text" id="profile-upload-text">
                   <strong>Click to upload</strong><br>
                   Square image recommended
@@ -815,7 +845,6 @@
             <div class="ms-form-field">
               <label>Feature Image <span class="required">*</span></label>
               <div class="ms-image-upload" id="feature-upload">
-                <input type="file" accept="image/*" id="feature-image-input">
                 <div class="ms-image-upload-text" id="feature-upload-text">
                   <strong>Click to upload</strong><br>
                   Landscape image recommended
@@ -836,99 +865,69 @@
   }
 
   function setupStep1Handlers(container) {
-    const profileInput = container.querySelector('#profile-image-input');
-    const featureInput = container.querySelector('#feature-image-input');
     const profileUpload = container.querySelector('#profile-upload');
     const featureUpload = container.querySelector('#feature-upload');
     const nextBtn = container.querySelector('#ms-next-btn');
     const errorBanner = container.querySelector('#ms-error-banner');
 
-    // Profile image handler
-    profileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        // Show loading state
+    // Restore previews if data exists (coming back from later step)
+    if (formData.profileImageUrl) {
+      profileUpload.innerHTML = `
+        <img src="${formData.profileImageUrl}" class="ms-image-preview profile" alt="Profile preview">
+        <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
+      `;
+      profileUpload.classList.add('has-image');
+    }
+    if (formData.featureImageUrl) {
+      featureUpload.innerHTML = `
+        <img src="${formData.featureImageUrl}" class="ms-image-preview" alt="Feature preview">
+        <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
+      `;
+      featureUpload.classList.add('has-image');
+    }
+
+    // Profile image click handler - open Uploadcare dialog
+    profileUpload.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('ms-image-remove')) return;
+
+      try {
+        await loadUploadcare();
+        const cdnUrl = await openUploadcareDialog({ crop: '1:1' });
+
+        formData.profileImageUrl = cdnUrl;
         profileUpload.innerHTML = `
-          <div class="ms-image-upload-text">
-            <strong>Uploading...</strong><br>
-            Please wait
-          </div>
+          <img src="${cdnUrl}" class="ms-image-preview profile" alt="Profile preview">
+          <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
         `;
-
-        try {
-          // Get preview for display
-          const preview = await fileToBase64(file);
-          // Upload to Uploadcare
-          const uploadedUrl = await uploadToUploadcare(file);
-
-          formData.profileImageUrl = uploadedUrl;
-          formData.profileImagePreview = preview;
-
-          profileUpload.innerHTML = `
-            <img src="${preview}" class="ms-image-preview profile" alt="Profile preview">
-            <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
-            <input type="file" accept="image/*" id="profile-image-input">
-          `;
-          profileUpload.classList.add('has-image');
-
-          // Re-attach handlers
-          setupStep1Handlers(container);
-        } catch (error) {
+        profileUpload.classList.add('has-image');
+        setupStep1Handlers(container);
+      } catch (error) {
+        if (error !== 'cancel') {
           console.error('Profile upload error:', error);
           showError(errorBanner, 'Failed to upload profile image. Please try again.');
-          profileUpload.innerHTML = `
-            <input type="file" accept="image/*" id="profile-image-input">
-            <div class="ms-image-upload-text">
-              <strong>Click to upload</strong><br>
-              Square image recommended
-            </div>
-          `;
-          setupStep1Handlers(container);
         }
       }
     });
 
-    // Feature image handler
-    featureInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        // Show loading state
+    // Feature image click handler - open Uploadcare dialog
+    featureUpload.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('ms-image-remove')) return;
+
+      try {
+        await loadUploadcare();
+        const cdnUrl = await openUploadcareDialog({ crop: '16:9' });
+
+        formData.featureImageUrl = cdnUrl;
         featureUpload.innerHTML = `
-          <div class="ms-image-upload-text">
-            <strong>Uploading...</strong><br>
-            Please wait
-          </div>
+          <img src="${cdnUrl}" class="ms-image-preview" alt="Feature preview">
+          <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
         `;
-
-        try {
-          // Get preview for display
-          const preview = await fileToBase64(file);
-          // Upload to Uploadcare
-          const uploadedUrl = await uploadToUploadcare(file);
-
-          formData.featureImageUrl = uploadedUrl;
-          formData.featureImagePreview = preview;
-
-          featureUpload.innerHTML = `
-            <img src="${preview}" class="ms-image-preview" alt="Feature preview">
-            <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
-            <input type="file" accept="image/*" id="feature-image-input">
-          `;
-          featureUpload.classList.add('has-image');
-
-          // Re-attach handlers
-          setupStep1Handlers(container);
-        } catch (error) {
+        featureUpload.classList.add('has-image');
+        setupStep1Handlers(container);
+      } catch (error) {
+        if (error !== 'cancel') {
           console.error('Feature upload error:', error);
           showError(errorBanner, 'Failed to upload feature image. Please try again.');
-          featureUpload.innerHTML = `
-            <input type="file" accept="image/*" id="feature-image-input">
-            <div class="ms-image-upload-text">
-              <strong>Click to upload</strong><br>
-              Landscape image recommended
-            </div>
-          `;
-          setupStep1Handlers(container);
         }
       }
     });
@@ -939,10 +938,8 @@
       removeProfileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         formData.profileImageUrl = null;
-        formData.profileImagePreview = null;
         profileUpload.classList.remove('has-image');
         profileUpload.innerHTML = `
-          <input type="file" accept="image/*" id="profile-image-input">
           <div class="ms-image-upload-text">
             <strong>Click to upload</strong><br>
             Square image recommended
@@ -958,10 +955,8 @@
       removeFeatureBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         formData.featureImageUrl = null;
-        formData.featureImagePreview = null;
         featureUpload.classList.remove('has-image');
         featureUpload.innerHTML = `
-          <input type="file" accept="image/*" id="feature-image-input">
           <div class="ms-image-upload-text">
             <strong>Click to upload</strong><br>
             Landscape image recommended
@@ -969,28 +964,6 @@
         `;
         setupStep1Handlers(container);
       });
-    }
-
-    // Restore previews if going back
-    if (formData.profileImagePreview && !container.querySelector('#remove-profile')) {
-      profileUpload.innerHTML = `
-        <img src="${formData.profileImagePreview}" class="ms-image-preview profile" alt="Profile preview">
-        <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
-        <input type="file" accept="image/*" id="profile-image-input">
-      `;
-      profileUpload.classList.add('has-image');
-      setupStep1Handlers(container);
-      return;
-    }
-    if (formData.featureImagePreview && !container.querySelector('#remove-feature')) {
-      featureUpload.innerHTML = `
-        <img src="${formData.featureImagePreview}" class="ms-image-preview" alt="Feature preview">
-        <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
-        <input type="file" accept="image/*" id="feature-image-input">
-      `;
-      featureUpload.classList.add('has-image');
-      setupStep1Handlers(container);
-      return;
     }
 
     // Next button
