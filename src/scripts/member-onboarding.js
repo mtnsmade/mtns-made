@@ -883,16 +883,15 @@
       });
 
       dialog.done((file) => {
-        file.promise().then((fileInfo) => {
+        file.promise().done((fileInfo) => {
           resolve(fileInfo.cdnUrl);
         }).fail((error) => {
           reject(error);
         });
       });
 
-      dialog.fail((error) => {
-        reject(error);
-      });
+      // Don't reject on dialog close/cancel - just do nothing
+      // This prevents false error messages when user closes dialog
     });
   }
 
@@ -970,39 +969,70 @@
     const nextBtn = container.querySelector('#ms-next-btn');
     const errorBanner = container.querySelector('#ms-error-banner');
 
+    // Helper to render profile upload state
+    function renderProfileState() {
+      if (formData.profileImageUrl) {
+        profileUpload.innerHTML = `
+          <img src="${formData.profileImageUrl}" class="ms-image-preview profile" alt="Profile preview">
+          <button type="button" class="ms-image-remove" data-remove="profile">&times;</button>
+        `;
+        profileUpload.classList.add('has-image');
+      } else {
+        profileUpload.innerHTML = `
+          <div class="ms-image-upload-text">
+            <strong>Click to upload</strong><br>
+            Square image recommended
+          </div>
+        `;
+        profileUpload.classList.remove('has-image');
+      }
+    }
+
+    // Helper to render feature upload state
+    function renderFeatureState() {
+      if (formData.featureImageUrl) {
+        featureUpload.innerHTML = `
+          <img src="${formData.featureImageUrl}" class="ms-image-preview" alt="Feature preview">
+          <button type="button" class="ms-image-remove" data-remove="feature">&times;</button>
+        `;
+        featureUpload.classList.add('has-image');
+      } else {
+        featureUpload.innerHTML = `
+          <div class="ms-image-upload-text">
+            <strong>Click to upload</strong><br>
+            Landscape image recommended
+          </div>
+        `;
+        featureUpload.classList.remove('has-image');
+      }
+    }
+
     // Restore previews if data exists (coming back from later step)
-    if (formData.profileImageUrl) {
-      profileUpload.innerHTML = `
-        <img src="${formData.profileImageUrl}" class="ms-image-preview profile" alt="Profile preview">
-        <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
-      `;
-      profileUpload.classList.add('has-image');
-    }
-    if (formData.featureImageUrl) {
-      featureUpload.innerHTML = `
-        <img src="${formData.featureImageUrl}" class="ms-image-preview" alt="Feature preview">
-        <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
-      `;
-      featureUpload.classList.add('has-image');
-    }
+    renderProfileState();
+    renderFeatureState();
 
     // Profile image click handler - open Uploadcare dialog
     profileUpload.addEventListener('click', async (e) => {
-      if (e.target.classList.contains('ms-image-remove')) return;
+      // Handle remove button click
+      if (e.target.dataset.remove === 'profile') {
+        e.stopPropagation();
+        formData.profileImageUrl = null;
+        renderProfileState();
+        return;
+      }
+
+      // Don't open dialog if already has image (click on image area)
+      if (formData.profileImageUrl) return;
 
       try {
         await loadUploadcare();
         const cdnUrl = await openUploadcareDialog({ crop: '1:1' });
-
         formData.profileImageUrl = cdnUrl;
-        profileUpload.innerHTML = `
-          <img src="${cdnUrl}" class="ms-image-preview profile" alt="Profile preview">
-          <button type="button" class="ms-image-remove" id="remove-profile">&times;</button>
-        `;
-        profileUpload.classList.add('has-image');
-        setupStep1Handlers(container);
+        renderProfileState();
+        errorBanner.style.display = 'none';
       } catch (error) {
-        if (error !== 'cancel') {
+        // Only show error if it's not a user cancellation
+        if (error && error !== 'cancel' && error.message !== 'cancelled') {
           console.error('Profile upload error:', error);
           showError(errorBanner, 'Failed to upload profile image. Please try again.');
         }
@@ -1011,60 +1041,31 @@
 
     // Feature image click handler - open Uploadcare dialog
     featureUpload.addEventListener('click', async (e) => {
-      if (e.target.classList.contains('ms-image-remove')) return;
+      // Handle remove button click
+      if (e.target.dataset.remove === 'feature') {
+        e.stopPropagation();
+        formData.featureImageUrl = null;
+        renderFeatureState();
+        return;
+      }
+
+      // Don't open dialog if already has image (click on image area)
+      if (formData.featureImageUrl) return;
 
       try {
         await loadUploadcare();
         const cdnUrl = await openUploadcareDialog({ crop: '16:9' });
-
         formData.featureImageUrl = cdnUrl;
-        featureUpload.innerHTML = `
-          <img src="${cdnUrl}" class="ms-image-preview" alt="Feature preview">
-          <button type="button" class="ms-image-remove" id="remove-feature">&times;</button>
-        `;
-        featureUpload.classList.add('has-image');
-        setupStep1Handlers(container);
+        renderFeatureState();
+        errorBanner.style.display = 'none';
       } catch (error) {
-        if (error !== 'cancel') {
+        // Only show error if it's not a user cancellation
+        if (error && error !== 'cancel' && error.message !== 'cancelled') {
           console.error('Feature upload error:', error);
           showError(errorBanner, 'Failed to upload feature image. Please try again.');
         }
       }
     });
-
-    // Remove profile image handler
-    const removeProfileBtn = container.querySelector('#remove-profile');
-    if (removeProfileBtn) {
-      removeProfileBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        formData.profileImageUrl = null;
-        profileUpload.classList.remove('has-image');
-        profileUpload.innerHTML = `
-          <div class="ms-image-upload-text">
-            <strong>Click to upload</strong><br>
-            Square image recommended
-          </div>
-        `;
-        setupStep1Handlers(container);
-      });
-    }
-
-    // Remove feature image handler
-    const removeFeatureBtn = container.querySelector('#remove-feature');
-    if (removeFeatureBtn) {
-      removeFeatureBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        formData.featureImageUrl = null;
-        featureUpload.classList.remove('has-image');
-        featureUpload.innerHTML = `
-          <div class="ms-image-upload-text">
-            <strong>Click to upload</strong><br>
-            Landscape image recommended
-          </div>
-        `;
-        setupStep1Handlers(container);
-      });
-    }
 
     // Next button
     nextBtn.addEventListener('click', () => {
