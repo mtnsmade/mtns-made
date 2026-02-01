@@ -139,6 +139,7 @@
       font-weight: 600;
       color: #333;
       margin-bottom: 8px;
+      text-align: left;
     }
     .ms-form-field label span {
       color: #dc3545;
