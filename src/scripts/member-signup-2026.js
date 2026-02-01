@@ -613,10 +613,9 @@
 
   // Initialize
   async function init() {
-    // Use attribute selector since class starts with a number
-    const container = document.querySelector('[class*="2026-signup-form"]');
+    const container = document.querySelector('.multi-signup-form');
     if (!container) {
-      console.warn('Could not find 2026-signup-form container');
+      console.warn('Could not find .multi-signup-form container');
       return;
     }
 
