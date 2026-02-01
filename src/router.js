@@ -10,9 +10,9 @@
       return window.SCRIPT_BASE_URL;
     }
     const isDev = location.hostname.includes('.webflow.io');
-    return isDev 
-      ? 'http://localhost:3000/src' 
-      : 'https://mtnsmade.github.io/mtns-made/src';
+    return isDev
+      ? 'http://localhost:3000/src'
+      : 'https://mtnsmade.github.io/mtns-made';
   };
 
   const baseUrl = getBaseUrl();
