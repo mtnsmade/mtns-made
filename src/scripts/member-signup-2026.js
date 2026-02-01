@@ -560,8 +560,10 @@
           submitBtn.textContent = 'Redirecting to checkout...';
 
           // Use Memberstack's purchase method to redirect to Stripe checkout
+          // After successful payment, redirect to onboarding page
           await window.$memberstackDom.purchasePlansWithCheckout({
-            priceId: priceId
+            priceId: priceId,
+            successUrl: window.location.origin + '/join/signup/onboarding'
           });
         } else {
           throw new Error('Signup failed - no member data returned');
