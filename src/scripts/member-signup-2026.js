@@ -535,7 +535,7 @@
           ? typeInfo.yearlyPriceId
           : typeInfo.monthlyPriceId;
 
-        // Sign up with Memberstack
+        // Step 1: Create member without plan (faster)
         const signupResult = await window.$memberstackDom.signupMemberEmailPassword({
           email: email,
           password: password,
@@ -548,19 +548,19 @@
             'membership-type': membershipType,
             'billing-frequency': billingFrequency,
             'onboarding-complete': 'false'
-          },
-          plans: [{
-            planId: typeInfo.planId,
-            priceId: priceId
-          }]
+          }
         });
 
         console.log('Signup result:', signupResult);
 
         if (signupResult.data && signupResult.data.member) {
-          // Success - Memberstack will redirect to checkout automatically
-          // based on plan configuration
+          // Step 2: Redirect to checkout for the plan
           submitBtn.textContent = 'Redirecting to checkout...';
+
+          // Use Memberstack's purchase method to redirect to Stripe checkout
+          await window.$memberstackDom.purchasePlansWithCheckout({
+            priceId: priceId
+          });
         } else {
           throw new Error('Signup failed - no member data returned');
         }
