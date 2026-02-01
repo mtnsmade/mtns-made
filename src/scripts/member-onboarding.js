@@ -1800,7 +1800,10 @@
       chosenDirectories: formData.chosenDirectories,
       spaceCategories: formData.spaceCategories,
       supplierCategories: formData.supplierCategories,
-      // Type flags
+      // Membership type flags (booleans for Webflow)
+      isSmallBusiness: membershipType === 'small-business',
+      isLargeBusiness: membershipType === 'large-business',
+      isNotForProfit: membershipType === 'not-for-profit',
       isCreativeSpace: formData.spaceOrSupplier === 'space',
       isSupplier: formData.spaceOrSupplier === 'supplier',
       // Images
