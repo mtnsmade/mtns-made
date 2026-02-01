@@ -1,0 +1,1 @@
+console.log("Alert script loaded");setTimeout(()=>{console.log("Alert will show in 5 seconds..."),alert("🎉 Webflow Scripts is working! You can now edit this script locally and see changes instantly.")},5e3);
