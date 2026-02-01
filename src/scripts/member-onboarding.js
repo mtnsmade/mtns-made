@@ -1691,7 +1691,7 @@
 
     // Prepare data for Memberstack update
     const customFields = {
-      'bio': formData.bio,
+      'public-bio': formData.bio,
       'onboarding-complete': 'true'
     };
 
