@@ -770,6 +770,17 @@
 
     value = value.trim();
 
+    // Reject if contains spaces (multiple URLs or invalid format)
+    if (value.includes(' ')) {
+      return { valid: false, error: 'Please enter only one URL (no spaces)' };
+    }
+
+    // Reject if contains multiple http:// or https:// (multiple URLs pasted)
+    const httpCount = (value.match(/https?:\/\//gi) || []).length;
+    if (httpCount > 1) {
+      return { valid: false, error: 'Please enter only one URL' };
+    }
+
     // If it's already a valid URL, return it
     if (/^https?:\/\//i.test(value)) {
       try {
