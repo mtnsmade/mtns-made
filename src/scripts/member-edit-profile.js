@@ -884,6 +884,29 @@
     }
   }
 
+  // Parse category IDs from Memberstack format
+  // Data is stored as: "id1","id2","id3" (not a proper JSON array)
+  function parseCategoryIds(value) {
+    if (!value || typeof value !== 'string') return [];
+
+    // First try JSON parse (in case it's a proper array)
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // Not valid JSON, continue with string parsing
+    }
+
+    // Parse the comma-separated quoted format: "id1","id2","id3"
+    const matches = value.match(/"([^"]+)"/g);
+    if (matches) {
+      return matches.map(m => m.replace(/"/g, ''));
+    }
+
+    // Fallback: try splitting by comma
+    return value.split(',').map(s => s.trim().replace(/"/g, '')).filter(Boolean);
+  }
+
   // ============================================
   // DATA LOADING
   // ============================================
@@ -922,10 +945,10 @@
       formData.spaceOrSupplier = 'supplier';
     }
 
-    // Categories
-    formData.chosenDirectories = safeParseJSON(cf['chosen-directories'], []);
-    formData.spaceCategories = safeParseJSON(cf['space-categories'], []);
-    formData.supplierCategories = safeParseJSON(cf['supplier-categories'], []);
+    // Categories - parse from Memberstack format ("id1","id2","id3")
+    formData.chosenDirectories = parseCategoryIds(cf['chosen-directories']);
+    formData.spaceCategories = parseCategoryIds(cf['space-categories']);
+    formData.supplierCategories = parseCategoryIds(cf['supplier-categories']);
 
     // Links
     formData.website = cf['website'] || '';
