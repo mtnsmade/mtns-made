@@ -1796,10 +1796,16 @@
       linkedin: formData.linkedin || '',
       tiktok: formData.tiktok || '',
       youtube: formData.youtube || '',
-      // Categories as arrays for Webflow v2 multi-reference fields
-      chosenDirectories: formData.chosenDirectories,
-      spaceCategories: formData.spaceCategories,
-      supplierCategories: formData.supplierCategories,
+      // Categories as JSON strings with quotes preserved for Webflow multi-reference
+      chosenDirectories: formData.chosenDirectories.length > 0
+        ? formData.chosenDirectories.map(id => `"${id}"`).join(',')
+        : '',
+      spaceCategories: formData.spaceCategories.length > 0
+        ? formData.spaceCategories.map(id => `"${id}"`).join(',')
+        : '',
+      supplierCategories: formData.supplierCategories.length > 0
+        ? formData.supplierCategories.map(id => `"${id}"`).join(',')
+        : '',
       // Membership type flags (booleans for Webflow)
       isSmallBusiness: membershipType === 'small-business',
       isLargeBusiness: membershipType === 'large-business',
