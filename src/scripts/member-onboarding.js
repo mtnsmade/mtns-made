@@ -1807,10 +1807,10 @@
       linkedin: formData.linkedin || '',
       tiktok: formData.tiktok || '',
       youtube: formData.youtube || '',
-      // Categories as arrays - JSON.stringify will format correctly
-      chosenDirectories: formData.chosenDirectories,
-      spaceCategories: formData.spaceCategories,
-      supplierCategories: formData.supplierCategories,
+      // Categories as quoted comma-separated string (matches member-projects format)
+      chosenDirectories: formData.chosenDirectories.map(id => `"${id}"`).join(','),
+      spaceCategories: formData.spaceCategories.map(id => `"${id}"`).join(','),
+      supplierCategories: formData.supplierCategories.map(id => `"${id}"`).join(','),
       // Membership type flags (booleans for Webflow)
       isSmallBusiness: membershipType === 'small-business',
       isLargeBusiness: membershipType === 'large-business',
