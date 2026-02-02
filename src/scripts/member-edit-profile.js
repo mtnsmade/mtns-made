@@ -952,10 +952,6 @@
 
     container.innerHTML = `
       <div class="ep-container">
-        <div class="ep-header">
-          <h2>EDIT YOUR PROFILE</h2>
-          <p>Update your profile information below.</p>
-        </div>
         <div class="ep-form">
           <div class="ep-error-banner" id="ep-error-banner" style="display: none;"></div>
           <div class="ep-success-banner" id="ep-success-banner" style="display: none;"></div>
