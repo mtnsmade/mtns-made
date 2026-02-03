@@ -173,7 +173,7 @@
   const styles = `
     .mp-container {
       font-family: inherit;
-      max-width: 700px;
+      width: 100%;
     }
     .mp-header {
       display: flex;
