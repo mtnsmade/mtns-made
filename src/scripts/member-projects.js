@@ -692,9 +692,7 @@
 
   // Text field definitions
   const TEXT_FIELDS = [
-    { key: 'short_description', label: 'Short Description', type: 'text' },
     { key: 'project_description', label: 'Project Description', type: 'textarea' },
-    { key: 'key_detail', label: 'Key Detail', type: 'text' },
     { key: 'external_link', label: 'External Link', type: 'url' },
     { key: 'display_order', label: 'Display Order', type: 'number' }
   ];
@@ -888,9 +886,7 @@
       memberstack_id: currentMember.id,
       // Project fields mapped to Webflow field names (sanitized for API compatibility)
       name: sanitizeText(project.project_name),
-      'project-short-description': sanitizeText(project.short_description || ''),
       'project-description-editable': sanitizeText(project.project_description || ''),
-      'key-detail': sanitizeText(project.key_detail || ''),
       'project-external-link': externalLink,
       'display-order': project.display_order || 0,
       'portfolio-item-id': project.id,
@@ -1593,16 +1589,8 @@
             <input type="text" class="mp-form-input" id="mp-form-project_name" required>
           </div>
           <div class="mp-form-field">
-            <label>Short Description</label>
-            <input type="text" class="mp-form-input" id="mp-form-short_description">
-          </div>
-          <div class="mp-form-field">
             <label>Project Description</label>
             <textarea class="mp-form-input" id="mp-form-project_description"></textarea>
-          </div>
-          <div class="mp-form-field">
-            <label>Key Detail</label>
-            <input type="text" class="mp-form-input" id="mp-form-key_detail">
           </div>
           <div class="mp-form-field">
             <label>External Link</label>
@@ -1654,9 +1642,7 @@
       const newProject = {
         id: generateId(),
         project_name: projectName,
-        short_description: modal.querySelector('#mp-form-short_description').value,
         project_description: modal.querySelector('#mp-form-project_description').value,
-        key_detail: modal.querySelector('#mp-form-key_detail').value,
         external_link: modal.querySelector('#mp-form-external_link').value,
         display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
         categories: [...selectedCategories],
@@ -1716,16 +1702,8 @@
             <input type="text" class="mp-form-input" id="mp-form-project_name" value="${project.project_name || ''}" required>
           </div>
           <div class="mp-form-field">
-            <label>Short Description</label>
-            <input type="text" class="mp-form-input" id="mp-form-short_description" value="${project.short_description || ''}">
-          </div>
-          <div class="mp-form-field">
             <label>Project Description</label>
             <textarea class="mp-form-input" id="mp-form-project_description">${project.project_description || ''}</textarea>
-          </div>
-          <div class="mp-form-field">
-            <label>Key Detail</label>
-            <input type="text" class="mp-form-input" id="mp-form-key_detail" value="${project.key_detail || ''}">
           </div>
           <div class="mp-form-field">
             <label>External Link</label>
@@ -1776,9 +1754,7 @@
 
       // Update project
       project.project_name = projectName;
-      project.short_description = modal.querySelector('#mp-form-short_description').value;
       project.project_description = modal.querySelector('#mp-form-project_description').value;
-      project.key_detail = modal.querySelector('#mp-form-key_detail').value;
       project.external_link = modal.querySelector('#mp-form-external_link').value;
       project.display_order = parseInt(modal.querySelector('#mp-form-display_order').value) || 0;
       project.categories = [...selectedCategories];
