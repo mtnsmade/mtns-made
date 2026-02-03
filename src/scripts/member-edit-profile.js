@@ -946,7 +946,8 @@
     }
 
     // Categories - parse from Memberstack format ("id1","id2","id3")
-    formData.chosenDirectories = parseCategoryIds(cf['chosen-directories']);
+    // Check both 'categories' (legacy) and 'chosen-directories' (new) field names
+    formData.chosenDirectories = parseCategoryIds(cf['categories'] || cf['chosen-directories']);
     formData.spaceCategories = parseCategoryIds(cf['space-categories']);
     formData.supplierCategories = parseCategoryIds(cf['supplier-categories']);
 
