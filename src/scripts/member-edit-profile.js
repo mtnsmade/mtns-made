@@ -608,42 +608,94 @@
       color: #666;
       margin-top: 8px;
     }
-    .ep-accordion {
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-    .ep-accordion-header {
-      padding: 14px 16px;
-      background: #f8f9fa;
-      cursor: pointer;
+    .ep-parent-categories {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 500;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .ep-parent-btn {
+      padding: 8px 16px;
+      border: 1px solid #333;
+      border-radius: 20px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
       font-size: 14px;
+      transition: all 0.2s;
     }
-    .ep-accordion-header:hover {
-      background: #f0f0f0;
+    .ep-parent-btn:hover {
+      background: #f5f5f5;
     }
-    .ep-accordion-arrow {
-      transition: transform 0.2s;
+    .ep-parent-btn.active {
+      background: #333;
+      color: #fff;
     }
-    .ep-accordion.open .ep-accordion-arrow {
-      transform: rotate(180deg);
-    }
-    .ep-accordion-content {
+    .ep-child-categories {
       display: none;
+      flex-wrap: wrap;
+      gap: 8px;
       padding: 16px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      margin-top: 12px;
     }
-    .ep-accordion.open .ep-accordion-content {
-      display: block;
+    .ep-child-categories.visible {
+      display: flex;
     }
-    .ep-accordion-count {
+    .ep-child-btn {
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .ep-child-btn:hover {
+      border-color: #999;
+    }
+    .ep-child-btn.selected {
+      border-color: #007bff;
+      color: #007bff;
+    }
+    .ep-selected-categories {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f0f0f0;
+      border-radius: 8px;
+    }
+    .ep-selected-categories h5 {
+      margin: 0 0 8px 0;
       font-size: 12px;
+      font-weight: 600;
       color: #666;
-      font-weight: normal;
+      text-transform: uppercase;
+    }
+    .ep-selected-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ep-selected-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #333;
+      color: #fff;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .ep-selected-tag button {
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      padding: 0;
+      font-size: 14px;
+      line-height: 1;
     }
     .ep-field-error {
       color: #dc3545;
@@ -1176,47 +1228,41 @@
     return html;
   }
 
-  function renderDirectoriesSelector() {
-    let html = '';
+  // Get category name by ID
+  function getCategoryName(id) {
+    const dir = SUB_DIRECTORIES.find(d => d.id === id);
+    return dir ? dir.name : id;
+  }
 
+  function renderDirectoriesSelector() {
+    let html = '<div class="ep-category-selector">';
+
+    // Parent category buttons
+    html += '<div class="ep-parent-categories">';
+    PARENT_DIRECTORIES.forEach(parent => {
+      html += `<button type="button" class="ep-parent-btn" data-parent="${parent.slug}">${parent.name}</button>`;
+    });
+    html += '</div>';
+
+    // Child category containers
     PARENT_DIRECTORIES.forEach(parent => {
       const subDirs = SUB_DIRECTORIES.filter(d => d.parent === parent.slug);
-      if (subDirs.length === 0) return;
-
-      const selectedInGroup = subDirs.filter(d => formData.chosenDirectories.includes(d.id)).length;
-      const isOpen = selectedInGroup > 0;
-
-      html += `
-        <div class="ep-accordion ${isOpen ? 'open' : ''}" data-parent="${parent.slug}">
-          <div class="ep-accordion-header">
-            ${parent.name}
-            <span>
-              <span class="ep-accordion-count">${selectedInGroup > 0 ? `(${selectedInGroup} selected)` : ''}</span>
-              <span class="ep-accordion-arrow">▼</span>
-            </span>
-          </div>
-          <div class="ep-accordion-content">
-            <div class="ep-category-grid">
-      `;
-
+      html += `<div class="ep-child-categories" data-parent="${parent.slug}">`;
       subDirs.forEach(dir => {
-        const selected = formData.chosenDirectories.includes(dir.id);
-        html += `
-          <label class="ep-category-item ${selected ? 'selected' : ''}" data-id="${dir.id}">
-            <input type="checkbox" value="${dir.id}" ${selected ? 'checked' : ''}>
-            ${dir.name}
-          </label>
-        `;
+        const isSelected = formData.chosenDirectories.includes(dir.id);
+        html += `<button type="button" class="ep-child-btn ${isSelected ? 'selected' : ''}" data-id="${dir.id}">${dir.name}</button>`;
       });
-
-      html += `
-            </div>
-          </div>
-        </div>
-      `;
+      html += '</div>';
     });
 
-    html += `<div class="ep-selected-count"><span id="directory-count">${formData.chosenDirectories.length}</span> categories selected</div>`;
+    // Selected categories display
+    html += `
+      <div class="ep-selected-categories" id="ep-selected-section" style="${formData.chosenDirectories.length ? '' : 'display: none;'}">
+        <h5>Selected Categories</h5>
+        <div class="ep-selected-list" id="ep-selected-list"></div>
+      </div>
+    </div>`;
+
     return html;
   }
 
@@ -1573,15 +1619,83 @@
         setupCategoryCheckboxes(container, 'supplierCategories', 'supplier-count');
       }
     } else {
-      // Accordion handlers
-      container.querySelectorAll('.ep-accordion-header').forEach(header => {
-        header.addEventListener('click', () => {
-          header.parentElement.classList.toggle('open');
-        });
-      });
+      // New parent/child button category selector
+      setupDirectoryCategorySelector(container);
+    }
+  }
 
-      // Directory checkbox handlers
-      setupCategoryCheckboxes(container, 'chosenDirectories', 'directory-count');
+  function setupDirectoryCategorySelector(container) {
+    const parentBtns = container.querySelectorAll('.ep-parent-btn');
+    const childContainers = container.querySelectorAll('.ep-child-categories');
+    const selectedList = container.querySelector('#ep-selected-list');
+    const selectedSection = container.querySelector('#ep-selected-section');
+
+    function updateSelectedDisplay() {
+      if (!selectedList || !selectedSection) return;
+
+      selectedList.innerHTML = formData.chosenDirectories.map(id => {
+        const name = getCategoryName(id);
+        return `<span class="ep-selected-tag">${name}<button type="button" data-id="${id}">&times;</button></span>`;
+      }).join('');
+
+      selectedSection.style.display = formData.chosenDirectories.length ? '' : 'none';
+
+      // Update child button states
+      container.querySelectorAll('.ep-child-btn').forEach(btn => {
+        const id = btn.dataset.id;
+        btn.classList.toggle('selected', formData.chosenDirectories.includes(id));
+      });
+    }
+
+    // Initialize selected display
+    updateSelectedDisplay();
+
+    // Parent button clicks - toggle visibility of child categories
+    parentBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parentSlug = btn.dataset.parent;
+        const isActive = btn.classList.contains('active');
+
+        // Close all
+        parentBtns.forEach(b => b.classList.remove('active'));
+        childContainers.forEach(c => c.classList.remove('visible'));
+
+        // Open clicked one if wasn't active
+        if (!isActive) {
+          btn.classList.add('active');
+          container.querySelector(`.ep-child-categories[data-parent="${parentSlug}"]`).classList.add('visible');
+        }
+      });
+    });
+
+    // Child button clicks - toggle selection
+    container.querySelectorAll('.ep-child-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const index = formData.chosenDirectories.indexOf(id);
+
+        if (index === -1) {
+          formData.chosenDirectories.push(id);
+        } else {
+          formData.chosenDirectories.splice(index, 1);
+        }
+
+        updateSelectedDisplay();
+      });
+    });
+
+    // Selected tag remove clicks
+    if (selectedList) {
+      selectedList.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+          const id = e.target.dataset.id;
+          const index = formData.chosenDirectories.indexOf(id);
+          if (index !== -1) {
+            formData.chosenDirectories.splice(index, 1);
+            updateSelectedDisplay();
+          }
+        }
+      });
     }
   }
 
@@ -1606,26 +1720,10 @@
         if (countEl) {
           countEl.textContent = formData[dataKey].length;
         }
-
-        // Update accordion count if applicable
-        if (dataKey === 'chosenDirectories') {
-          updateAccordionCounts(container);
-        }
       });
     });
   }
 
-  function updateAccordionCounts(container) {
-    container.querySelectorAll('.ep-accordion').forEach(accordion => {
-      const parent = accordion.dataset.parent;
-      const subDirs = SUB_DIRECTORIES.filter(d => d.parent === parent);
-      const selectedCount = subDirs.filter(d => formData.chosenDirectories.includes(d.id)).length;
-      const countSpan = accordion.querySelector('.ep-accordion-count');
-      if (countSpan) {
-        countSpan.textContent = selectedCount > 0 ? `(${selectedCount} selected)` : '';
-      }
-    });
-  }
 
   function setupLinksHandlers(container) {
     const linkInputs = ['website', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
