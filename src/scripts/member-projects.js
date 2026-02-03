@@ -693,7 +693,8 @@
   // Text field definitions
   const TEXT_FIELDS = [
     { key: 'project_description', label: 'Project Description', type: 'textarea' },
-    { key: 'external_link', label: 'External Link', type: 'url' },
+    { key: 'external_link', label: 'Project External Link', type: 'url' },
+    { key: 'showreel_link', label: 'Showreel Link', type: 'video' },
     { key: 'display_order', label: 'Display Order', type: 'number' }
   ];
 
@@ -888,6 +889,7 @@
       name: sanitizeText(project.project_name),
       'project-description-editable': sanitizeText(project.project_description || ''),
       'project-external-link': externalLink,
+      'showreel-link': project.showreel_link || '',
       'display-order': project.display_order || 0,
       'portfolio-item-id': project.id,
       'memberstack-id': currentMember.id,
@@ -1593,10 +1595,16 @@
             <textarea class="mp-form-input" id="mp-form-project_description"></textarea>
           </div>
           <div class="mp-form-field">
-            <label>External Link</label>
+            <label>Project External Link</label>
             <input type="text" class="mp-form-input" id="mp-form-external_link" placeholder="https://example.com">
             <div class="mp-input-hint">Enter a complete URL including https://</div>
             <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
+          </div>
+          <div class="mp-form-field">
+            <label>Showreel Link</label>
+            <input type="text" class="mp-form-input" id="mp-form-showreel_link" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
+            <div class="mp-input-hint">YouTube or Vimeo URL only</div>
+            <div class="mp-input-error" id="mp-video-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
             <label>Display Order</label>
@@ -1644,6 +1652,7 @@
         project_name: projectName,
         project_description: modal.querySelector('#mp-form-project_description').value,
         external_link: modal.querySelector('#mp-form-external_link').value,
+        showreel_link: modal.querySelector('#mp-form-showreel_link').value,
         display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
         categories: [...selectedCategories],
         feature_image: projectData.feature_image || '',
@@ -1706,10 +1715,16 @@
             <textarea class="mp-form-input" id="mp-form-project_description">${project.project_description || ''}</textarea>
           </div>
           <div class="mp-form-field">
-            <label>External Link</label>
+            <label>Project External Link</label>
             <input type="text" class="mp-form-input" id="mp-form-external_link" value="${project.external_link || ''}" placeholder="https://example.com">
             <div class="mp-input-hint">Enter a complete URL including https://</div>
             <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
+          </div>
+          <div class="mp-form-field">
+            <label>Showreel Link</label>
+            <input type="text" class="mp-form-input" id="mp-form-showreel_link" value="${project.showreel_link || ''}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
+            <div class="mp-input-hint">YouTube or Vimeo URL only</div>
+            <div class="mp-input-error" id="mp-video-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
             <label>Display Order</label>
@@ -1756,6 +1771,7 @@
       project.project_name = projectName;
       project.project_description = modal.querySelector('#mp-form-project_description').value;
       project.external_link = modal.querySelector('#mp-form-external_link').value;
+      project.showreel_link = modal.querySelector('#mp-form-showreel_link').value;
       project.display_order = parseInt(modal.querySelector('#mp-form-display_order').value) || 0;
       project.categories = [...selectedCategories];
       project.feature_image = projectData.feature_image;
