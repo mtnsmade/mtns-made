@@ -1594,12 +1594,10 @@
             <label>Project Description</label>
             <textarea class="mp-form-input" id="mp-form-project_description"></textarea>
           </div>
-          <div class="mp-form-field">
-            <label>Project External Link</label>
-            <input type="text" class="mp-form-input" id="mp-form-external_link" placeholder="https://example.com">
-            <div class="mp-input-hint">Enter a complete URL including https://</div>
-            <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
-          </div>
+
+          ${createCategorySelector(selectedCategories)}
+          ${createImageUploader(projectData)}
+
           <div class="mp-form-field">
             <label>Showreel Link</label>
             <input type="text" class="mp-form-input" id="mp-form-showreel_link" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
@@ -1607,12 +1605,15 @@
             <div class="mp-input-error" id="mp-video-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
+            <label>Project External Link</label>
+            <input type="text" class="mp-form-input" id="mp-form-external_link" placeholder="https://example.com">
+            <div class="mp-input-hint">Enter a complete URL including https://</div>
+            <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
+          </div>
+          <div class="mp-form-field">
             <label>Display Order</label>
             <input type="number" class="mp-form-input" id="mp-form-display_order" value="0">
           </div>
-
-          ${createCategorySelector(selectedCategories)}
-          ${createImageUploader(projectData)}
         </div>
         <div class="mp-modal-footer">
           <button class="mp-btn mp-btn-secondary" id="mp-modal-cancel">Cancel</button>
@@ -1714,12 +1715,10 @@
             <label>Project Description</label>
             <textarea class="mp-form-input" id="mp-form-project_description">${project.project_description || ''}</textarea>
           </div>
-          <div class="mp-form-field">
-            <label>Project External Link</label>
-            <input type="text" class="mp-form-input" id="mp-form-external_link" value="${project.external_link || ''}" placeholder="https://example.com">
-            <div class="mp-input-hint">Enter a complete URL including https://</div>
-            <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
-          </div>
+
+          ${createCategorySelector(selectedCategories)}
+          ${createImageUploader(projectData)}
+
           <div class="mp-form-field">
             <label>Showreel Link</label>
             <input type="text" class="mp-form-input" id="mp-form-showreel_link" value="${project.showreel_link || ''}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
@@ -1727,12 +1726,15 @@
             <div class="mp-input-error" id="mp-video-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
+            <label>Project External Link</label>
+            <input type="text" class="mp-form-input" id="mp-form-external_link" value="${project.external_link || ''}" placeholder="https://example.com">
+            <div class="mp-input-hint">Enter a complete URL including https://</div>
+            <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
+          </div>
+          <div class="mp-form-field">
             <label>Display Order</label>
             <input type="number" class="mp-form-input" id="mp-form-display_order" value="${project.display_order || 0}">
           </div>
-
-          ${createCategorySelector(selectedCategories)}
-          ${createImageUploader(projectData)}
         </div>
         <div class="mp-modal-footer">
           <button class="mp-btn mp-btn-secondary" id="mp-modal-cancel">Cancel</button>
