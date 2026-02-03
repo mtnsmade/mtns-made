@@ -174,6 +174,8 @@
     .mp-container {
       font-family: inherit;
       width: 100%;
+      box-sizing: border-box;
+      overflow-x: visible;
     }
     .mp-header {
       display: flex;
@@ -321,6 +323,15 @@
       gap: 10px;
       padding: 0 20px 20px;
       justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 500px) {
+      .mp-project-actions {
+        justify-content: stretch;
+      }
+      .mp-project-actions .mp-btn {
+        flex: 1;
+      }
     }
     .mp-modal-overlay {
       position: fixed;
