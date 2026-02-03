@@ -925,30 +925,30 @@
     formData.firstName = cf['first-name'] || '';
     formData.lastName = cf['last-name'] || '';
     formData.email = member.auth?.email || '';
-    formData.profileImageUrl = cf['profile-image'] || '';
+    formData.profileImageUrl = cf['profile-pic-url'] || cf['profile-image'] || '';
     formData.featureImageUrl = cf['feature-image'] || '';
-    formData.bio = cf['public-bio'] || '';
-    formData.businessName = cf['business-name'] || '';
-    formData.businessAddress = cf['business-address'] || '';
+    formData.bio = cf['public-bio'] || cf['bio'] || '';
+    formData.businessName = cf['trading-name'] || cf['business-name'] || '';
+    formData.businessAddress = cf['street-address'] || cf['business-address'] || '';
     formData.displayAddress = cf['display-address'] === 'true';
     formData.displayOpeningHours = cf['display-opening-hours'] === 'true';
 
-    // Opening hours
+    // Opening hours - check both 'open-day' and 'opening-day' formats
     DAYS_OF_WEEK.forEach(day => {
-      formData.openingHours[day.toLowerCase()] = cf[`opening-${day.toLowerCase()}`] || '';
+      const dayLower = day.toLowerCase();
+      formData.openingHours[dayLower] = cf[`open-${dayLower}`] || cf[`opening-${dayLower}`] || '';
     });
 
     // Space/Supplier selection
-    if (cf['is-creative-space'] === 'true') {
+    if (cf['space'] === 'true' || cf['is-creative-space'] === 'true') {
       formData.spaceOrSupplier = 'space';
-    } else if (cf['is-supplier'] === 'true') {
+    } else if (cf['supplier'] === 'true' || cf['is-supplier'] === 'true') {
       formData.spaceOrSupplier = 'supplier';
     }
 
     // Categories - parse from Memberstack format ("id1","id2","id3")
-    // Check both 'categories' (legacy) and 'chosen-directories' (new) field names
     formData.chosenDirectories = parseCategoryIds(cf['categories'] || cf['chosen-directories']);
-    formData.spaceCategories = parseCategoryIds(cf['space-categories']);
+    formData.spaceCategories = parseCategoryIds(cf['space-category'] || cf['space-categories']);
     formData.supplierCategories = parseCategoryIds(cf['supplier-categories']);
 
     // Links
@@ -1690,21 +1690,22 @@
       'first-name': formData.firstName,
       'last-name': formData.lastName,
       'public-bio': formData.bio,
-      'profile-image': formData.profileImageUrl || '',
+      'bio': formData.bio,
+      'profile-pic-url': formData.profileImageUrl || '',
       'feature-image': formData.featureImageUrl || ''
     };
 
     // Business fields
     if (isBusinessType(membershipType)) {
-      customFields['business-name'] = formData.businessName;
+      customFields['trading-name'] = formData.businessName;
       customFields['slug'] = formData.businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      customFields['business-address'] = formData.businessAddress || '';
+      customFields['street-address'] = formData.businessAddress || '';
       customFields['display-address'] = formData.displayAddress ? 'true' : 'false';
       customFields['display-opening-hours'] = formData.displayOpeningHours ? 'true' : 'false';
 
       // Opening hours
       DAYS_OF_WEEK.forEach(day => {
-        customFields[`opening-${day.toLowerCase()}`] = formData.openingHours[day.toLowerCase()] || '';
+        customFields[`open-${day.toLowerCase()}`] = formData.openingHours[day.toLowerCase()] || '';
       });
     }
 
@@ -1716,22 +1717,22 @@
     customFields['tiktok'] = formData.tiktok || '';
     customFields['youtube'] = formData.youtube || '';
 
-    // Categories
+    // Categories - save as comma-separated quoted IDs (Memberstack format)
     if (formData.chosenDirectories.length > 0) {
-      customFields['chosen-directories'] = JSON.stringify(formData.chosenDirectories);
+      customFields['categories'] = formData.chosenDirectories.map(id => `"${id}"`).join(',');
     } else {
-      customFields['chosen-directories'] = '';
+      customFields['categories'] = '';
     }
 
     // Space/Supplier
     if (isSpacesSuppliers(membershipType)) {
-      customFields['is-creative-space'] = formData.spaceOrSupplier === 'space' ? 'true' : 'false';
-      customFields['is-supplier'] = formData.spaceOrSupplier === 'supplier' ? 'true' : 'false';
-      customFields['space-categories'] = formData.spaceCategories.length > 0
-        ? JSON.stringify(formData.spaceCategories)
+      customFields['space'] = formData.spaceOrSupplier === 'space' ? 'true' : 'false';
+      customFields['supplier'] = formData.spaceOrSupplier === 'supplier' ? 'true' : 'false';
+      customFields['space-category'] = formData.spaceCategories.length > 0
+        ? formData.spaceCategories.map(id => `"${id}"`).join(',')
         : '';
       customFields['supplier-categories'] = formData.supplierCategories.length > 0
-        ? JSON.stringify(formData.supplierCategories)
+        ? formData.supplierCategories.map(id => `"${id}"`).join(',')
         : '';
     }
 
