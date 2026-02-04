@@ -31,6 +31,12 @@
       maxGap: 40,       // px at viewport max
     },
 
+    // Global Nav Grid padding
+    gridPadding: {
+      minPadding: 20,   // px at viewport min
+      maxPadding: 30,   // px at viewport max
+    },
+
     // Button font size
     buttons: {
       minSize: 11,      // px at viewport min
@@ -43,7 +49,10 @@
       maxX: 20,         // px horizontal at viewport max
       minY: 8,          // px vertical at viewport min
       maxY: 12,         // px vertical at viewport max
-    }
+    },
+
+    // Search button text visibility threshold
+    searchTextHideBelow: 1200  // px - hide "Search" text below this width
   };
 
   // Helper function to generate clamp() value
@@ -74,9 +83,16 @@
       /* Fluid scaling within desktop breakpoint (${CONFIG.viewportMin}px - ${CONFIG.viewportMax}px) */
 
       @media screen and (min-width: ${CONFIG.viewportMin}px) {
+        /* Global Nav Grid fluid padding */
+        .global-nav-grid {
+          padding-left: ${fluidValue(CONFIG.gridPadding.minPadding, CONFIG.gridPadding.maxPadding)} !important;
+          padding-right: ${fluidValue(CONFIG.gridPadding.minPadding, CONFIG.gridPadding.maxPadding)} !important;
+        }
+
         /* Logo fluid sizing */
         .global-nav-logo,
-        .global-nav-logo img {
+        .global-nav-logo img,
+        .global-nav-logo svg {
           width: ${fluidValue(CONFIG.logo.minWidth, CONFIG.logo.maxWidth)} !important;
           height: auto !important;
         }
@@ -108,6 +124,15 @@
         /* Dropdown toggle text fluid sizing */
         .global-nav-dropdown {
           font-size: ${fluidValue(CONFIG.navLinks.minSize, CONFIG.navLinks.maxSize)} !important;
+        }
+      }
+
+      /* Search button - hide text below threshold, show only icon */
+      @media screen and (min-width: ${CONFIG.viewportMin}px) and (max-width: ${CONFIG.searchTextHideBelow}px) {
+        .search-button-text,
+        .button.search .button-text,
+        .button[data-search] .button-text {
+          display: none !important;
         }
       }
     `;
