@@ -1602,8 +1602,10 @@
             <input type="text" class="mp-form-input" id="mp-form-project_name" required>
           </div>
           <div class="mp-form-field">
-            <label>Project Description</label>
+            <label>Project Description <span>*</span></label>
             <textarea class="mp-form-input" id="mp-form-project_description"></textarea>
+            <div class="mp-input-hint">Minimum 50 words required (<span id="mp-word-count">0</span> words)</div>
+            <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
           </div>
 
           ${createCategorySelector(selectedCategories)}
@@ -1641,6 +1643,19 @@
     // Setup image uploader
     setupImageUploader(modal, projectData, null);
 
+    // Setup word count for description
+    const descriptionInput = modal.querySelector('#mp-form-project_description');
+    const wordCountEl = modal.querySelector('#mp-word-count');
+    const updateWordCount = () => {
+      const text = descriptionInput.value.trim();
+      const count = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
+      wordCountEl.textContent = count;
+      wordCountEl.style.color = count >= 50 ? '#28a745' : '#666';
+      modal.querySelector('#mp-description-error').style.display = 'none';
+    };
+    descriptionInput.addEventListener('input', updateWordCount);
+    updateWordCount();
+
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
@@ -1650,9 +1665,18 @@
     const saveBtn = modal.querySelector('#mp-modal-save');
     saveBtn.addEventListener('click', async () => {
       const projectName = modal.querySelector('#mp-form-project_name').value.trim();
+      const projectDescription = modal.querySelector('#mp-form-project_description').value.trim();
+      const wordCount = projectDescription ? projectDescription.split(/\s+/).filter(w => w.length > 0).length : 0;
 
       if (!projectName) {
         alert('Project name is required');
+        return;
+      }
+
+      if (wordCount < 50) {
+        const errorEl = modal.querySelector('#mp-description-error');
+        if (errorEl) errorEl.style.display = 'block';
+        modal.querySelector('#mp-form-project_description').focus();
         return;
       }
 
@@ -1723,8 +1747,10 @@
             <input type="text" class="mp-form-input" id="mp-form-project_name" value="${project.project_name || ''}" required>
           </div>
           <div class="mp-form-field">
-            <label>Project Description</label>
+            <label>Project Description <span>*</span></label>
             <textarea class="mp-form-input" id="mp-form-project_description">${project.project_description || ''}</textarea>
+            <div class="mp-input-hint">Minimum 50 words required (<span id="mp-word-count">0</span> words)</div>
+            <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
           </div>
 
           ${createCategorySelector(selectedCategories)}
@@ -1762,6 +1788,19 @@
     // Setup URL validation
     setupUrlValidation(modal);
 
+    // Setup word count for description
+    const descriptionInput = modal.querySelector('#mp-form-project_description');
+    const wordCountEl = modal.querySelector('#mp-word-count');
+    const updateWordCount = () => {
+      const text = descriptionInput.value.trim();
+      const count = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
+      wordCountEl.textContent = count;
+      wordCountEl.style.color = count >= 50 ? '#28a745' : '#666';
+      modal.querySelector('#mp-description-error').style.display = 'none';
+    };
+    descriptionInput.addEventListener('input', updateWordCount);
+    updateWordCount();
+
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
@@ -1771,9 +1810,18 @@
     const saveBtn = modal.querySelector('#mp-modal-save');
     saveBtn.addEventListener('click', async () => {
       const projectName = modal.querySelector('#mp-form-project_name').value.trim();
+      const projectDescription = modal.querySelector('#mp-form-project_description').value.trim();
+      const wordCount = projectDescription ? projectDescription.split(/\s+/).filter(w => w.length > 0).length : 0;
 
       if (!projectName) {
         alert('Project name is required');
+        return;
+      }
+
+      if (wordCount < 50) {
+        const errorEl = modal.querySelector('#mp-description-error');
+        if (errorEl) errorEl.style.display = 'block';
+        modal.querySelector('#mp-form-project_description').focus();
         return;
       }
 
@@ -1782,7 +1830,7 @@
 
       // Update project
       project.project_name = projectName;
-      project.project_description = modal.querySelector('#mp-form-project_description').value;
+      project.project_description = projectDescription;
       project.external_link = modal.querySelector('#mp-form-external_link').value;
       project.showreel_link = modal.querySelector('#mp-form-showreel_link').value;
       project.display_order = parseInt(modal.querySelector('#mp-form-display_order').value) || 0;
