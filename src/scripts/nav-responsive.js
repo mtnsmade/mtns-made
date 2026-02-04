@@ -75,30 +75,26 @@
 
       @media screen and (min-width: ${CONFIG.viewportMin}px) {
         /* Logo fluid sizing */
-        .global-nav---logo,
-        [class*="global-nav"][class*="logo"] {
+        .global-nav-logo,
+        .global-nav-logo img {
           width: ${fluidValue(CONFIG.logo.minWidth, CONFIG.logo.maxWidth)} !important;
           height: auto !important;
         }
 
         /* Nav links fluid font size */
-        .global-nav-link,
-        .global-nav---desktop a,
-        [class*="global-nav"][class*="link"] {
+        .global-nav-link {
           font-size: ${fluidValue(CONFIG.navLinks.minSize, CONFIG.navLinks.maxSize)} !important;
         }
 
-        /* Nav container fluid gap */
-        .global-nav---desktop,
-        [class*="global-nav"][class*="desktop"] {
+        /* Nav desktop container fluid gap */
+        .global-nav-desktop {
           gap: ${fluidValue(CONFIG.navGap.minGap, CONFIG.navGap.maxGap)} !important;
         }
 
         /* Button fluid sizing */
-        .global-nav---burger-tools .button,
-        .global-nav---burger-tools a.button,
-        [class*="global-nav"] .button,
-        .buttons .button {
+        .global-nav-burger-tools .button,
+        .buttons .button,
+        .nav-button .button {
           font-size: ${fluidValue(CONFIG.buttons.minSize, CONFIG.buttons.maxSize)} !important;
           padding-left: ${fluidValue(CONFIG.buttonPadding.minX, CONFIG.buttonPadding.maxX)} !important;
           padding-right: ${fluidValue(CONFIG.buttonPadding.minX, CONFIG.buttonPadding.maxX)} !important;
@@ -106,9 +102,8 @@
           padding-bottom: ${fluidValue(CONFIG.buttonPadding.minY, CONFIG.buttonPadding.maxY)} !important;
         }
 
-        /* Dropdown text fluid sizing */
-        .global-nav-dropdown,
-        [class*="global-nav"][class*="dropdown"] {
+        /* Dropdown toggle text fluid sizing */
+        .global-nav-dropdown {
           font-size: ${fluidValue(CONFIG.navLinks.minSize, CONFIG.navLinks.maxSize)} !important;
         }
       }
