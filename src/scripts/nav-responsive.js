@@ -15,20 +15,20 @@
 
     // Logo sizing
     logo: {
-      minWidth: 100,    // px at viewport min
-      maxWidth: 140,    // px at viewport max
+      minWidth: 120,    // px at viewport min
+      maxWidth: 150,    // px at viewport max
     },
 
     // Nav link font size
     navLinks: {
-      minSize: 12,      // px at viewport min
-      maxSize: 15,      // px at viewport max
+      minSize: 11,      // px at viewport min
+      maxSize: 14,      // px at viewport max
     },
 
     // Nav link gap/spacing
     navGap: {
-      minGap: 16,       // px at viewport min
-      maxGap: 32,       // px at viewport max
+      minGap: 20,       // px at viewport min
+      maxGap: 40,       // px at viewport max
     },
 
     // Button font size
@@ -39,10 +39,10 @@
 
     // Button padding
     buttonPadding: {
-      minX: 12,         // px horizontal at viewport min
+      minX: 14,         // px horizontal at viewport min
       maxX: 20,         // px horizontal at viewport max
-      minY: 6,          // px vertical at viewport min
-      maxY: 10,         // px vertical at viewport max
+      minY: 8,          // px vertical at viewport min
+      maxY: 12,         // px vertical at viewport max
     }
   };
 
@@ -84,6 +84,9 @@
         /* Nav links fluid font size */
         .global-nav-link {
           font-size: ${fluidValue(CONFIG.navLinks.minSize, CONFIG.navLinks.maxSize)} !important;
+          white-space: normal !important;
+          text-align: center !important;
+          line-height: 1.2 !important;
         }
 
         /* Nav desktop container fluid gap */
