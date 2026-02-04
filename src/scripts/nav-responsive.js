@@ -129,9 +129,9 @@
 
       /* Search button - hide text below threshold, show only icon */
       @media screen and (min-width: ${CONFIG.viewportMin}px) and (max-width: ${CONFIG.searchTextHideBelow}px) {
-        .search-button-text,
-        .button.search .button-text,
-        .button[data-search] .button-text {
+        [button="global-search"] .text-block,
+        [button="global-search"] .button-text,
+        [button="global-search"] span:not(.icon) {
           display: none !important;
         }
       }
