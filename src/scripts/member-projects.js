@@ -285,6 +285,27 @@
       align-items: center;
       padding: 16px 20px;
     }
+    .mp-project-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .mp-project-header-left:hover .mp-project-title {
+      color: #555;
+    }
+    .mp-project-header-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .mp-toggle-icon {
+      font-size: 10px;
+      color: #999;
+      transition: transform 0.2s;
+    }
+    .mp-toggle-icon.open {
+      transform: rotate(90deg);
+    }
     .mp-project-title {
       margin: 0;
       font-size: 16px;
@@ -322,13 +343,8 @@
       padding: 8px 12px;
       background: #f5f5f5;
       border-radius: 4px;
-      cursor: pointer;
       min-height: 20px;
       color: #333;
-      transition: background 0.2s;
-    }
-    .mp-field-value:hover {
-      background: #eee;
     }
     .mp-field-value.empty {
       color: #999;
@@ -350,21 +366,6 @@
     textarea.mp-field-input {
       min-height: 80px;
       resize: vertical;
-    }
-    .mp-project-actions {
-      display: flex;
-      gap: 10px;
-      padding: 0 20px 20px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
-    @media (max-width: 500px) {
-      .mp-project-actions {
-        justify-content: stretch;
-      }
-      .mp-project-actions .mp-btn {
-        flex: 1;
-      }
     }
     .mp-modal-overlay {
       position: fixed;
@@ -1341,16 +1342,18 @@
     return `
       <div class="mp-project-card" data-project-id="${project.id}">
         <div class="mp-project-header">
-          <h3 class="mp-project-title">${project.project_name || 'Untitled Project'}</h3>
-          <button class="mp-btn mp-btn-secondary mp-btn-small mp-edit-btn">Edit Project</button>
+          <div class="mp-project-header-left mp-toggle-details">
+            <span class="mp-toggle-icon">&#9654;</span>
+            <h3 class="mp-project-title">${project.project_name || 'Untitled Project'}</h3>
+          </div>
+          <div class="mp-project-header-actions">
+            <button class="mp-btn mp-btn-secondary mp-btn-small mp-edit-btn">Edit</button>
+            <button class="mp-btn mp-btn-danger mp-btn-small mp-delete-btn">Delete</button>
+          </div>
         </div>
         <div class="mp-project-content">
           <div class="mp-project-fields">
             ${fieldsHtml}
-          </div>
-          <div class="mp-project-actions">
-            <button class="mp-btn mp-btn-secondary mp-btn-small mp-edit-full-btn">Edit All Fields</button>
-            <button class="mp-btn mp-btn-danger mp-btn-small mp-delete-btn">Delete Project</button>
           </div>
         </div>
       </div>
@@ -1360,26 +1363,22 @@
   // Setup event listeners for a project card
   function setupProjectCard(card, project, wrapper) {
     const content = card.querySelector('.mp-project-content');
+    const toggleArea = card.querySelector('.mp-toggle-details');
+    const toggleIcon = card.querySelector('.mp-toggle-icon');
     const editBtn = card.querySelector('.mp-edit-btn');
-    const editFullBtn = card.querySelector('.mp-edit-full-btn');
     const deleteBtn = card.querySelector('.mp-delete-btn');
 
-    editBtn.addEventListener('click', (e) => {
+    // Toggle details visibility
+    toggleArea.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpen = content.classList.toggle('open');
-      editBtn.textContent = isOpen ? 'Close' : 'Edit Project';
+      toggleIcon.classList.toggle('open', isOpen);
     });
 
-    // Edit full opens modal
-    editFullBtn.addEventListener('click', () => {
+    // Edit button opens modal
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       openEditModal(project, wrapper);
-    });
-
-    // Inline editing for text fields
-    card.querySelectorAll('.mp-field-value').forEach(fieldValue => {
-      fieldValue.addEventListener('click', () => {
-        startFieldEdit(fieldValue, project, wrapper);
-      });
     });
 
     // Delete
