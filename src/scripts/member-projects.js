@@ -18,6 +18,23 @@
 
   const UPLOADCARE_PUBLIC_KEY = '4ab46fc683f9c002ae8b';
 
+  // Project limits by membership type
+  const PROJECT_LIMITS = {
+    'emerging': 2,
+    'professional': 5,
+    'small-business': 5,
+    'not-for-profit': 5,
+    'large-business': 8,
+    'spaces-suppliers': 5  // default for this type
+  };
+
+  // Get project limit for a membership type
+  function getProjectLimit(membershipType) {
+    if (!membershipType) return 2; // default to emerging limit
+    const type = membershipType.toLowerCase();
+    return PROJECT_LIMITS[type] || 2;
+  }
+
   // Category data - Parent directories
   const PARENT_CATEGORIES = [
     { name: 'Screen', slug: 'screen', id: '64ad5d25b6907c1bed526490' },
@@ -187,6 +204,22 @@
       margin: 0;
       font-size: 24px;
       color: #333;
+    }
+    .mp-header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .mp-project-count {
+      font-size: 14px;
+      color: #666;
+    }
+    .mp-btn-disabled {
+      background: #ccc !important;
+      cursor: not-allowed !important;
+    }
+    .mp-btn-disabled:hover {
+      background: #ccc !important;
     }
     .mp-btn {
       background: #333;
@@ -1204,10 +1237,20 @@
       return;
     }
 
+    const membershipType = currentMember?.customFields?.['membership-type'];
+    const limit = getProjectLimit(membershipType);
+    const remaining = limit - projects.length;
+    const atLimit = remaining <= 0;
+
     let html = `
       <div class="mp-header">
         <h2>My Projects</h2>
-        <button class="mp-btn" id="mp-add-project">Add Another Project</button>
+        <div class="mp-header-right">
+          <span class="mp-project-count">${projects.length} of ${limit} projects</span>
+          <button class="mp-btn ${atLimit ? 'mp-btn-disabled' : ''}" id="mp-add-project" ${atLimit ? 'disabled' : ''}>
+            ${atLimit ? 'Limit Reached' : 'Add Another Project'}
+          </button>
+        </div>
       </div>
       <div class="mp-projects-list">
     `;
@@ -1219,7 +1262,17 @@
     html += '</div>';
     wrapper.innerHTML = html;
 
-    wrapper.querySelector('#mp-add-project').addEventListener('click', () => openAddModal(wrapper));
+    wrapper.querySelector('#mp-add-project').addEventListener('click', () => {
+      const membershipType = currentMember?.customFields?.['membership-type'];
+      const limit = getProjectLimit(membershipType);
+
+      if (projects.length >= limit) {
+        showLimitReachedModal(limit, membershipType);
+        return;
+      }
+
+      openAddModal(wrapper);
+    });
 
     wrapper.querySelectorAll('.mp-project-card').forEach((card, index) => {
       const project = projects[index];
@@ -1581,6 +1634,39 @@
           if (onChange) onChange();
         });
       });
+    });
+  }
+
+  // Show limit reached modal
+  function showLimitReachedModal(limit, membershipType) {
+    const membershipName = membershipType ? membershipType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'your membership';
+
+    const modal = document.createElement('div');
+    modal.className = 'mp-modal-overlay';
+    modal.innerHTML = `
+      <div class="mp-modal" style="max-width: 450px;">
+        <div class="mp-modal-header">
+          <h3>Project Limit Reached</h3>
+        </div>
+        <div class="mp-modal-body" style="text-align: center; padding: 30px;">
+          <p style="margin-bottom: 16px; font-size: 16px;">
+            You've reached the maximum of <strong>${limit} projects</strong> for ${membershipName} members.
+          </p>
+          <p style="margin-bottom: 0; color: #666;">
+            To add a new project, please delete an existing one or consider upgrading your membership.
+          </p>
+        </div>
+        <div class="mp-modal-footer">
+          <button class="mp-btn" id="mp-modal-close">Got it</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector('#mp-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
     });
   }
 
