@@ -692,6 +692,29 @@
     }
   }
 
+  function isValidShowreelUrl(url) {
+    if (!url || url.trim() === '') return true; // Empty is valid (optional field)
+    let testUrl = url.trim();
+    if (!/^https?:\/\//i.test(testUrl)) {
+      testUrl = 'https://' + testUrl;
+    }
+    try {
+      const urlObj = new URL(testUrl);
+      const hostname = urlObj.hostname.toLowerCase();
+      // Check for YouTube
+      if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+        return true;
+      }
+      // Check for Vimeo
+      if (hostname.includes('vimeo.com')) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
   // ============================================
   // SUPABASE DATA OPERATIONS
   // ============================================
@@ -960,6 +983,41 @@
     input.addEventListener('blur', validate);
     input.addEventListener('input', () => {
       if (input.classList.contains('error') && isValidUrl(input.value)) {
+        input.classList.remove('error');
+        input.classList.add('valid');
+        errorMsg.classList.remove('visible');
+      }
+    });
+
+    if (input.value.trim()) {
+      validate();
+    }
+  }
+
+  function setupShowreelValidation(container) {
+    const input = container.querySelector('#mp-form-showreel_link');
+    const errorMsg = container.querySelector('#mp-showreel-error');
+    if (!input || !errorMsg) return;
+
+    const validate = () => {
+      const value = input.value.trim();
+      if (value === '') {
+        input.classList.remove('error', 'valid');
+        errorMsg.classList.remove('visible');
+      } else if (isValidShowreelUrl(value)) {
+        input.classList.remove('error');
+        input.classList.add('valid');
+        errorMsg.classList.remove('visible');
+      } else {
+        input.classList.remove('valid');
+        input.classList.add('error');
+        errorMsg.classList.add('visible');
+      }
+    };
+
+    input.addEventListener('blur', validate);
+    input.addEventListener('input', () => {
+      if (input.classList.contains('error') && isValidShowreelUrl(input.value)) {
         input.classList.remove('error');
         input.classList.add('valid');
         errorMsg.classList.remove('visible');
@@ -1570,6 +1628,7 @@
             <label>Showreel Link</label>
             <input type="text" class="mp-form-input" id="mp-form-showreel_link" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
             <div class="mp-input-hint">YouTube or Vimeo URL only</div>
+            <div class="mp-input-error" id="mp-showreel-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
             <label>Project External Link</label>
@@ -1594,6 +1653,7 @@
     setupCategorySelector(modal, selectedCategories, null);
     setupImageUploader(modal, projectData, null);
     setupUrlValidation(modal);
+    setupShowreelValidation(modal);
 
     // Word count
     const descriptionInput = modal.querySelector('#mp-form-description');
@@ -1632,6 +1692,24 @@
         return;
       }
 
+      const showreelLink = modal.querySelector('#mp-form-showreel_link').value.trim();
+      if (showreelLink && !isValidShowreelUrl(showreelLink)) {
+        const errorEl = modal.querySelector('#mp-showreel-error');
+        if (errorEl) errorEl.classList.add('visible');
+        modal.querySelector('#mp-form-showreel_link').classList.add('error');
+        modal.querySelector('#mp-form-showreel_link').focus();
+        return;
+      }
+
+      const externalLink = modal.querySelector('#mp-form-external_link').value.trim();
+      if (externalLink && !isValidUrl(externalLink)) {
+        const errorEl = modal.querySelector('#mp-url-error');
+        if (errorEl) errorEl.classList.add('visible');
+        modal.querySelector('#mp-form-external_link').classList.add('error');
+        modal.querySelector('#mp-form-external_link').focus();
+        return;
+      }
+
       saveBtn.disabled = true;
       saveBtn.textContent = 'Creating...';
 
@@ -1640,7 +1718,7 @@
           name: projectName,
           description: projectDescription,
           external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
-          showreel_link: modal.querySelector('#mp-form-showreel_link').value,
+          showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
           display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
           categories: [...selectedCategories],
           feature_image_url: projectData.feature_image_url || '',
@@ -1696,6 +1774,7 @@
             <label>Showreel Link</label>
             <input type="text" class="mp-form-input" id="mp-form-showreel_link" value="${project.showreel_link || ''}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
             <div class="mp-input-hint">YouTube or Vimeo URL only</div>
+            <div class="mp-input-error" id="mp-showreel-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
             <label>Project External Link</label>
@@ -1720,6 +1799,7 @@
     setupCategorySelector(modal, selectedCategories, null);
     setupImageUploader(modal, projectData, null);
     setupUrlValidation(modal);
+    setupShowreelValidation(modal);
 
     // Word count
     const descriptionInput = modal.querySelector('#mp-form-description');
@@ -1758,6 +1838,24 @@
         return;
       }
 
+      const showreelLink = modal.querySelector('#mp-form-showreel_link').value.trim();
+      if (showreelLink && !isValidShowreelUrl(showreelLink)) {
+        const errorEl = modal.querySelector('#mp-showreel-error');
+        if (errorEl) errorEl.classList.add('visible');
+        modal.querySelector('#mp-form-showreel_link').classList.add('error');
+        modal.querySelector('#mp-form-showreel_link').focus();
+        return;
+      }
+
+      const externalLink = modal.querySelector('#mp-form-external_link').value.trim();
+      if (externalLink && !isValidUrl(externalLink)) {
+        const errorEl = modal.querySelector('#mp-url-error');
+        if (errorEl) errorEl.classList.add('visible');
+        modal.querySelector('#mp-form-external_link').classList.add('error');
+        modal.querySelector('#mp-form-external_link').focus();
+        return;
+      }
+
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saving...';
 
@@ -1766,7 +1864,7 @@
           name: projectName,
           description: projectDescription,
           external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
-          showreel_link: modal.querySelector('#mp-form-showreel_link').value,
+          showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
           display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
           categories: [...selectedCategories],
           feature_image_url: projectData.feature_image_url || '',

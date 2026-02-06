@@ -45,7 +45,6 @@ interface WebflowFieldData {
   name: string;
   slug: string;
   'project-description'?: string;
-  'project-description-editable'?: string;
   'feature-image'?: { url: string };
   'project-multi-image'?: { url: string }[];
   'project-external-link'?: string;
@@ -53,8 +52,6 @@ interface WebflowFieldData {
   'display-order'?: number;
   'portfolio-item-id'?: string;
   'memberstack-id'?: string;
-  _archived?: boolean;
-  _draft?: boolean;
 }
 
 // Initialize Supabase client with service role key (for updating webflow_id)
@@ -67,14 +64,11 @@ function mapToWebflowFields(record: ProjectRecord): WebflowFieldData {
   const fieldData: WebflowFieldData = {
     name: record.name,
     slug: record.slug,
-    _archived: record.is_deleted,
-    _draft: record.is_draft,
   };
 
   // Description
   if (record.description) {
     fieldData['project-description'] = record.description;
-    fieldData['project-description-editable'] = record.description;
   }
 
   // Feature image (Webflow v2 image format)

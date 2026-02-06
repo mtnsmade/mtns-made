@@ -1,4 +1,4 @@
-(function(){console.log("Member projects Supabase script loaded");const M="https://epszwomtxkpjegbjbixr.supabase.co",N="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",k="project-images",_=20,T={emerging:2,professional:5,"small-business":5,"not-for-profit":5,"large-business":8,"spaces-suppliers":5};let y=null,b=null,g=[],v={directories:[],subDirectories:[]};const R=`
+(function(){console.log("Member projects Supabase script loaded");const R="https://epszwomtxkpjegbjbixr.supabase.co",D="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",q="project-images",_=20,F={emerging:2,professional:5,"small-business":5,"not-for-profit":5,"large-business":8,"spaces-suppliers":5};let y=null,v=null,f=[],x={directories:[],subDirectories:[]};const H=`
     .mp-container {
       font-family: inherit;
       width: 100%;
@@ -586,69 +586,69 @@
       grid-column: span 4;
       aspect-ratio: 16/9;
     }
-  `;function D(){return window.supabase?(y=window.supabase.createClient(M,N),console.log("Supabase client initialized"),!0):(console.error("Supabase JS library not loaded"),!1)}function L(e){if(!e)return 2;const r=e.toLowerCase();return T[r]||2}function F(e){return e.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").substring(0,50)+"-"+Date.now().toString(36)}function E(e){if(!e||e.trim()==="")return"";let r=e.trim();/^https?:\/\//i.test(r)||(r="https://"+r);try{return new URL(r),r}catch{return""}}function S(e){if(!e||e.trim()==="")return!0;let r=e.trim();/^https?:\/\//i.test(r)||(r="https://"+r);try{return new URL(r),!0}catch{return!1}}async function H(){try{const{data:e,error:r}=await y.from("directories").select("id, webflow_id, name, slug").order("display_order");if(r)throw r;const{data:o,error:t}=await y.from("sub_directories").select("id, webflow_id, name, slug, directory_slug").order("name");if(t)throw t;return console.log(`Loaded ${e.length} directories and ${o.length} sub-directories`),{directories:e,subDirectories:o}}catch(e){return console.error("Error loading categories:",e),{directories:[],subDirectories:[]}}}async function G(e){try{const{data:r,error:o}=await y.from("projects").select(`
+  `;function G(){return window.supabase?(y=window.supabase.createClient(R,D),console.log("Supabase client initialized"),!0):(console.error("Supabase JS library not loaded"),!1)}function j(r){if(!r)return 2;const e=r.toLowerCase();return F[e]||2}function B(r){return r.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").substring(0,50)+"-"+Date.now().toString(36)}function w(r){if(!r||r.trim()==="")return"";let e=r.trim();/^https?:\/\//i.test(e)||(e="https://"+e);try{return new URL(e),e}catch{return""}}function L(r){if(!r||r.trim()==="")return!0;let e=r.trim();/^https?:\/\//i.test(e)||(e="https://"+e);try{return new URL(e),!0}catch{return!1}}function k(r){if(!r||r.trim()==="")return!0;let e=r.trim();/^https?:\/\//i.test(e)||(e="https://"+e);try{const t=new URL(e).hostname.toLowerCase();return!!(t.includes("youtube.com")||t.includes("youtu.be")||t.includes("vimeo.com"))}catch{return!1}}async function O(){try{const{data:r,error:e}=await y.from("directories").select("id, webflow_id, name, slug").order("display_order");if(e)throw e;const{data:o,error:t}=await y.from("sub_directories").select("id, webflow_id, name, slug, directory_slug").order("name");if(t)throw t;return console.log(`Loaded ${r.length} directories and ${o.length} sub-directories`),{directories:r,subDirectories:o}}catch(r){return console.error("Error loading categories:",r),{directories:[],subDirectories:[]}}}async function Y(r){try{const{data:e,error:o}=await y.from("projects").select(`
           *,
           project_sub_directories (
             sub_directory_id
           )
-        `).eq("memberstack_id",e).eq("is_deleted",!1).order("display_order",{ascending:!0});if(o)throw o;const t=r.map(a=>{var s;return{...a,categories:((s=a.project_sub_directories)==null?void 0:s.map(d=>d.sub_directory_id))||[],gallery_images:a.gallery_images||[]}});return console.log(`Loaded ${t.length} projects for member ${e}`),t}catch(r){return console.error("Error loading projects:",r),[]}}async function B(e){try{const{categories:r,...o}=e,{data:t,error:a}=await y.from("projects").insert({memberstack_id:b.id,name:o.name,slug:F(o.name),description:o.description,feature_image_url:o.feature_image_url||null,gallery_images:o.gallery_images||[],external_link:o.external_link||null,showreel_link:o.showreel_link||null,display_order:o.display_order||0,is_draft:!1,is_deleted:!1}).select().single();if(a)throw a;if(r&&r.length>0){const s=r.map(l=>({project_id:t.id,sub_directory_id:l})),{error:d}=await y.from("project_sub_directories").insert(s);d&&console.error("Error linking categories:",d)}return console.log("Project created:",t.id),{...t,categories:r||[],gallery_images:t.gallery_images||[]}}catch(r){throw console.error("Error creating project:",r),r}}async function O(e,r){try{const{categories:o,...t}=r,{data:a,error:s}=await y.from("projects").update({name:t.name,description:t.description,feature_image_url:t.feature_image_url||null,gallery_images:t.gallery_images||[],external_link:t.external_link||null,showreel_link:t.showreel_link||null,display_order:t.display_order||0}).eq("id",e).eq("memberstack_id",b.id).select().single();if(s)throw s;const{error:d}=await y.from("project_sub_directories").delete().eq("project_id",e);if(d&&console.error("Error deleting old categories:",d),o&&o.length>0){const l=o.map(n=>({project_id:e,sub_directory_id:n})),{error:i}=await y.from("project_sub_directories").insert(l);i&&console.error("Error linking categories:",i)}return console.log("Project updated:",e),{...a,categories:o||[],gallery_images:a.gallery_images||[]}}catch(o){throw console.error("Error updating project:",o),o}}async function Y(e){try{const{error:r}=await y.from("projects").update({is_deleted:!0}).eq("id",e).eq("memberstack_id",b.id);if(r)throw r;return console.log("Project deleted:",e),!0}catch(r){throw console.error("Error deleting project:",r),r}}async function j(e,r){const o=Date.now(),t=e.name.split(".").pop(),a=`${b.id}/${r||"new"}/${o}.${t}`,{data:s,error:d}=await y.storage.from(k).upload(a,e,{cacheControl:"3600",upsert:!1});if(d)throw d;const{data:{publicUrl:l}}=y.storage.from(k).getPublicUrl(a);return console.log("Image uploaded:",l),l}function q(e){const r=v.subDirectories.find(o=>o.id===e);return r?r.name:e}function V(e){return v.subDirectories.filter(r=>r.directory_slug===e)}function $(e){const r=e.querySelector("#mp-form-external_link"),o=e.querySelector("#mp-url-error");if(!r||!o)return;const t=()=>{const a=r.value.trim();a===""?(r.classList.remove("error","valid"),o.classList.remove("visible")):S(a)?(r.classList.remove("error"),r.classList.add("valid"),o.classList.remove("visible")):(r.classList.remove("valid"),r.classList.add("error"),o.classList.add("visible"))};r.addEventListener("blur",t),r.addEventListener("input",()=>{r.classList.contains("error")&&S(r.value)&&(r.classList.remove("error"),r.classList.add("valid"),o.classList.remove("visible"))}),r.value.trim()&&t()}function w(e){var d;if(g.length===0){e.innerHTML=`
+        `).eq("memberstack_id",r).eq("is_deleted",!1).order("display_order",{ascending:!0});if(o)throw o;const t=e.map(i=>{var n;return{...i,categories:((n=i.project_sub_directories)==null?void 0:n.map(c=>c.sub_directory_id))||[],gallery_images:i.gallery_images||[]}});return console.log(`Loaded ${t.length} projects for member ${r}`),t}catch(e){return console.error("Error loading projects:",e),[]}}async function V(r){try{const{categories:e,...o}=r,{data:t,error:i}=await y.from("projects").insert({memberstack_id:v.id,name:o.name,slug:B(o.name),description:o.description,feature_image_url:o.feature_image_url||null,gallery_images:o.gallery_images||[],external_link:o.external_link||null,showreel_link:o.showreel_link||null,display_order:o.display_order||0,is_draft:!1,is_deleted:!1}).select().single();if(i)throw i;if(e&&e.length>0){const n=e.map(s=>({project_id:t.id,sub_directory_id:s})),{error:c}=await y.from("project_sub_directories").insert(n);c&&console.error("Error linking categories:",c)}return console.log("Project created:",t.id),{...t,categories:e||[],gallery_images:t.gallery_images||[]}}catch(e){throw console.error("Error creating project:",e),e}}async function W(r,e){try{const{categories:o,...t}=e,{data:i,error:n}=await y.from("projects").update({name:t.name,description:t.description,feature_image_url:t.feature_image_url||null,gallery_images:t.gallery_images||[],external_link:t.external_link||null,showreel_link:t.showreel_link||null,display_order:t.display_order||0}).eq("id",r).eq("memberstack_id",v.id).select().single();if(n)throw n;const{error:c}=await y.from("project_sub_directories").delete().eq("project_id",r);if(c&&console.error("Error deleting old categories:",c),o&&o.length>0){const s=o.map(d=>({project_id:r,sub_directory_id:d})),{error:a}=await y.from("project_sub_directories").insert(s);a&&console.error("Error linking categories:",a)}return console.log("Project updated:",r),{...i,categories:o||[],gallery_images:i.gallery_images||[]}}catch(o){throw console.error("Error updating project:",o),o}}async function J(r){try{const{error:e}=await y.from("projects").update({is_deleted:!0}).eq("id",r).eq("memberstack_id",v.id);if(e)throw e;return console.log("Project deleted:",r),!0}catch(e){throw console.error("Error deleting project:",e),e}}async function $(r,e){const o=Date.now(),t=r.name.split(".").pop(),i=`${v.id}/${e||"new"}/${o}.${t}`,{data:n,error:c}=await y.storage.from(q).upload(i,r,{cacheControl:"3600",upsert:!1});if(c)throw c;const{data:{publicUrl:s}}=y.storage.from(q).getPublicUrl(i);return console.log("Image uploaded:",s),s}function C(r){const e=x.subDirectories.find(o=>o.id===r);return e?e.name:r}function K(r){return x.subDirectories.filter(e=>e.directory_slug===r)}function P(r){const e=r.querySelector("#mp-form-external_link"),o=r.querySelector("#mp-url-error");if(!e||!o)return;const t=()=>{const i=e.value.trim();i===""?(e.classList.remove("error","valid"),o.classList.remove("visible")):L(i)?(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible")):(e.classList.remove("valid"),e.classList.add("error"),o.classList.add("visible"))};e.addEventListener("blur",t),e.addEventListener("input",()=>{e.classList.contains("error")&&L(e.value)&&(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible"))}),e.value.trim()&&t()}function z(r){const e=r.querySelector("#mp-form-showreel_link"),o=r.querySelector("#mp-showreel-error");if(!e||!o)return;const t=()=>{const i=e.value.trim();i===""?(e.classList.remove("error","valid"),o.classList.remove("visible")):k(i)?(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible")):(e.classList.remove("valid"),e.classList.add("error"),o.classList.add("visible"))};e.addEventListener("blur",t),e.addEventListener("input",()=>{e.classList.contains("error")&&k(e.value)&&(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible"))}),e.value.trim()&&t()}function S(r){var c;if(f.length===0){r.innerHTML=`
         <div class="mp-empty">
           <p>You don't have any projects yet</p>
           <button class="mp-btn" id="mp-add-first">Add Your First Project</button>
         </div>
-      `,e.querySelector("#mp-add-first").addEventListener("click",()=>I(e));return}const r=(d=b==null?void 0:b.customFields)==null?void 0:d["membership-type"],o=L(r),a=o-g.length<=0;let s=`
+      `,r.querySelector("#mp-add-first").addEventListener("click",()=>T(r));return}const e=(c=v==null?void 0:v.customFields)==null?void 0:c["membership-type"],o=j(e),i=o-f.length<=0;let n=`
       <div class="mp-header">
         <h2>My Projects</h2>
         <div class="mp-header-right">
-          <span class="mp-project-count">${g.length} of ${o} projects</span>
-          <button class="mp-btn ${a?"mp-btn-disabled":""}" id="mp-add-project" ${a?"disabled":""}>
-            ${a?"Limit Reached":"Add Another Project"}
+          <span class="mp-project-count">${f.length} of ${o} projects</span>
+          <button class="mp-btn ${i?"mp-btn-disabled":""}" id="mp-add-project" ${i?"disabled":""}>
+            ${i?"Limit Reached":"Add Another Project"}
           </button>
         </div>
       </div>
       <div class="mp-projects-list">
-    `;g.forEach((l,i)=>{s+=W(l)}),s+="</div>",e.innerHTML=s,e.querySelector("#mp-add-project").addEventListener("click",()=>{var n;const l=(n=b==null?void 0:b.customFields)==null?void 0:n["membership-type"],i=L(l);if(g.length>=i){X(i,l);return}I(e)}),e.querySelectorAll(".mp-project-card").forEach((l,i)=>{const n=g[i];J(l,n,e)})}function W(e,r){let o="";const t=e.description||"";o+=`
+    `;f.forEach((s,a)=>{n+=X(s)}),n+="</div>",r.innerHTML=n,r.querySelector("#mp-add-project").addEventListener("click",()=>{var d;const s=(d=v==null?void 0:v.customFields)==null?void 0:d["membership-type"],a=j(s);if(f.length>=a){ee(a,s);return}T(r)}),r.querySelectorAll(".mp-project-card").forEach((s,a)=>{const d=f[a];Q(s,d,r)})}function X(r,e){let o="";const t=r.description||"";o+=`
       <div class="mp-field">
         <div class="mp-field-label">Description</div>
         <div class="mp-field-value ${t?"":"empty"}">
           ${t||"No description"}
         </div>
       </div>
-    `;const a=e.categories||[];o+=`
+    `;const i=r.categories||[];o+=`
       <div class="mp-field">
         <div class="mp-field-label">Categories</div>
         <div class="mp-categories-display">
-          ${a.length>0?a.map(i=>`<span class="mp-category-tag">${q(i)}</span>`).join(""):'<span class="mp-field-value empty">No categories selected</span>'}
+          ${i.length>0?i.map(a=>`<span class="mp-category-tag">${C(a)}</span>`).join(""):'<span class="mp-field-value empty">No categories selected</span>'}
         </div>
       </div>
-    `;const s=e.feature_image_url,d=e.gallery_images||[];return(s||d.length>0)&&(o+=`
+    `;const n=r.feature_image_url,c=r.gallery_images||[];return(n||c.length>0)&&(o+=`
         <div class="mp-field">
           <div class="mp-field-label">Images</div>
           <div class="mp-images-display">
-            ${s?`<img src="${e.feature_image_url}" class="mp-feature-thumb" alt="Feature">`:""}
-            ${d.map((i,n)=>`<img src="${i}" alt="Gallery ${n+1}">`).join("")}
+            ${n?`<img src="${r.feature_image_url}" class="mp-feature-thumb" alt="Feature">`:""}
+            ${c.map((a,d)=>`<img src="${a}" alt="Gallery ${d+1}">`).join("")}
           </div>
         </div>
-      `),e.external_link&&(o+=`
+      `),r.external_link&&(o+=`
         <div class="mp-field">
           <div class="mp-field-label">External Link</div>
           <div class="mp-field-value">
-            <a href="${e.external_link}" target="_blank">${e.external_link}</a>
+            <a href="${r.external_link}" target="_blank">${r.external_link}</a>
           </div>
         </div>
-      `),e.showreel_link&&(o+=`
+      `),r.showreel_link&&(o+=`
         <div class="mp-field">
           <div class="mp-field-label">Showreel</div>
           <div class="mp-field-value">
-            <a href="${e.showreel_link}" target="_blank">${e.showreel_link}</a>
+            <a href="${r.showreel_link}" target="_blank">${r.showreel_link}</a>
           </div>
         </div>
       `),`
-      <div class="mp-project-card" data-project-id="${e.id}">
+      <div class="mp-project-card" data-project-id="${r.id}">
         <div class="mp-project-header">
           <div class="mp-project-header-left mp-toggle-details">
             <span class="mp-toggle-icon">&#9654;</span>
-            <h3 class="mp-project-title">${e.name||"Untitled Project"}</h3>
+            <h3 class="mp-project-title">${r.name||"Untitled Project"}</h3>
           </div>
           <div class="mp-project-header-actions">
             <button class="mp-btn mp-btn-secondary mp-btn-small mp-edit-btn">Edit</button>
@@ -661,23 +661,23 @@
           </div>
         </div>
       </div>
-    `}function J(e,r,o){const t=e.querySelector(".mp-project-content"),a=e.querySelector(".mp-toggle-details"),s=e.querySelector(".mp-toggle-icon"),d=e.querySelector(".mp-edit-btn"),l=e.querySelector(".mp-delete-btn");a.addEventListener("click",i=>{i.stopPropagation();const n=t.classList.toggle("open");s.classList.toggle("open",n)}),d.addEventListener("click",i=>{i.stopPropagation(),Q(r,o)}),l.addEventListener("click",async()=>{if(confirm("Are you sure you want to delete this project?")){l.disabled=!0,l.textContent="Deleting...";try{await Y(r.id),g=g.filter(i=>i.id!==r.id),w(o)}catch(i){console.error("Error deleting project:",i),alert("Error deleting project. Please try again."),l.disabled=!1,l.textContent="Delete"}}})}function C(e=[]){let r=`
+    `}function Q(r,e,o){const t=r.querySelector(".mp-project-content"),i=r.querySelector(".mp-toggle-details"),n=r.querySelector(".mp-toggle-icon"),c=r.querySelector(".mp-edit-btn"),s=r.querySelector(".mp-delete-btn");i.addEventListener("click",a=>{a.stopPropagation();const d=t.classList.toggle("open");n.classList.toggle("open",d)}),c.addEventListener("click",a=>{a.stopPropagation(),re(e,o)}),s.addEventListener("click",async()=>{if(confirm("Are you sure you want to delete this project?")){s.disabled=!0,s.textContent="Deleting...";try{await J(e.id),f=f.filter(a=>a.id!==e.id),S(o)}catch(a){console.error("Error deleting project:",a),alert("Error deleting project. Please try again."),s.disabled=!1,s.textContent="Delete"}}})}function U(r=[]){let e=`
       <div class="mp-category-section">
         <h4>Choose Project Categories</h4>
         <p style="font-size: 12px; color: #666; margin: 0 0 12px 0;">Select a category to see subcategories. You can choose from multiple categories.</p>
         <div class="mp-parent-categories">
-    `;return v.directories.forEach(o=>{r+=`<button type="button" class="mp-parent-btn" data-parent="${o.slug}">${o.name}</button>`}),r+="</div>",v.directories.forEach(o=>{const t=V(o.slug);r+=`<div class="mp-child-categories" data-parent="${o.slug}">`,t.forEach(a=>{const s=e.includes(a.id);r+=`<button type="button" class="mp-child-btn ${s?"selected":""}" data-id="${a.id}">${a.name}</button>`}),r+="</div>"}),r+=`
-        <div class="mp-selected-categories" style="${e.length?"":"display: none;"}">
+    `;return x.directories.forEach(o=>{e+=`<button type="button" class="mp-parent-btn" data-parent="${o.slug}">${o.name}</button>`}),e+="</div>",x.directories.forEach(o=>{const t=K(o.slug);e+=`<div class="mp-child-categories" data-parent="${o.slug}">`,t.forEach(i=>{const n=r.includes(i.id);e+=`<button type="button" class="mp-child-btn ${n?"selected":""}" data-id="${i.id}">${i.name}</button>`}),e+="</div>"}),e+=`
+        <div class="mp-selected-categories" style="${r.length?"":"display: none;"}">
           <h5>Selected Categories</h5>
           <div class="mp-selected-list"></div>
         </div>
       </div>
-    `,r}function P(e,r,o){const t=e.querySelectorAll(".mp-parent-btn"),a=e.querySelectorAll(".mp-child-categories"),s=e.querySelector(".mp-selected-list"),d=e.querySelector(".mp-selected-categories");function l(){s.innerHTML=r.map(i=>`<span class="mp-selected-tag">${q(i)}<button type="button" data-id="${i}">&times;</button></span>`).join(""),d.style.display=r.length?"":"none",e.querySelectorAll(".mp-child-btn").forEach(i=>{i.classList.toggle("selected",r.includes(i.dataset.id))})}t.forEach(i=>{i.addEventListener("click",()=>{const n=i.dataset.parent,u=i.classList.contains("active");t.forEach(c=>c.classList.remove("active")),a.forEach(c=>c.classList.remove("visible")),u||(i.classList.add("active"),e.querySelector(`.mp-child-categories[data-parent="${n}"]`).classList.add("visible"))})}),e.querySelectorAll(".mp-child-btn").forEach(i=>{i.addEventListener("click",()=>{const n=i.dataset.id,u=r.indexOf(n);u>-1?r.splice(u,1):r.push(n),l()})}),s.addEventListener("click",i=>{if(i.target.tagName==="BUTTON"){const n=i.target.dataset.id,u=r.indexOf(n);u>-1&&(r.splice(u,1),l())}}),l()}function z(e={}){const r=(e.gallery_images||[]).length;return`
+    `,e}function A(r,e,o){const t=r.querySelectorAll(".mp-parent-btn"),i=r.querySelectorAll(".mp-child-categories"),n=r.querySelector(".mp-selected-list"),c=r.querySelector(".mp-selected-categories");function s(){n.innerHTML=e.map(a=>`<span class="mp-selected-tag">${C(a)}<button type="button" data-id="${a}">&times;</button></span>`).join(""),c.style.display=e.length?"":"none",r.querySelectorAll(".mp-child-btn").forEach(a=>{a.classList.toggle("selected",e.includes(a.dataset.id))})}t.forEach(a=>{a.addEventListener("click",()=>{const d=a.dataset.parent,g=a.classList.contains("active");t.forEach(p=>p.classList.remove("active")),i.forEach(p=>p.classList.remove("visible")),g||(a.classList.add("active"),r.querySelector(`.mp-child-categories[data-parent="${d}"]`).classList.add("visible"))})}),r.querySelectorAll(".mp-child-btn").forEach(a=>{a.addEventListener("click",()=>{const d=a.dataset.id,g=e.indexOf(d);g>-1?e.splice(g,1):e.push(d),s()})}),n.addEventListener("click",a=>{if(a.target.tagName==="BUTTON"){const d=a.target.dataset.id,g=e.indexOf(d);g>-1&&(e.splice(g,1),s())}}),s()}function I(r={}){const e=(r.gallery_images||[]).length;return`
       <div class="mp-image-section">
         <div class="mp-feature-upload">
           <h4>Feature Image</h4>
-          <div class="mp-feature-upload-area ${e.feature_image_url?"has-image":""}" id="mp-feature-upload">
-            ${e.feature_image_url?`<img src="${e.feature_image_url}" alt="Feature">`:""}
+          <div class="mp-feature-upload-area ${r.feature_image_url?"has-image":""}" id="mp-feature-upload">
+            ${r.feature_image_url?`<img src="${r.feature_image_url}" alt="Feature">`:""}
             <div class="mp-upload-placeholder"><span>+</span>Click to upload feature image</div>
             <button type="button" class="mp-remove-image">&times;</button>
             <input type="file" accept="image/*" style="display: none;" id="mp-feature-input">
@@ -687,17 +687,17 @@
         <div class="mp-gallery-section">
           <div class="mp-gallery-header">
             <h4>Gallery Images</h4>
-            <span class="mp-gallery-count"><span id="mp-gallery-count-num">${r}</span> / ${_}</span>
+            <span class="mp-gallery-count"><span id="mp-gallery-count-num">${e}</span> / ${_}</span>
           </div>
           <div class="mp-gallery-grid" id="mp-gallery-grid">
-            ${(e.gallery_images||[]).map((o,t)=>`
+            ${(r.gallery_images||[]).map((o,t)=>`
               <div class="mp-gallery-item has-image" data-index="${t}" draggable="true">
                 <img src="${o}" alt="Gallery ${t+1}">
                 <button type="button" class="mp-remove-image">&times;</button>
                 <span class="mp-drag-handle">Drag</span>
               </div>
             `).join("")}
-            ${r<_?`
+            ${e<_?`
               <div class="mp-gallery-item mp-gallery-add" id="mp-gallery-add">
                 <div class="mp-upload-placeholder"><span>+</span>Add</div>
                 <input type="file" accept="image/*" multiple style="display: none;" id="mp-gallery-input">
@@ -706,21 +706,21 @@
           </div>
         </div>
       </div>
-    `}function A(e,r,o){const t=e.querySelector("#mp-feature-upload"),a=e.querySelector("#mp-feature-input");t.addEventListener("click",s=>{if(s.target.classList.contains("mp-remove-image")){s.stopPropagation(),r.feature_image_url="",t.classList.remove("has-image");const d=t.querySelector("img");d&&d.remove();return}t.classList.contains("has-image")||a.click()}),a.addEventListener("change",async s=>{const d=s.target.files[0];if(d){try{t.style.opacity="0.5";const l=await j(d,r.id);r.feature_image_url=l,t.classList.add("has-image");let i=t.querySelector("img");i||(i=document.createElement("img"),t.insertBefore(i,t.firstChild)),i.src=l,i.alt="Feature",t.style.opacity="1"}catch(l){console.error("Error uploading feature image:",l),alert("Error uploading image. Please try again."),t.style.opacity="1"}a.value=""}}),K(e,r,o)}function K(e,r,o){const t=e.querySelector("#mp-gallery-grid"),a=e.querySelector("#mp-gallery-input"),s=e.querySelector("#mp-gallery-add"),d=e.querySelector("#mp-gallery-count-num");r.gallery_images||(r.gallery_images=[]);function l(){if(t.innerHTML="",r.gallery_images.forEach((c,m)=>{const p=document.createElement("div");p.className="mp-gallery-item has-image",p.dataset.index=m,p.draggable=!0,p.innerHTML=`
-          <img src="${c}" alt="Gallery ${m+1}">
+    `}function M(r,e,o){const t=r.querySelector("#mp-feature-upload"),i=r.querySelector("#mp-feature-input");t.addEventListener("click",n=>{if(n.target.classList.contains("mp-remove-image")){n.stopPropagation(),e.feature_image_url="",t.classList.remove("has-image");const c=t.querySelector("img");c&&c.remove();return}t.classList.contains("has-image")||i.click()}),i.addEventListener("change",async n=>{const c=n.target.files[0];if(c){try{t.style.opacity="0.5";const s=await $(c,e.id);e.feature_image_url=s,t.classList.add("has-image");let a=t.querySelector("img");a||(a=document.createElement("img"),t.insertBefore(a,t.firstChild)),a.src=s,a.alt="Feature",t.style.opacity="1"}catch(s){console.error("Error uploading feature image:",s),alert("Error uploading image. Please try again."),t.style.opacity="1"}i.value=""}}),Z(r,e,o)}function Z(r,e,o){const t=r.querySelector("#mp-gallery-grid"),i=r.querySelector("#mp-gallery-input"),n=r.querySelector("#mp-gallery-add"),c=r.querySelector("#mp-gallery-count-num");e.gallery_images||(e.gallery_images=[]);function s(){if(t.innerHTML="",e.gallery_images.forEach((p,u)=>{const l=document.createElement("div");l.className="mp-gallery-item has-image",l.dataset.index=u,l.draggable=!0,l.innerHTML=`
+          <img src="${p}" alt="Gallery ${u+1}">
           <button type="button" class="mp-remove-image">&times;</button>
           <span class="mp-drag-handle">Drag</span>
-        `,t.appendChild(p)}),r.gallery_images.length<_){const c=document.createElement("div");c.className="mp-gallery-item mp-gallery-add",c.id="mp-gallery-add",c.innerHTML=`
+        `,t.appendChild(l)}),e.gallery_images.length<_){const p=document.createElement("div");p.className="mp-gallery-item mp-gallery-add",p.id="mp-gallery-add",p.innerHTML=`
           <div class="mp-upload-placeholder"><span>+</span>Add</div>
           <input type="file" accept="image/*" multiple style="display: none;" id="mp-gallery-input">
-        `,t.appendChild(c);const m=c.querySelector("#mp-gallery-input");c.addEventListener("click",()=>m.click()),m.addEventListener("change",u)}d.textContent=r.gallery_images.length,i(),n()}function i(){const c=t.querySelectorAll(".mp-gallery-item.has-image");let m=null;c.forEach(p=>{p.addEventListener("dragstart",f=>{m=p,p.classList.add("dragging")}),p.addEventListener("dragend",()=>{p.classList.remove("dragging"),t.querySelectorAll(".mp-gallery-item").forEach(f=>f.classList.remove("drag-over"))}),p.addEventListener("dragover",f=>{f.preventDefault(),p!==m&&p.classList.contains("has-image")&&p.classList.add("drag-over")}),p.addEventListener("dragleave",()=>{p.classList.remove("drag-over")}),p.addEventListener("drop",f=>{if(f.preventDefault(),p.classList.remove("drag-over"),m&&p!==m){const h=parseInt(m.dataset.index),x=parseInt(p.dataset.index),re=r.gallery_images[h];r.gallery_images[h]=r.gallery_images[x],r.gallery_images[x]=re,l()}})})}function n(){t.querySelectorAll(".mp-gallery-item.has-image .mp-remove-image").forEach(c=>{c.addEventListener("click",m=>{m.stopPropagation();const p=c.closest(".mp-gallery-item"),f=parseInt(p.dataset.index);r.gallery_images.splice(f,1),l()})})}async function u(c){const m=Array.from(c.target.files);if(!m.length)return;const p=_-r.gallery_images.length,f=m.slice(0,p);for(const h of f)try{const x=await j(h,r.id);r.gallery_images.push(x),l()}catch(x){console.error("Error uploading gallery image:",x),alert("Error uploading image: "+h.name)}c.target.value=""}s&&s.addEventListener("click",()=>a==null?void 0:a.click()),a&&a.addEventListener("change",u),i(),n()}function X(e,r){const o=r?r.replace(/-/g," ").replace(/\b\w/g,a=>a.toUpperCase()):"your membership",t=document.createElement("div");t.className="mp-modal-overlay",t.innerHTML=`
+        `,t.appendChild(p);const u=p.querySelector("#mp-gallery-input");p.addEventListener("click",()=>u.click()),u.addEventListener("change",g)}c.textContent=e.gallery_images.length,a(),d()}function a(){const p=t.querySelectorAll(".mp-gallery-item.has-image");let u=null;p.forEach(l=>{l.addEventListener("dragstart",m=>{u=l,l.classList.add("dragging")}),l.addEventListener("dragend",()=>{l.classList.remove("dragging"),t.querySelectorAll(".mp-gallery-item").forEach(m=>m.classList.remove("drag-over"))}),l.addEventListener("dragover",m=>{m.preventDefault(),l!==u&&l.classList.contains("has-image")&&l.classList.add("drag-over")}),l.addEventListener("dragleave",()=>{l.classList.remove("drag-over")}),l.addEventListener("drop",m=>{if(m.preventDefault(),l.classList.remove("drag-over"),u&&l!==u){const b=parseInt(u.dataset.index),h=parseInt(l.dataset.index),E=e.gallery_images[b];e.gallery_images[b]=e.gallery_images[h],e.gallery_images[h]=E,s()}})})}function d(){t.querySelectorAll(".mp-gallery-item.has-image .mp-remove-image").forEach(p=>{p.addEventListener("click",u=>{u.stopPropagation();const l=p.closest(".mp-gallery-item"),m=parseInt(l.dataset.index);e.gallery_images.splice(m,1),s()})})}async function g(p){const u=Array.from(p.target.files);if(!u.length)return;const l=_-e.gallery_images.length,m=u.slice(0,l);for(const b of m)try{const h=await $(b,e.id);e.gallery_images.push(h),s()}catch(h){console.error("Error uploading gallery image:",h),alert("Error uploading image: "+b.name)}p.target.value=""}n&&n.addEventListener("click",()=>i==null?void 0:i.click()),i&&i.addEventListener("change",g),a(),d()}function ee(r,e){const o=e?e.replace(/-/g," ").replace(/\b\w/g,i=>i.toUpperCase()):"your membership",t=document.createElement("div");t.className="mp-modal-overlay",t.innerHTML=`
       <div class="mp-modal" style="max-width: 450px;">
         <div class="mp-modal-header">
           <h3>Project Limit Reached</h3>
         </div>
         <div class="mp-modal-body" style="text-align: center; padding: 30px;">
           <p style="margin-bottom: 16px; font-size: 16px;">
-            You've reached the maximum of <strong>${e} projects</strong> for ${o} members.
+            You've reached the maximum of <strong>${r} projects</strong> for ${o} members.
           </p>
           <p style="margin-bottom: 0; color: #666;">
             To add a new project, please delete an existing one or consider upgrading your membership.
@@ -730,7 +730,7 @@
           <button class="mp-btn" id="mp-modal-close">Got it</button>
         </div>
       </div>
-    `,document.body.appendChild(t),t.querySelector("#mp-modal-close").addEventListener("click",()=>t.remove()),t.addEventListener("click",a=>{a.target===t&&t.remove()})}function I(e){const r=[],o={feature_image_url:"",gallery_images:[]},t=document.createElement("div");t.className="mp-modal-overlay",t.innerHTML=`
+    `,document.body.appendChild(t),t.querySelector("#mp-modal-close").addEventListener("click",()=>t.remove()),t.addEventListener("click",i=>{i.target===t&&t.remove()})}function T(r){const e=[],o={feature_image_url:"",gallery_images:[]},t=document.createElement("div");t.className="mp-modal-overlay",t.innerHTML=`
       <div class="mp-modal">
         <div class="mp-modal-header">
           <h3>Add New Project</h3>
@@ -747,13 +747,14 @@
             <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
           </div>
 
-          ${C(r)}
-          ${z(o)}
+          ${U(e)}
+          ${I(o)}
 
           <div class="mp-form-field">
             <label>Showreel Link</label>
             <input type="text" class="mp-form-input" id="mp-form-showreel_link" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
             <div class="mp-input-hint">YouTube or Vimeo URL only</div>
+            <div class="mp-input-error" id="mp-showreel-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
             <label>Project External Link</label>
@@ -771,7 +772,7 @@
           <button class="mp-btn" id="mp-modal-save">Create Project</button>
         </div>
       </div>
-    `,document.body.appendChild(t),P(t,r),A(t,o,null),$(t);const a=t.querySelector("#mp-form-description"),s=t.querySelector("#mp-word-count"),d=()=>{const i=a.value.trim(),n=i?i.split(/\s+/).filter(u=>u.length>0).length:0;s.textContent=n,s.style.color=n>=50?"#28a745":"#666",t.querySelector("#mp-description-error").style.display="none"};a.addEventListener("input",d),d(),t.addEventListener("click",i=>{i.target===t&&t.remove()}),t.querySelector("#mp-modal-cancel").addEventListener("click",()=>t.remove());const l=t.querySelector("#mp-modal-save");l.addEventListener("click",async()=>{const i=t.querySelector("#mp-form-name").value.trim(),n=t.querySelector("#mp-form-description").value.trim(),u=n?n.split(/\s+/).filter(c=>c.length>0).length:0;if(!i){alert("Project name is required");return}if(u<50){const c=t.querySelector("#mp-description-error");c&&(c.style.display="block"),t.querySelector("#mp-form-description").focus();return}l.disabled=!0,l.textContent="Creating...";try{const c=await B({name:i,description:n,external_link:E(t.querySelector("#mp-form-external_link").value),showreel_link:t.querySelector("#mp-form-showreel_link").value,display_order:parseInt(t.querySelector("#mp-form-display_order").value)||0,categories:[...r],feature_image_url:o.feature_image_url||"",gallery_images:o.gallery_images||[]});g.push(c),g.sort((m,p)=>(m.display_order||0)-(p.display_order||0)),t.remove(),w(e)}catch(c){console.error("Error creating project:",c),alert("Error creating project. Please try again."),l.disabled=!1,l.textContent="Create Project"}}),t.querySelector("#mp-form-name").focus()}function Q(e,r){const o=[...e.categories||[]],t={id:e.id,feature_image_url:e.feature_image_url||"",gallery_images:[...e.gallery_images||[]]},a=document.createElement("div");a.className="mp-modal-overlay",a.innerHTML=`
+    `,document.body.appendChild(t),A(t,e),M(t,o,null),P(t),z(t);const i=t.querySelector("#mp-form-description"),n=t.querySelector("#mp-word-count"),c=()=>{const a=i.value.trim(),d=a?a.split(/\s+/).filter(g=>g.length>0).length:0;n.textContent=d,n.style.color=d>=50?"#28a745":"#666",t.querySelector("#mp-description-error").style.display="none"};i.addEventListener("input",c),c(),t.addEventListener("click",a=>{a.target===t&&t.remove()}),t.querySelector("#mp-modal-cancel").addEventListener("click",()=>t.remove());const s=t.querySelector("#mp-modal-save");s.addEventListener("click",async()=>{const a=t.querySelector("#mp-form-name").value.trim(),d=t.querySelector("#mp-form-description").value.trim(),g=d?d.split(/\s+/).filter(l=>l.length>0).length:0;if(!a){alert("Project name is required");return}if(g<50){const l=t.querySelector("#mp-description-error");l&&(l.style.display="block"),t.querySelector("#mp-form-description").focus();return}const p=t.querySelector("#mp-form-showreel_link").value.trim();if(p&&!k(p)){const l=t.querySelector("#mp-showreel-error");l&&l.classList.add("visible"),t.querySelector("#mp-form-showreel_link").classList.add("error"),t.querySelector("#mp-form-showreel_link").focus();return}const u=t.querySelector("#mp-form-external_link").value.trim();if(u&&!L(u)){const l=t.querySelector("#mp-url-error");l&&l.classList.add("visible"),t.querySelector("#mp-form-external_link").classList.add("error"),t.querySelector("#mp-form-external_link").focus();return}s.disabled=!0,s.textContent="Creating...";try{const l=await V({name:a,description:d,external_link:w(t.querySelector("#mp-form-external_link").value),showreel_link:w(t.querySelector("#mp-form-showreel_link").value),display_order:parseInt(t.querySelector("#mp-form-display_order").value)||0,categories:[...e],feature_image_url:o.feature_image_url||"",gallery_images:o.gallery_images||[]});f.push(l),f.sort((m,b)=>(m.display_order||0)-(b.display_order||0)),t.remove(),S(r)}catch(l){console.error("Error creating project:",l),alert("Error creating project. Please try again."),s.disabled=!1,s.textContent="Create Project"}}),t.querySelector("#mp-form-name").focus()}function re(r,e){const o=[...r.categories||[]],t={id:r.id,feature_image_url:r.feature_image_url||"",gallery_images:[...r.gallery_images||[]]},i=document.createElement("div");i.className="mp-modal-overlay",i.innerHTML=`
       <div class="mp-modal">
         <div class="mp-modal-header">
           <h3>Edit Project</h3>
@@ -779,32 +780,33 @@
         <div class="mp-modal-body">
           <div class="mp-form-field">
             <label>Project Name <span>*</span></label>
-            <input type="text" class="mp-form-input" id="mp-form-name" value="${e.name||""}" required>
+            <input type="text" class="mp-form-input" id="mp-form-name" value="${r.name||""}" required>
           </div>
           <div class="mp-form-field">
             <label>Project Description <span>*</span></label>
-            <textarea class="mp-form-input" id="mp-form-description">${e.description||""}</textarea>
+            <textarea class="mp-form-input" id="mp-form-description">${r.description||""}</textarea>
             <div class="mp-input-hint">Minimum 50 words required (<span id="mp-word-count">0</span> words)</div>
             <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
           </div>
 
-          ${C(o)}
-          ${z(t)}
+          ${U(o)}
+          ${I(t)}
 
           <div class="mp-form-field">
             <label>Showreel Link</label>
-            <input type="text" class="mp-form-input" id="mp-form-showreel_link" value="${e.showreel_link||""}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
+            <input type="text" class="mp-form-input" id="mp-form-showreel_link" value="${r.showreel_link||""}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
             <div class="mp-input-hint">YouTube or Vimeo URL only</div>
+            <div class="mp-input-error" id="mp-showreel-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
             <label>Project External Link</label>
-            <input type="text" class="mp-form-input" id="mp-form-external_link" value="${e.external_link||""}" placeholder="https://example.com">
+            <input type="text" class="mp-form-input" id="mp-form-external_link" value="${r.external_link||""}" placeholder="https://example.com">
             <div class="mp-input-hint">Enter a complete URL including https://</div>
             <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
           </div>
           <div class="mp-form-field">
             <label>Display Order</label>
-            <input type="number" class="mp-form-input" id="mp-form-display_order" value="${e.display_order||0}">
+            <input type="number" class="mp-form-input" id="mp-form-display_order" value="${r.display_order||0}">
           </div>
         </div>
         <div class="mp-modal-footer">
@@ -812,4 +814,4 @@
           <button class="mp-btn" id="mp-modal-save">Save Changes</button>
         </div>
       </div>
-    `,document.body.appendChild(a),P(a,o),A(a,t,null),$(a);const s=a.querySelector("#mp-form-description"),d=a.querySelector("#mp-word-count"),l=()=>{const n=s.value.trim(),u=n?n.split(/\s+/).filter(c=>c.length>0).length:0;d.textContent=u,d.style.color=u>=50?"#28a745":"#666",a.querySelector("#mp-description-error").style.display="none"};s.addEventListener("input",l),l(),a.addEventListener("click",n=>{n.target===a&&a.remove()}),a.querySelector("#mp-modal-cancel").addEventListener("click",()=>a.remove());const i=a.querySelector("#mp-modal-save");i.addEventListener("click",async()=>{const n=a.querySelector("#mp-form-name").value.trim(),u=a.querySelector("#mp-form-description").value.trim(),c=u?u.split(/\s+/).filter(m=>m.length>0).length:0;if(!n){alert("Project name is required");return}if(c<50){const m=a.querySelector("#mp-description-error");m&&(m.style.display="block"),a.querySelector("#mp-form-description").focus();return}i.disabled=!0,i.textContent="Saving...";try{const m=await O(e.id,{name:n,description:u,external_link:E(a.querySelector("#mp-form-external_link").value),showreel_link:a.querySelector("#mp-form-showreel_link").value,display_order:parseInt(a.querySelector("#mp-form-display_order").value)||0,categories:[...o],feature_image_url:t.feature_image_url||"",gallery_images:t.gallery_images||[]}),p=g.findIndex(f=>f.id===e.id);p>-1&&(g[p]=m),g.sort((f,h)=>(f.display_order||0)-(h.display_order||0)),a.remove(),w(r)}catch(m){console.error("Error updating project:",m),alert("Error updating project. Please try again."),i.disabled=!1,i.textContent="Save Changes"}})}function Z(){return new Promise(e=>{if(window.$memberstackDom)e();else{const r=setInterval(()=>{window.$memberstackDom&&(clearInterval(r),e())},100)}})}function ee(){return new Promise((e,r)=>{if(window.supabase){e();return}let o=0;const t=50,a=setInterval(()=>{o++,window.supabase?(clearInterval(a),e()):o>=t&&(clearInterval(a),r(new Error("Supabase library not loaded")))},100)})}async function U(){const e=document.querySelector(".supabase-project-container");if(!e){console.warn("Could not find .supabase-project-container");return}const r=document.createElement("style");r.textContent=R,document.head.appendChild(r);const o=document.createElement("div");o.className="mp-container",o.innerHTML='<div class="mp-loading">Loading projects...</div>',e.appendChild(o);try{if(await ee(),await Z(),!D()){o.innerHTML='<div class="mp-loading">Error: Could not initialize Supabase</div>';return}const{data:t}=await window.$memberstackDom.getCurrentMember();if(!t){o.innerHTML='<div class="mp-loading">Please log in to view your projects.</div>';return}b=t,console.log("Current member:",b.id),v=await H(),console.log(`Categories loaded: ${v.directories.length} directories, ${v.subDirectories.length} sub-directories`),g=await G(t.id),w(o)}catch(t){console.error("Error initializing member projects:",t),o.innerHTML='<div class="mp-loading">Error loading projects. Please refresh the page.</div>'}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",U):U()})();
+    `,document.body.appendChild(i),A(i,o),M(i,t,null),P(i),z(i);const n=i.querySelector("#mp-form-description"),c=i.querySelector("#mp-word-count"),s=()=>{const d=n.value.trim(),g=d?d.split(/\s+/).filter(p=>p.length>0).length:0;c.textContent=g,c.style.color=g>=50?"#28a745":"#666",i.querySelector("#mp-description-error").style.display="none"};n.addEventListener("input",s),s(),i.addEventListener("click",d=>{d.target===i&&i.remove()}),i.querySelector("#mp-modal-cancel").addEventListener("click",()=>i.remove());const a=i.querySelector("#mp-modal-save");a.addEventListener("click",async()=>{const d=i.querySelector("#mp-form-name").value.trim(),g=i.querySelector("#mp-form-description").value.trim(),p=g?g.split(/\s+/).filter(m=>m.length>0).length:0;if(!d){alert("Project name is required");return}if(p<50){const m=i.querySelector("#mp-description-error");m&&(m.style.display="block"),i.querySelector("#mp-form-description").focus();return}const u=i.querySelector("#mp-form-showreel_link").value.trim();if(u&&!k(u)){const m=i.querySelector("#mp-showreel-error");m&&m.classList.add("visible"),i.querySelector("#mp-form-showreel_link").classList.add("error"),i.querySelector("#mp-form-showreel_link").focus();return}const l=i.querySelector("#mp-form-external_link").value.trim();if(l&&!L(l)){const m=i.querySelector("#mp-url-error");m&&m.classList.add("visible"),i.querySelector("#mp-form-external_link").classList.add("error"),i.querySelector("#mp-form-external_link").focus();return}a.disabled=!0,a.textContent="Saving...";try{const m=await W(r.id,{name:d,description:g,external_link:w(i.querySelector("#mp-form-external_link").value),showreel_link:w(i.querySelector("#mp-form-showreel_link").value),display_order:parseInt(i.querySelector("#mp-form-display_order").value)||0,categories:[...o],feature_image_url:t.feature_image_url||"",gallery_images:t.gallery_images||[]}),b=f.findIndex(h=>h.id===r.id);b>-1&&(f[b]=m),f.sort((h,E)=>(h.display_order||0)-(E.display_order||0)),i.remove(),S(e)}catch(m){console.error("Error updating project:",m),alert("Error updating project. Please try again."),a.disabled=!1,a.textContent="Save Changes"}})}function te(){return new Promise(r=>{if(window.$memberstackDom)r();else{const e=setInterval(()=>{window.$memberstackDom&&(clearInterval(e),r())},100)}})}function oe(){return new Promise((r,e)=>{if(window.supabase){r();return}let o=0;const t=50,i=setInterval(()=>{o++,window.supabase?(clearInterval(i),r()):o>=t&&(clearInterval(i),e(new Error("Supabase library not loaded")))},100)})}async function N(){const r=document.querySelector(".supabase-project-container");if(!r){console.warn("Could not find .supabase-project-container");return}const e=document.createElement("style");e.textContent=H,document.head.appendChild(e);const o=document.createElement("div");o.className="mp-container",o.innerHTML='<div class="mp-loading">Loading projects...</div>',r.appendChild(o);try{if(await oe(),await te(),!G()){o.innerHTML='<div class="mp-loading">Error: Could not initialize Supabase</div>';return}const{data:t}=await window.$memberstackDom.getCurrentMember();if(!t){o.innerHTML='<div class="mp-loading">Please log in to view your projects.</div>';return}v=t,console.log("Current member:",v.id),x=await O(),console.log(`Categories loaded: ${x.directories.length} directories, ${x.subDirectories.length} sub-directories`),f=await Y(t.id),S(o)}catch(t){console.error("Error initializing member projects:",t),o.innerHTML='<div class="mp-loading">Error loading projects. Please refresh the page.</div>'}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",N):N()})();
