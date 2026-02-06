@@ -622,6 +622,72 @@
       grid-column: span 4;
       aspect-ratio: 16/9;
     }
+
+    /* Progress Bar Styles */
+    .mp-progress-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+    }
+    .mp-progress-container {
+      width: 320px;
+      text-align: center;
+    }
+    .mp-progress-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 24px;
+    }
+    .mp-progress-bar-wrapper {
+      width: 100%;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .mp-progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #333 0%, #555 50%, #333 100%);
+      background-size: 200% 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease-out;
+      animation: mp-progress-shimmer 1.5s infinite;
+    }
+    @keyframes mp-progress-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .mp-progress-status {
+      font-size: 14px;
+      color: #666;
+      min-height: 20px;
+      transition: opacity 0.3s;
+    }
+    .mp-progress-status.fade {
+      opacity: 0;
+    }
+    .mp-progress-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: mp-spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes mp-spin {
+      to { transform: rotate(360deg); }
+    }
   `;
 
   // ============================================
@@ -679,13 +745,23 @@
   }
 
   function isValidUrl(url) {
-    if (!url || url.trim() === '') return true;
+    if (!url || url.trim() === '') return true; // Empty is valid (optional field)
     let testUrl = url.trim();
     if (!/^https?:\/\//i.test(testUrl)) {
       testUrl = 'https://' + testUrl;
     }
     try {
-      new URL(testUrl);
+      const urlObj = new URL(testUrl);
+      // Must have a valid hostname with at least one dot (e.g., example.com)
+      if (!urlObj.hostname || !urlObj.hostname.includes('.')) {
+        return false;
+      }
+      // Check for common valid TLDs pattern (at least 2 chars after last dot)
+      const parts = urlObj.hostname.split('.');
+      const tld = parts[parts.length - 1];
+      if (tld.length < 2) {
+        return false;
+      }
       return true;
     } catch {
       return false;
@@ -1026,6 +1102,98 @@
 
     if (input.value.trim()) {
       validate();
+    }
+  }
+
+  // ============================================
+  // PROGRESS BAR
+  // ============================================
+
+  const PROGRESS_STEPS = [
+    { text: 'Preparing project...', progress: 10 },
+    { text: 'Optimising images...', progress: 25 },
+    { text: 'Compiling data...', progress: 45 },
+    { text: 'Populating categories...', progress: 60 },
+    { text: 'Syncing to portfolio...', progress: 80 },
+    { text: 'Finalising...', progress: 95 }
+  ];
+
+  function showProgressOverlay(title = 'Creating Project') {
+    const overlay = document.createElement('div');
+    overlay.className = 'mp-progress-overlay';
+    overlay.id = 'mp-progress-overlay';
+    overlay.innerHTML = `
+      <div class="mp-progress-container">
+        <div class="mp-progress-spinner"></div>
+        <div class="mp-progress-title">${title}</div>
+        <div class="mp-progress-bar-wrapper">
+          <div class="mp-progress-bar-fill" style="width: 5%;"></div>
+        </div>
+        <div class="mp-progress-status">Initialising...</div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function updateProgress(overlay, stepIndex) {
+    if (!overlay) return;
+    const step = PROGRESS_STEPS[stepIndex];
+    if (!step) return;
+
+    const fill = overlay.querySelector('.mp-progress-bar-fill');
+    const status = overlay.querySelector('.mp-progress-status');
+
+    if (fill) {
+      fill.style.width = step.progress + '%';
+    }
+
+    if (status) {
+      status.classList.add('fade');
+      setTimeout(() => {
+        status.textContent = step.text;
+        status.classList.remove('fade');
+      }, 150);
+    }
+  }
+
+  function hideProgressOverlay() {
+    const overlay = document.getElementById('mp-progress-overlay');
+    if (overlay) {
+      // Show completion briefly
+      const fill = overlay.querySelector('.mp-progress-bar-fill');
+      const status = overlay.querySelector('.mp-progress-status');
+      if (fill) fill.style.width = '100%';
+      if (status) status.textContent = 'Complete!';
+
+      setTimeout(() => {
+        overlay.remove();
+      }, 500);
+    }
+  }
+
+  async function runWithProgress(asyncFn, title = 'Creating Project') {
+    const overlay = showProgressOverlay(title);
+    let stepIndex = 0;
+
+    // Start cycling through steps
+    const interval = setInterval(() => {
+      if (stepIndex < PROGRESS_STEPS.length) {
+        updateProgress(overlay, stepIndex);
+        stepIndex++;
+      }
+    }, 600);
+
+    try {
+      const result = await asyncFn();
+      clearInterval(interval);
+      hideProgressOverlay();
+      return result;
+    } catch (error) {
+      clearInterval(interval);
+      const existingOverlay = document.getElementById('mp-progress-overlay');
+      if (existingOverlay) existingOverlay.remove();
+      throw error;
     }
   }
 
@@ -1713,17 +1881,22 @@
       saveBtn.disabled = true;
       saveBtn.textContent = 'Creating...';
 
+      // Hide the modal and show progress overlay
+      modal.style.display = 'none';
+
       try {
-        const newProject = await createProject({
-          name: projectName,
-          description: projectDescription,
-          external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
-          showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
-          display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
-          categories: [...selectedCategories],
-          feature_image_url: projectData.feature_image_url || '',
-          gallery_images: projectData.gallery_images || []
-        });
+        const newProject = await runWithProgress(async () => {
+          return await createProject({
+            name: projectName,
+            description: projectDescription,
+            external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
+            showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
+            display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
+            categories: [...selectedCategories],
+            feature_image_url: projectData.feature_image_url || '',
+            gallery_images: projectData.gallery_images || []
+          });
+        }, 'Creating Project');
 
         projects.push(newProject);
         projects.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
@@ -1731,6 +1904,7 @@
         renderProjects(wrapper);
       } catch (error) {
         console.error('Error creating project:', error);
+        modal.style.display = '';
         alert('Error creating project. Please try again.');
         saveBtn.disabled = false;
         saveBtn.textContent = 'Create Project';
@@ -1859,17 +2033,22 @@
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saving...';
 
+      // Hide the modal and show progress overlay
+      modal.style.display = 'none';
+
       try {
-        const updated = await updateProject(project.id, {
-          name: projectName,
-          description: projectDescription,
-          external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
-          showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
-          display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
-          categories: [...selectedCategories],
-          feature_image_url: projectData.feature_image_url || '',
-          gallery_images: projectData.gallery_images || []
-        });
+        const updated = await runWithProgress(async () => {
+          return await updateProject(project.id, {
+            name: projectName,
+            description: projectDescription,
+            external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
+            showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
+            display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
+            categories: [...selectedCategories],
+            feature_image_url: projectData.feature_image_url || '',
+            gallery_images: projectData.gallery_images || []
+          });
+        }, 'Saving Changes');
 
         // Update in local array
         const index = projects.findIndex(p => p.id === project.id);
@@ -1882,6 +2061,7 @@
         renderProjects(wrapper);
       } catch (error) {
         console.error('Error updating project:', error);
+        modal.style.display = '';
         alert('Error updating project. Please try again.');
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Changes';

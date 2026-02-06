@@ -12,6 +12,9 @@ const WEBFLOW_COLLECTION_ID = Deno.env.get('WEBFLOW_COLLECTION_ID') || '64aa150f
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
+// Storage bucket name
+const STORAGE_BUCKET = 'project-images';
+
 // Webflow API v2 base URL
 const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
 
@@ -27,6 +30,7 @@ interface ProjectRecord {
   id: string;
   webflow_id: string | null;
   memberstack_id: string;
+  member_id: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -41,27 +45,108 @@ interface ProjectRecord {
   updated_at: string;
 }
 
-interface WebflowFieldData {
-  name: string;
-  slug: string;
-  'project-description'?: string;
-  'feature-image'?: { url: string };
-  'project-multi-image'?: { url: string }[];
-  'project-external-link'?: string;
-  'showreel-link'?: string;
-  'display-order'?: number;
-  'portfolio-item-id'?: string;
-  'memberstack-id'?: string;
+interface CategoryData {
+  webflow_id: string;
 }
 
-// Initialize Supabase client with service role key (for updating webflow_id)
+// Initialize Supabase client with service role key
 function getSupabaseClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
+// Delete all images for a project from storage
+async function deleteProjectImages(memberstackId: string, projectId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const folderPath = `${memberstackId}/${projectId}`;
+
+  try {
+    // List all files in the project folder
+    const { data: files, error: listError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .list(folderPath);
+
+    if (listError) {
+      console.error('Error listing project images:', listError);
+      return;
+    }
+
+    if (!files || files.length === 0) {
+      console.log('No images to delete for project:', projectId);
+      return;
+    }
+
+    // Build array of file paths to delete
+    const filePaths = files.map(file => `${folderPath}/${file.name}`);
+
+    // Delete all files
+    const { error: deleteError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove(filePaths);
+
+    if (deleteError) {
+      console.error('Error deleting project images:', deleteError);
+    } else {
+      console.log(`Deleted ${filePaths.length} images for project:`, projectId);
+    }
+  } catch (error) {
+    console.error('Error in deleteProjectImages:', error);
+  }
+}
+
+// Get member's Webflow ID from members table
+async function getMemberWebflowId(memberstackId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('members')
+    .select('webflow_id')
+    .eq('memberstack_id', memberstackId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching member:', error);
+    return null;
+  }
+
+  return data?.webflow_id || null;
+}
+
+// Get category Webflow IDs for a project
+async function getCategoryWebflowIds(projectId: string): Promise<string[]> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('project_sub_directories')
+    .select(`
+      sub_directories (
+        webflow_id
+      )
+    `)
+    .eq('project_id', projectId);
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+
+  // Extract webflow_ids from the joined data
+  const webflowIds: string[] = [];
+  if (data) {
+    for (const item of data) {
+      const subDir = item.sub_directories as unknown as CategoryData;
+      if (subDir?.webflow_id) {
+        webflowIds.push(subDir.webflow_id);
+      }
+    }
+  }
+
+  console.log('Category Webflow IDs:', webflowIds);
+  return webflowIds;
+}
+
 // Map Supabase project record to Webflow field data
-function mapToWebflowFields(record: ProjectRecord): WebflowFieldData {
-  const fieldData: WebflowFieldData = {
+async function mapToWebflowFields(record: ProjectRecord): Promise<Record<string, unknown>> {
+  const fieldData: Record<string, unknown> = {
     name: record.name,
     slug: record.slug,
   };
@@ -96,16 +181,56 @@ function mapToWebflowFields(record: ProjectRecord): WebflowFieldData {
     fieldData['display-order'] = record.display_order;
   }
 
-  // IDs for reference
-  fieldData['portfolio-item-id'] = record.id;
+  // Supabase ID
+  fieldData['supabase-id'] = record.id;
+
+  // Memberstack ID
   fieldData['memberstack-id'] = record.memberstack_id;
+
+  // Get member's Webflow ID and set both the text field and reference
+  const memberWebflowId = await getMemberWebflowId(record.memberstack_id);
+  if (memberWebflowId) {
+    fieldData['webflow-member-id'] = memberWebflowId;
+    fieldData['member'] = memberWebflowId;
+  }
+
+  // Get category Webflow IDs for multi-reference
+  const categoryWebflowIds = await getCategoryWebflowIds(record.id);
+  if (categoryWebflowIds.length > 0) {
+    fieldData['relevant-directory-categories'] = categoryWebflowIds;
+  }
 
   return fieldData;
 }
 
+// Publish a single item in Webflow CMS
+async function publishWebflowItem(itemId: string): Promise<void> {
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/publish`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        itemIds: [itemId],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow publish error:', response.status, errorText);
+  } else {
+    console.log('Webflow item published:', itemId);
+  }
+}
+
 // Create item in Webflow CMS
 async function createWebflowItem(record: ProjectRecord): Promise<string | null> {
-  const fieldData = mapToWebflowFields(record);
+  const fieldData = await mapToWebflowFields(record);
 
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items`,
@@ -118,8 +243,8 @@ async function createWebflowItem(record: ProjectRecord): Promise<string | null> 
       },
       body: JSON.stringify({
         fieldData,
-        isArchived: record.is_deleted,
-        isDraft: record.is_draft,
+        isDraft: false,
+        isArchived: false,
       }),
     }
   );
@@ -131,13 +256,40 @@ async function createWebflowItem(record: ProjectRecord): Promise<string | null> 
   }
 
   const result = await response.json();
-  console.log('Webflow item created:', result.id);
-  return result.id;
+  const itemId = result.id;
+  console.log('Webflow item created:', itemId);
+
+  // Update the item to set portfolio-item-id to its own Webflow ID
+  await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/${itemId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        fieldData: {
+          'portfolio-item-id': itemId,
+        },
+      }),
+    }
+  );
+  console.log('Portfolio item ID set:', itemId);
+
+  // Publish the item
+  await publishWebflowItem(itemId);
+
+  return itemId;
 }
 
 // Update item in Webflow CMS
 async function updateWebflowItem(webflowId: string, record: ProjectRecord): Promise<void> {
-  const fieldData = mapToWebflowFields(record);
+  const fieldData = await mapToWebflowFields(record);
+
+  // Include portfolio-item-id in updates
+  fieldData['portfolio-item-id'] = webflowId;
 
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/${webflowId}`,
@@ -150,8 +302,8 @@ async function updateWebflowItem(webflowId: string, record: ProjectRecord): Prom
       },
       body: JSON.stringify({
         fieldData,
-        isArchived: record.is_deleted,
-        isDraft: record.is_draft,
+        isDraft: false,
+        isArchived: false,
       }),
     }
   );
@@ -163,33 +315,31 @@ async function updateWebflowItem(webflowId: string, record: ProjectRecord): Prom
   }
 
   console.log('Webflow item updated:', webflowId);
+
+  // Re-publish after update
+  await publishWebflowItem(webflowId);
 }
 
-// Delete (archive) item in Webflow CMS
+// Hard delete item from Webflow CMS
 async function deleteWebflowItem(webflowId: string): Promise<void> {
-  // Webflow v2 uses archive instead of hard delete for CMS items
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/${webflowId}`,
     {
-      method: 'PATCH',
+      method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
-        'Content-Type': 'application/json',
         'accept': 'application/json',
       },
-      body: JSON.stringify({
-        isArchived: true,
-      }),
     }
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Webflow delete/archive error:', response.status, errorText);
+    console.error('Webflow delete error:', response.status, errorText);
     throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
   }
 
-  console.log('Webflow item archived:', webflowId);
+  console.log('Webflow item deleted:', webflowId);
 }
 
 // Update Supabase project with Webflow ID
@@ -211,7 +361,6 @@ async function updateSupabaseWithWebflowId(projectId: string, webflowId: string)
 
 // Main handler
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
@@ -222,13 +371,11 @@ serve(async (req: Request) => {
     });
   }
 
-  // Only accept POST
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
 
   try {
-    // Validate environment
     if (!WEBFLOW_API_TOKEN) {
       throw new Error('WEBFLOW_API_TOKEN not configured');
     }
@@ -236,7 +383,6 @@ serve(async (req: Request) => {
     const payload: WebhookPayload = await req.json();
     console.log('Received webhook:', payload.type, payload.table);
 
-    // Only process projects table
     if (payload.table !== 'projects') {
       return new Response(JSON.stringify({ message: 'Ignored: not projects table' }), {
         status: 200,
@@ -253,16 +399,13 @@ serve(async (req: Request) => {
           throw new Error('No record in INSERT payload');
         }
 
-        // Skip if already has webflow_id (shouldn't happen, but safety check)
         if (record.webflow_id) {
           console.log('Project already has Webflow ID, skipping');
           break;
         }
 
-        // Create in Webflow
         const webflowId = await createWebflowItem(record);
 
-        // Update Supabase with the new Webflow ID
         if (webflowId) {
           await updateSupabaseWithWebflowId(record.id, webflowId);
         }
@@ -277,11 +420,15 @@ serve(async (req: Request) => {
 
         // If project is being soft-deleted
         if (record.is_deleted && record.webflow_id) {
+          // Delete from Webflow
           await deleteWebflowItem(record.webflow_id);
+
+          // Delete images from storage
+          await deleteProjectImages(record.memberstack_id, record.id);
+
           break;
         }
 
-        // If no Webflow ID, create new item
         if (!record.webflow_id) {
           const webflowId = await createWebflowItem(record);
           if (webflowId) {
@@ -290,16 +437,21 @@ serve(async (req: Request) => {
           break;
         }
 
-        // Otherwise update existing
         await updateWebflowItem(record.webflow_id, record);
         break;
       }
 
       case 'DELETE': {
-        // Hard delete - archive in Webflow
+        // Hard delete - delete from Webflow and storage
         if (oldRecord?.webflow_id) {
           await deleteWebflowItem(oldRecord.webflow_id);
         }
+
+        // Delete images from storage
+        if (oldRecord) {
+          await deleteProjectImages(oldRecord.memberstack_id, oldRecord.id);
+        }
+
         break;
       }
 
