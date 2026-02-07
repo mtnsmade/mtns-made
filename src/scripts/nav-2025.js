@@ -865,7 +865,7 @@
     const { isLoggedIn = false, firstName = 'User', lastName = '', email = '', profileUrl = '' } = options;
 
     const categoryItems = DIRECTORY_CATEGORIES.map(cat => `
-      <a href="/directory/${cat.slug}" class="x-nav-dropdown-item">${cat.name}</a>
+      <a href="/directories/${cat.slug}" class="x-nav-dropdown-item">${cat.name}</a>
     `).join('');
 
     const fullName = lastName ? `${firstName} ${lastName}` : firstName;
@@ -892,7 +892,7 @@
     `;
 
     const overlayCategoryItems = DIRECTORY_CATEGORIES.map(cat => `
-      <a href="/directory/${cat.slug}" class="x-nav-overlay-sublink">${cat.name}</a>
+      <a href="/directories/${cat.slug}" class="x-nav-overlay-sublink">${cat.name}</a>
     `).join('');
 
     return `
