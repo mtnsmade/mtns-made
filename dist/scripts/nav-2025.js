@@ -1,4 +1,4 @@
-(function(){const m=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],h=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+(function(){const y=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],u=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_nav)">
 <path d="M12.4863 0.209707L7.22333 8.93708L1.96031 0.209707H0V14.793H2.78599V6.66785L6.25382 12.3974H8.19283L11.6607 6.66785V14.793H14.4467V0.209707H12.4863Z" fill="currentColor"/>
 <path d="M21.8086 0.209708V2.70747H25.6253V14.793H28.4113V2.70747H32.2307V0.209708H21.8086Z" fill="currentColor"/>
@@ -14,7 +14,7 @@
 <rect width="151" height="15" fill="white"/>
 </clipPath>
 </defs>
-</svg>`,w=h.replace(/currentColor/g,"#ffffff"),y=`
+</svg>`,k=u.replace(/currentColor/g,"#ffffff"),b=`
     /* MTNS MADE 2025 Navigation */
     :root {
       --nav-height: 50px;
@@ -812,46 +812,46 @@
     body.nav-overlay-open {
       overflow: hidden;
     }
-  `,i={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function b(o={}){const{isLoggedIn:e=!1,firstName:s="User",lastName:n="",email:l=""}=o,v=m.map(a=>`
+  `,s={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function w(n={}){const{isLoggedIn:e=!1,firstName:l="User",lastName:o="",email:d="",profileUrl:c=""}=n,p=y.map(a=>`
       <a href="/directory/${a.slug}" class="x-nav-dropdown-item">${a.name}</a>
-    `).join(""),c=n?`${s} ${n}`:s,r=`
+    `).join(""),r=o?`${l} ${o}`:l,i=`
       <a href="/profile/edit-profile" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${i.edit}</span>Edit Profile
+        <span class="x-nav-dropdown-item-icon">${s.edit}</span>Edit Profile
       </a>
       <a href="/profile/edit-portfolio" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${i.briefcase}</span>Edit Portfolio
+        <span class="x-nav-dropdown-item-icon">${s.briefcase}</span>Edit Portfolio
       </a>
       <a href="/profile/suggest-an-event" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${i.calendar}</span>My Events
+        <span class="x-nav-dropdown-item-icon">${s.calendar}</span>My Events
       </a>
       <a href="/profile/support" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${i.helpCircle}</span>Get Support
+        <span class="x-nav-dropdown-item-icon">${s.helpCircle}</span>Get Support
       </a>
-      <a href="#" ms-code-field-link="member-webflow-url" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${i.user}</span>View my Profile
-      </a>
+      ${c?`<a href="${c}" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${s.user}</span>View my Profile
+      </a>`:""}
       <div class="x-nav-dropdown-divider"></div>
-      <a href="#" data-ms-action="logout" class="x-nav-dropdown-item danger">
-        <span class="x-nav-dropdown-item-icon">${i.logout}</span>Log Out
-      </a>
-    `,t=m.map(a=>`
+      <button type="button" class="x-nav-dropdown-item danger" data-action="logout">
+        <span class="x-nav-dropdown-item-icon">${s.logout}</span>Log Out
+      </button>
+    `,x=y.map(a=>`
       <a href="/directory/${a.slug}" class="x-nav-overlay-sublink">${a.name}</a>
     `).join("");return`
       <nav class="x-nav" role="navigation">
         <div class="x-nav-logo">
-          <a href="/">${h}</a>
+          <a href="/">${u}</a>
         </div>
 
         <div class="x-nav-primary">
           <div class="x-nav-item" data-priority="high">
             <button class="x-nav-link" aria-expanded="false" data-dropdown="directory">
-              Find a Creative<span class="x-nav-chevron">${i.chevronDown}</span>
+              Find a Creative<span class="x-nav-chevron">${s.chevronDown}</span>
             </button>
             <div class="x-nav-dropdown" id="dropdown-directory">
-              ${v}
+              ${p}
               <div class="x-nav-dropdown-footer">
-                <a href="/directory" class="x-nav-dropdown-item view-all">
-                  <span class="x-nav-dropdown-item-icon">${i.grid}</span>View all Categories
+                <a href="/find-a-creative" class="x-nav-dropdown-item view-all">
+                  <span class="x-nav-dropdown-item-icon">${s.grid}</span>View all Categories
                 </a>
               </div>
             </div>
@@ -867,16 +867,16 @@
           ${e?`
             <div class="x-nav-user">
               <button class="x-nav-user-btn" aria-expanded="false">
-                Hello, ${s}<span class="x-nav-user-chevron">${i.chevronDown}</span>
+                Hello, ${l}<span class="x-nav-user-chevron">${s.chevronDown}</span>
               </button>
               <div class="x-nav-user-dropdown">
-                ${l?`<div class="x-nav-user-header"><div class="x-nav-user-name">${c}</div><div class="x-nav-user-email">${l}</div></div>`:""}
-                ${r}
+                ${d?`<div class="x-nav-user-header"><div class="x-nav-user-name">${r}</div><div class="x-nav-user-email">${d}</div></div>`:""}
+                ${i}
               </div>
             </div>
           `:""}
           <button class="x-nav-search" data-action="search">
-            <span class="x-nav-search-icon">${i.search}</span>
+            <span class="x-nav-search-icon">${s.search}</span>
             <span class="x-nav-search-text">Search</span>
           </button>
           <button class="x-nav-hamburger" data-action="menu" aria-label="Menu">
@@ -890,25 +890,25 @@
       <!-- Navigation Overlay -->
       <div class="x-nav-overlay" id="x-nav-overlay">
         <div class="x-nav-overlay-header">
-          <div class="x-nav-overlay-logo">${h}</div>
+          <div class="x-nav-overlay-logo">${u}</div>
           <div class="x-nav-overlay-header-actions">
-            ${e?`<a href="#" ms-code-field-link="member-webflow-url" class="x-nav-overlay-user-btn">Hello, ${s} ${i.chevronDown}</a>`:""}
-            <button class="x-nav-overlay-close" data-action="close-menu">${i.x}</button>
+            ${e?`<a href="${c||"/profile"}" class="x-nav-overlay-user-btn">Hello, ${l} ${s.chevronDown}</a>`:""}
+            <button class="x-nav-overlay-close" data-action="close-menu">${s.x}</button>
           </div>
         </div>
         <div class="x-nav-overlay-body">
           <div class="x-nav-overlay-search">
             <form action="/search" method="get" class="x-nav-overlay-search-wrapper">
               <input type="text" name="query" class="x-nav-overlay-search-input" placeholder="Search the directory" autocomplete="off">
-              <button type="submit" class="x-nav-overlay-search-btn">${i.search}</button>
+              <button type="submit" class="x-nav-overlay-search-btn">${s.search}</button>
             </form>
           </div>
           <div class="x-nav-overlay-content">
             <div class="x-nav-overlay-item">
-              <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative<span class="x-nav-overlay-link-chevron">${i.chevronDown}</span></button>
+              <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative<span class="x-nav-overlay-link-chevron">${s.chevronDown}</span></button>
               <div class="x-nav-overlay-subnav" id="subnav-find-creative">
-                ${t}
-                <a href="/directory" class="x-nav-overlay-sublink view-all">${i.grid} View all Categories</a>
+                ${x}
+                <a href="/find-a-creative" class="x-nav-overlay-sublink view-all">${s.grid} View all Categories</a>
               </div>
             </div>
             <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
@@ -928,8 +928,8 @@
       <!-- Search Overlay -->
       <div class="x-search-overlay" id="x-search-overlay">
         <div class="x-search-overlay-header">
-          <div class="x-search-overlay-logo">${w}</div>
-          <button class="x-search-overlay-close" data-action="close-search">${i.x}</button>
+          <div class="x-search-overlay-logo">${k}</div>
+          <button class="x-search-overlay-close" data-action="close-search">${s.x}</button>
         </div>
         <div class="x-search-overlay-content">
           <form class="x-search-form" action="/search" method="get">
@@ -940,4 +940,4 @@
           </form>
         </div>
       </div>
-    `}function k(o){const e=o.querySelector('[data-dropdown="directory"]'),s=o.querySelector("#dropdown-directory"),n=o.querySelector(".x-nav-user-btn"),l=o.querySelector(".x-nav-user-dropdown"),v=o.querySelector('[data-action="menu"]'),c=o.querySelector('[data-action="search"]'),r=o.querySelector("#x-nav-overlay"),t=o.querySelector("#x-search-overlay"),a=o.querySelector('[data-action="close-menu"]'),x=o.querySelector('[data-action="close-search"]'),p=o.querySelector('[data-toggle="find-creative"]'),u=o.querySelector("#subnav-find-creative");e==null||e.addEventListener("click",d=>{d.stopPropagation();const f=s.classList.toggle("open");e.setAttribute("aria-expanded",f),l!=null&&l.classList.contains("open")&&(l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),n==null||n.addEventListener("click",d=>{d.stopPropagation();const f=l.classList.toggle("open");n.setAttribute("aria-expanded",f),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"))}),v==null||v.addEventListener("click",()=>{r==null||r.classList.add("open"),document.body.classList.add("nav-overlay-open")}),a==null||a.addEventListener("click",()=>{r==null||r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),c==null||c.addEventListener("click",()=>{t==null||t.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var d;return(d=t==null?void 0:t.querySelector(".x-search-input"))==null?void 0:d.focus()},100)}),x==null||x.addEventListener("click",()=>{t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),p==null||p.addEventListener("click",()=>{const d=u==null?void 0:u.classList.toggle("open");p.classList.toggle("active",d)}),document.addEventListener("click",d=>{s&&!d.target.closest('[data-dropdown="directory"]')&&!d.target.closest("#dropdown-directory")&&(s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false")),l&&!d.target.closest(".x-nav-user")&&(l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",d=>{d.key==="Escape"&&(s==null||s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"),l==null||l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),r==null||r.classList.remove("open"),t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),r==null||r.querySelectorAll("a").forEach(d=>{d.addEventListener("click",()=>{r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function g(){var l,v,c,r,t;const o=document.querySelector(".x-header");if(!o)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=y,document.head.appendChild(a)}let e={isLoggedIn:!1};const n=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let x=0;const p=setInterval(()=>{x++,window.$memberstackDom?(clearInterval(p),a(window.$memberstackDom)):x>=30&&(clearInterval(p),a(null))},100)});if(n)try{const{data:a}=await n.getCurrentMember();a&&(e={isLoggedIn:!0,firstName:((l=a.customFields)==null?void 0:l["first-name"])||((c=(v=a.auth)==null?void 0:v.email)==null?void 0:c.split("@")[0])||"User",lastName:((r=a.customFields)==null?void 0:r["last-name"])||"",email:((t=a.auth)==null?void 0:t.email)||""})}catch(a){console.warn("MTNS Nav: Error getting member",a)}o.innerHTML=b(e),k(o)}window.MTNSNav={init:g,render:b,styles:y},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",g):g()})();
+    `}function L(n){const e=n.querySelector('[data-dropdown="directory"]'),l=n.querySelector("#dropdown-directory"),o=n.querySelector(".x-nav-user-btn"),d=n.querySelector(".x-nav-user-dropdown"),c=n.querySelector('[data-action="menu"]'),p=n.querySelector('[data-action="search"]'),r=n.querySelector("#x-nav-overlay"),i=n.querySelector("#x-search-overlay"),x=n.querySelector('[data-action="close-menu"]'),a=n.querySelector('[data-action="close-search"]'),v=n.querySelector('[data-toggle="find-creative"]'),h=n.querySelector("#subnav-find-creative");e==null||e.addEventListener("click",t=>{t.stopPropagation();const g=l.classList.toggle("open");e.setAttribute("aria-expanded",g),d!=null&&d.classList.contains("open")&&(d.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),o==null||o.addEventListener("click",t=>{t.stopPropagation();const g=d.classList.toggle("open");o.setAttribute("aria-expanded",g),l!=null&&l.classList.contains("open")&&(l.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"))}),c==null||c.addEventListener("click",()=>{r==null||r.classList.add("open"),document.body.classList.add("nav-overlay-open")}),x==null||x.addEventListener("click",()=>{r==null||r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),p==null||p.addEventListener("click",()=>{i==null||i.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var t;return(t=i==null?void 0:i.querySelector(".x-search-input"))==null?void 0:t.focus()},100)}),a==null||a.addEventListener("click",()=>{i==null||i.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),v==null||v.addEventListener("click",()=>{const t=h==null?void 0:h.classList.toggle("open");v.classList.toggle("active",t)}),document.addEventListener("click",t=>{l&&!t.target.closest('[data-dropdown="directory"]')&&!t.target.closest("#dropdown-directory")&&(l.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false")),d&&!t.target.closest(".x-nav-user")&&(d.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",t=>{t.key==="Escape"&&(l==null||l.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"),d==null||d.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"),r==null||r.classList.remove("open"),i==null||i.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))});const m=n.querySelector('[data-action="logout"]');m==null||m.addEventListener("click",async t=>{if(t.preventDefault(),window.$memberstackDom)try{await window.$memberstackDom.logout(),window.location.href="/"}catch(g){console.error("Logout error:",g),window.location.href="/"}else window.location.href="/"}),r==null||r.querySelectorAll("a").forEach(t=>{t.addEventListener("click",()=>{r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function f(){var d,c,p,r,i,x;const n=document.querySelector(".x-header");if(!n)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=b,document.head.appendChild(a)}let e={isLoggedIn:!1};const o=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let v=0;const h=setInterval(()=>{v++,window.$memberstackDom?(clearInterval(h),a(window.$memberstackDom)):v>=30&&(clearInterval(h),a(null))},100)});if(o)try{const{data:a}=await o.getCurrentMember();if(a){let v=((d=a.customFields)==null?void 0:d["member-webflow-url"])||"";v&&!/^https?:\/\//i.test(v)&&(v="https://"+v),e={isLoggedIn:!0,firstName:((c=a.customFields)==null?void 0:c["first-name"])||((r=(p=a.auth)==null?void 0:p.email)==null?void 0:r.split("@")[0])||"User",lastName:((i=a.customFields)==null?void 0:i["last-name"])||"",email:((x=a.auth)==null?void 0:x.email)||"",profileUrl:v}}}catch(a){console.warn("MTNS Nav: Error getting member",a)}n.innerHTML=w(e),L(n)}window.MTNSNav={init:f,render:w,styles:b},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",f):f()})();

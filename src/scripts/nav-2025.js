@@ -862,7 +862,7 @@
   // RENDER
   // ============================================
   function renderNav(options = {}) {
-    const { isLoggedIn = false, firstName = 'User', lastName = '', email = '' } = options;
+    const { isLoggedIn = false, firstName = 'User', lastName = '', email = '', profileUrl = '' } = options;
 
     const categoryItems = DIRECTORY_CATEGORIES.map(cat => `
       <a href="/directory/${cat.slug}" class="x-nav-dropdown-item">${cat.name}</a>
@@ -882,13 +882,13 @@
       <a href="/profile/support" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.helpCircle}</span>Get Support
       </a>
-      <a href="#" ms-code-field-link="member-webflow-url" class="x-nav-dropdown-item">
+      ${profileUrl ? `<a href="${profileUrl}" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.user}</span>View my Profile
-      </a>
+      </a>` : ''}
       <div class="x-nav-dropdown-divider"></div>
-      <a href="#" data-ms-action="logout" class="x-nav-dropdown-item danger">
+      <button type="button" class="x-nav-dropdown-item danger" data-action="logout">
         <span class="x-nav-dropdown-item-icon">${icons.logout}</span>Log Out
-      </a>
+      </button>
     `;
 
     const overlayCategoryItems = DIRECTORY_CATEGORIES.map(cat => `
@@ -909,7 +909,7 @@
             <div class="x-nav-dropdown" id="dropdown-directory">
               ${categoryItems}
               <div class="x-nav-dropdown-footer">
-                <a href="/directory" class="x-nav-dropdown-item view-all">
+                <a href="/find-a-creative" class="x-nav-dropdown-item view-all">
                   <span class="x-nav-dropdown-item-icon">${icons.grid}</span>View all Categories
                 </a>
               </div>
@@ -951,7 +951,7 @@
         <div class="x-nav-overlay-header">
           <div class="x-nav-overlay-logo">${LOGO_SVG}</div>
           <div class="x-nav-overlay-header-actions">
-            ${isLoggedIn ? `<a href="#" ms-code-field-link="member-webflow-url" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : ''}
+            ${isLoggedIn ? `<a href="${profileUrl || '/profile'}" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : ''}
             <button class="x-nav-overlay-close" data-action="close-menu">${icons.x}</button>
           </div>
         </div>
@@ -967,7 +967,7 @@
               <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative<span class="x-nav-overlay-link-chevron">${icons.chevronDown}</span></button>
               <div class="x-nav-overlay-subnav" id="subnav-find-creative">
                 ${overlayCategoryItems}
-                <a href="/directory" class="x-nav-overlay-sublink view-all">${icons.grid} View all Categories</a>
+                <a href="/find-a-creative" class="x-nav-overlay-sublink view-all">${icons.grid} View all Categories</a>
               </div>
             </div>
             <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
@@ -1095,6 +1095,23 @@
       }
     });
 
+    // Logout button
+    const logoutBtn = header.querySelector('[data-action="logout"]');
+    logoutBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (window.$memberstackDom) {
+        try {
+          await window.$memberstackDom.logout();
+          window.location.href = '/';
+        } catch (err) {
+          console.error('Logout error:', err);
+          window.location.href = '/';
+        }
+      } else {
+        window.location.href = '/';
+      }
+    });
+
     // Close overlay on link click
     navOverlay?.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', () => {
@@ -1135,11 +1152,16 @@
       try {
         const { data: member } = await memberstack.getCurrentMember();
         if (member) {
+          let profileUrl = member.customFields?.['member-webflow-url'] || '';
+          if (profileUrl && !/^https?:\/\//i.test(profileUrl)) {
+            profileUrl = 'https://' + profileUrl;
+          }
           navOptions = {
             isLoggedIn: true,
             firstName: member.customFields?.['first-name'] || member.auth?.email?.split('@')[0] || 'User',
             lastName: member.customFields?.['last-name'] || '',
-            email: member.auth?.email || ''
+            email: member.auth?.email || '',
+            profileUrl: profileUrl
           };
         }
       } catch (err) { console.warn('MTNS Nav: Error getting member', err); }
