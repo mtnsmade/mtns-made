@@ -47,7 +47,7 @@
   const styles = `
     /* MTNS MADE 2025 Navigation */
     :root {
-      --nav-height: 72px;
+      --nav-height: 50px;
       --nav-bg: #ffffff;
       --nav-text: #1D3748;
       --nav-text-muted: #64748b;
@@ -76,11 +76,18 @@
 
     /* Header */
     .x-header {
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       background: var(--nav-bg);
       width: 100%;
+    }
+
+    /* Add padding to body to account for fixed header */
+    body {
+      padding-top: var(--nav-height);
     }
 
     .x-nav {

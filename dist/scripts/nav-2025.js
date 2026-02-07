@@ -17,7 +17,7 @@
 </svg>`,y=m.replace(/currentColor/g,"#ffffff"),b=`
     /* MTNS MADE 2025 Navigation */
     :root {
-      --nav-height: 72px;
+      --nav-height: 50px;
       --nav-bg: #ffffff;
       --nav-text: #1D3748;
       --nav-text-muted: #64748b;
@@ -46,11 +46,18 @@
 
     /* Header */
     .x-header {
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 1000;
       background: var(--nav-bg);
       width: 100%;
+    }
+
+    /* Add padding to body to account for fixed header */
+    body {
+      padding-top: var(--nav-height);
     }
 
     .x-nav {
@@ -691,28 +698,28 @@
     body.nav-overlay-open {
       overflow: hidden;
     }
-  `,l={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function w(r={}){const{isLoggedIn:n=!1,firstName:s="User",email:o=""}=r,i=f.map(e=>`
+  `,d={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function w(r={}){const{isLoggedIn:n=!1,firstName:s="User",email:o=""}=r,i=f.map(e=>`
       <a href="/directory/${e.slug}" class="x-nav-dropdown-item">${e.name}</a>
-    `).join(""),d=`
+    `).join(""),l=`
       <a href="/profile" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.user}</span>My Profile
+        <span class="x-nav-dropdown-item-icon">${d.user}</span>My Profile
       </a>
       <a href="/profile/edit" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.edit}</span>Edit Profile
+        <span class="x-nav-dropdown-item-icon">${d.edit}</span>Edit Profile
       </a>
       <a href="/profile/edit-portfolio-supabase" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.briefcase}</span>My Portfolio
+        <span class="x-nav-dropdown-item-icon">${d.briefcase}</span>My Portfolio
       </a>
       <a href="/events" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.calendar}</span>My Events
+        <span class="x-nav-dropdown-item-icon">${d.calendar}</span>My Events
       </a>
       <div class="x-nav-dropdown-divider"></div>
       <a href="/support" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.helpCircle}</span>Get Support
+        <span class="x-nav-dropdown-item-icon">${d.helpCircle}</span>Get Support
       </a>
       <div class="x-nav-dropdown-divider"></div>
       <a href="/logout" class="x-nav-dropdown-item danger">
-        <span class="x-nav-dropdown-item-icon">${l.logout}</span>Log Out
+        <span class="x-nav-dropdown-item-icon">${d.logout}</span>Log Out
       </a>
     `,v=f.map(e=>`
       <a href="/directory/${e.slug}" class="x-nav-overlay-sublink">${e.name}</a>
@@ -725,13 +732,13 @@
         <div class="x-nav-primary">
           <div class="x-nav-item" data-priority="high">
             <button class="x-nav-link" aria-expanded="false" data-dropdown="directory">
-              Find a Creative<span class="x-nav-chevron">${l.chevronDown}</span>
+              Find a Creative<span class="x-nav-chevron">${d.chevronDown}</span>
             </button>
             <div class="x-nav-dropdown" id="dropdown-directory">
               ${i}
               <div class="x-nav-dropdown-footer">
                 <a href="/directory" class="x-nav-dropdown-item view-all">
-                  <span class="x-nav-dropdown-item-icon">${l.grid}</span>View all Categories
+                  <span class="x-nav-dropdown-item-icon">${d.grid}</span>View all Categories
                 </a>
               </div>
             </div>
@@ -747,16 +754,16 @@
           ${n?`
             <div class="x-nav-user">
               <button class="x-nav-user-btn" aria-expanded="false">
-                Hello, ${s}<span class="x-nav-user-chevron">${l.chevronDown}</span>
+                Hello, ${s}<span class="x-nav-user-chevron">${d.chevronDown}</span>
               </button>
               <div class="x-nav-user-dropdown">
                 ${o?`<div class="x-nav-user-header"><div class="x-nav-user-name">${s}</div><div class="x-nav-user-email">${o}</div></div>`:""}
-                ${d}
+                ${l}
               </div>
             </div>
           `:""}
           <button class="x-nav-search" data-action="search">
-            <span class="x-nav-search-icon">${l.search}</span>
+            <span class="x-nav-search-icon">${d.search}</span>
             <span class="x-nav-search-text">Search</span>
           </button>
           <button class="x-nav-hamburger" data-action="menu" aria-label="Menu">
@@ -771,14 +778,14 @@
       <div class="x-nav-overlay" id="x-nav-overlay">
         <div class="x-nav-overlay-header">
           <div class="x-nav-overlay-logo">${y}</div>
-          <button class="x-nav-overlay-close" data-action="close-menu">${l.x}</button>
+          <button class="x-nav-overlay-close" data-action="close-menu">${d.x}</button>
         </div>
         <div class="x-nav-overlay-content">
           <div class="x-nav-overlay-item">
             <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative</button>
             <div class="x-nav-overlay-subnav" id="subnav-find-creative">
               ${v}
-              <a href="/directory" class="x-nav-overlay-sublink view-all">${l.grid} View all Categories</a>
+              <a href="/directory" class="x-nav-overlay-sublink view-all">${d.grid} View all Categories</a>
             </div>
           </div>
           <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
@@ -798,7 +805,7 @@
       <div class="x-search-overlay" id="x-search-overlay">
         <div class="x-search-overlay-header">
           <div class="x-search-overlay-logo">${y}</div>
-          <button class="x-search-overlay-close" data-action="close-search">${l.x}</button>
+          <button class="x-search-overlay-close" data-action="close-search">${d.x}</button>
         </div>
         <div class="x-search-overlay-content">
           <form class="x-search-form" action="/search" method="get">
@@ -809,4 +816,4 @@
           </form>
         </div>
       </div>
-    `}function k(r){const n=r.querySelector('[data-dropdown="directory"]'),s=r.querySelector("#dropdown-directory"),o=r.querySelector(".x-nav-user-btn"),i=r.querySelector(".x-nav-user-dropdown"),d=r.querySelector('[data-action="menu"]'),v=r.querySelector('[data-action="search"]'),e=r.querySelector("#x-nav-overlay"),a=r.querySelector("#x-search-overlay"),c=r.querySelector('[data-action="close-menu"]'),p=r.querySelector('[data-action="close-search"]'),x=r.querySelector('[data-toggle="find-creative"]'),h=r.querySelector("#subnav-find-creative");n==null||n.addEventListener("click",t=>{t.stopPropagation();const u=s.classList.toggle("open");n.setAttribute("aria-expanded",u),i!=null&&i.classList.contains("open")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),o==null||o.addEventListener("click",t=>{t.stopPropagation();const u=i.classList.toggle("open");o.setAttribute("aria-expanded",u),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),d==null||d.addEventListener("click",()=>{e==null||e.classList.add("open"),document.body.classList.add("nav-overlay-open")}),c==null||c.addEventListener("click",()=>{e==null||e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),v==null||v.addEventListener("click",()=>{a==null||a.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var t;return(t=a==null?void 0:a.querySelector(".x-search-input"))==null?void 0:t.focus()},100)}),p==null||p.addEventListener("click",()=>{a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),x==null||x.addEventListener("click",()=>{const t=h==null?void 0:h.classList.toggle("open");x.classList.toggle("active",t)}),document.addEventListener("click",t=>{s&&!t.target.closest('[data-dropdown="directory"]')&&!t.target.closest("#dropdown-directory")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false")),i&&!t.target.closest(".x-nav-user")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",t=>{t.key==="Escape"&&(s==null||s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),i==null||i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"),e==null||e.classList.remove("open"),a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),e==null||e.querySelectorAll("a").forEach(t=>{t.addEventListener("click",()=>{e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function g(){var i,d,v,e;const r=document.querySelector(".x-header");if(!r)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=b,document.head.appendChild(a)}let n={isLoggedIn:!1};const o=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let c=0;const p=setInterval(()=>{c++,window.$memberstackDom?(clearInterval(p),a(window.$memberstackDom)):c>=30&&(clearInterval(p),a(null))},100)});if(o)try{const{data:a}=await o.getCurrentMember();a&&(n={isLoggedIn:!0,firstName:((i=a.customFields)==null?void 0:i["first-name"])||((v=(d=a.auth)==null?void 0:d.email)==null?void 0:v.split("@")[0])||"User",email:((e=a.auth)==null?void 0:e.email)||""})}catch(a){console.warn("MTNS Nav: Error getting member",a)}r.innerHTML=w(n),k(r)}window.MTNSNav={init:g,render:w,styles:b},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",g):g()})();
+    `}function k(r){const n=r.querySelector('[data-dropdown="directory"]'),s=r.querySelector("#dropdown-directory"),o=r.querySelector(".x-nav-user-btn"),i=r.querySelector(".x-nav-user-dropdown"),l=r.querySelector('[data-action="menu"]'),v=r.querySelector('[data-action="search"]'),e=r.querySelector("#x-nav-overlay"),a=r.querySelector("#x-search-overlay"),c=r.querySelector('[data-action="close-menu"]'),p=r.querySelector('[data-action="close-search"]'),x=r.querySelector('[data-toggle="find-creative"]'),h=r.querySelector("#subnav-find-creative");n==null||n.addEventListener("click",t=>{t.stopPropagation();const u=s.classList.toggle("open");n.setAttribute("aria-expanded",u),i!=null&&i.classList.contains("open")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),o==null||o.addEventListener("click",t=>{t.stopPropagation();const u=i.classList.toggle("open");o.setAttribute("aria-expanded",u),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),l==null||l.addEventListener("click",()=>{e==null||e.classList.add("open"),document.body.classList.add("nav-overlay-open")}),c==null||c.addEventListener("click",()=>{e==null||e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),v==null||v.addEventListener("click",()=>{a==null||a.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var t;return(t=a==null?void 0:a.querySelector(".x-search-input"))==null?void 0:t.focus()},100)}),p==null||p.addEventListener("click",()=>{a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),x==null||x.addEventListener("click",()=>{const t=h==null?void 0:h.classList.toggle("open");x.classList.toggle("active",t)}),document.addEventListener("click",t=>{s&&!t.target.closest('[data-dropdown="directory"]')&&!t.target.closest("#dropdown-directory")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false")),i&&!t.target.closest(".x-nav-user")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",t=>{t.key==="Escape"&&(s==null||s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),i==null||i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"),e==null||e.classList.remove("open"),a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),e==null||e.querySelectorAll("a").forEach(t=>{t.addEventListener("click",()=>{e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function g(){var i,l,v,e;const r=document.querySelector(".x-header");if(!r)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=b,document.head.appendChild(a)}let n={isLoggedIn:!1};const o=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let c=0;const p=setInterval(()=>{c++,window.$memberstackDom?(clearInterval(p),a(window.$memberstackDom)):c>=30&&(clearInterval(p),a(null))},100)});if(o)try{const{data:a}=await o.getCurrentMember();a&&(n={isLoggedIn:!0,firstName:((i=a.customFields)==null?void 0:i["first-name"])||((v=(l=a.auth)==null?void 0:l.email)==null?void 0:v.split("@")[0])||"User",email:((e=a.auth)==null?void 0:e.email)||""})}catch(a){console.warn("MTNS Nav: Error getting member",a)}r.innerHTML=w(n),k(r)}window.MTNSNav={init:g,render:w,styles:b},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",g):g()})();
