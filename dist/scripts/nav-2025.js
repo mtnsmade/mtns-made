@@ -1,4 +1,4 @@
-(function(){const m=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],g=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+(function(){const m=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],h=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_nav)">
 <path d="M12.4863 0.209707L7.22333 8.93708L1.96031 0.209707H0V14.793H2.78599V6.66785L6.25382 12.3974H8.19283L11.6607 6.66785V14.793H14.4467V0.209707H12.4863Z" fill="currentColor"/>
 <path d="M21.8086 0.209708V2.70747H25.6253V14.793H28.4113V2.70747H32.2307V0.209708H21.8086Z" fill="currentColor"/>
@@ -14,7 +14,7 @@
 <rect width="151" height="15" fill="white"/>
 </clipPath>
 </defs>
-</svg>`,w=g.replace(/currentColor/g,"#ffffff"),y=`
+</svg>`,w=h.replace(/currentColor/g,"#ffffff"),y=`
     /* MTNS MADE 2025 Navigation */
     :root {
       --nav-height: 50px;
@@ -812,35 +812,34 @@
     body.nav-overlay-open {
       overflow: hidden;
     }
-  `,i={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function b(o={}){const{isLoggedIn:e=!1,firstName:s="User",lastName:n="",email:l="",profileLink:c=""}=o,p=m.map(v=>`
-      <a href="/directory/${v.slug}" class="x-nav-dropdown-item">${v.name}</a>
-    `).join(""),r=n?`${s} ${n}`:s,t=c||"/profile",x=`
-      <a href="${t}" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${i.user}</span>My Profile
-      </a>
-      <a href="/profile/edit" class="x-nav-dropdown-item">
+  `,i={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function b(o={}){const{isLoggedIn:e=!1,firstName:s="User",lastName:n="",email:l=""}=o,v=m.map(a=>`
+      <a href="/directory/${a.slug}" class="x-nav-dropdown-item">${a.name}</a>
+    `).join(""),c=n?`${s} ${n}`:s,r=`
+      <a href="/profile/edit-profile" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${i.edit}</span>Edit Profile
       </a>
-      <a href="/profile/edit-portfolio-supabase" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${i.briefcase}</span>My Portfolio
+      <a href="/profile/edit-portfolio" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${i.briefcase}</span>Edit Portfolio
       </a>
-      <a href="/events" class="x-nav-dropdown-item">
+      <a href="/profile/suggest-an-event" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${i.calendar}</span>My Events
       </a>
-      <div class="x-nav-dropdown-divider"></div>
-      <a href="/support" class="x-nav-dropdown-item">
+      <a href="/profile/support" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${i.helpCircle}</span>Get Support
       </a>
+      <a href="#" ms-code-field-link="member-webflow-url" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${i.user}</span>View my Profile
+      </a>
       <div class="x-nav-dropdown-divider"></div>
-      <button type="button" data-ms-action="logout" class="x-nav-dropdown-item danger">
+      <a href="#" data-ms-action="logout" class="x-nav-dropdown-item danger">
         <span class="x-nav-dropdown-item-icon">${i.logout}</span>Log Out
-      </button>
-    `,a=m.map(v=>`
-      <a href="/directory/${v.slug}" class="x-nav-overlay-sublink">${v.name}</a>
+      </a>
+    `,t=m.map(a=>`
+      <a href="/directory/${a.slug}" class="x-nav-overlay-sublink">${a.name}</a>
     `).join("");return`
       <nav class="x-nav" role="navigation">
         <div class="x-nav-logo">
-          <a href="/">${g}</a>
+          <a href="/">${h}</a>
         </div>
 
         <div class="x-nav-primary">
@@ -849,7 +848,7 @@
               Find a Creative<span class="x-nav-chevron">${i.chevronDown}</span>
             </button>
             <div class="x-nav-dropdown" id="dropdown-directory">
-              ${p}
+              ${v}
               <div class="x-nav-dropdown-footer">
                 <a href="/directory" class="x-nav-dropdown-item view-all">
                   <span class="x-nav-dropdown-item-icon">${i.grid}</span>View all Categories
@@ -871,8 +870,8 @@
                 Hello, ${s}<span class="x-nav-user-chevron">${i.chevronDown}</span>
               </button>
               <div class="x-nav-user-dropdown">
-                ${l?`<div class="x-nav-user-header"><div class="x-nav-user-name">${r}</div><div class="x-nav-user-email">${l}</div></div>`:""}
-                ${x}
+                ${l?`<div class="x-nav-user-header"><div class="x-nav-user-name">${c}</div><div class="x-nav-user-email">${l}</div></div>`:""}
+                ${r}
               </div>
             </div>
           `:""}
@@ -891,9 +890,9 @@
       <!-- Navigation Overlay -->
       <div class="x-nav-overlay" id="x-nav-overlay">
         <div class="x-nav-overlay-header">
-          <div class="x-nav-overlay-logo">${g}</div>
+          <div class="x-nav-overlay-logo">${h}</div>
           <div class="x-nav-overlay-header-actions">
-            ${e?`<a href="${t}" class="x-nav-overlay-user-btn">Hello, ${s} ${i.chevronDown}</a>`:""}
+            ${e?`<a href="#" ms-code-field-link="member-webflow-url" class="x-nav-overlay-user-btn">Hello, ${s} ${i.chevronDown}</a>`:""}
             <button class="x-nav-overlay-close" data-action="close-menu">${i.x}</button>
           </div>
         </div>
@@ -908,7 +907,7 @@
             <div class="x-nav-overlay-item">
               <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative<span class="x-nav-overlay-link-chevron">${i.chevronDown}</span></button>
               <div class="x-nav-overlay-subnav" id="subnav-find-creative">
-                ${a}
+                ${t}
                 <a href="/directory" class="x-nav-overlay-sublink view-all">${i.grid} View all Categories</a>
               </div>
             </div>
@@ -941,4 +940,4 @@
           </form>
         </div>
       </div>
-    `}function k(o){const e=o.querySelector('[data-dropdown="directory"]'),s=o.querySelector("#dropdown-directory"),n=o.querySelector(".x-nav-user-btn"),l=o.querySelector(".x-nav-user-dropdown"),c=o.querySelector('[data-action="menu"]'),p=o.querySelector('[data-action="search"]'),r=o.querySelector("#x-nav-overlay"),t=o.querySelector("#x-search-overlay"),x=o.querySelector('[data-action="close-menu"]'),a=o.querySelector('[data-action="close-search"]'),v=o.querySelector('[data-toggle="find-creative"]'),h=o.querySelector("#subnav-find-creative");e==null||e.addEventListener("click",d=>{d.stopPropagation();const f=s.classList.toggle("open");e.setAttribute("aria-expanded",f),l!=null&&l.classList.contains("open")&&(l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),n==null||n.addEventListener("click",d=>{d.stopPropagation();const f=l.classList.toggle("open");n.setAttribute("aria-expanded",f),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"))}),c==null||c.addEventListener("click",()=>{r==null||r.classList.add("open"),document.body.classList.add("nav-overlay-open")}),x==null||x.addEventListener("click",()=>{r==null||r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),p==null||p.addEventListener("click",()=>{t==null||t.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var d;return(d=t==null?void 0:t.querySelector(".x-search-input"))==null?void 0:d.focus()},100)}),a==null||a.addEventListener("click",()=>{t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),v==null||v.addEventListener("click",()=>{const d=h==null?void 0:h.classList.toggle("open");v.classList.toggle("active",d)}),document.addEventListener("click",d=>{s&&!d.target.closest('[data-dropdown="directory"]')&&!d.target.closest("#dropdown-directory")&&(s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false")),l&&!d.target.closest(".x-nav-user")&&(l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",d=>{d.key==="Escape"&&(s==null||s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"),l==null||l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),r==null||r.classList.remove("open"),t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),r==null||r.querySelectorAll("a").forEach(d=>{d.addEventListener("click",()=>{r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function u(){var l,c,p,r,t,x;const o=document.querySelector(".x-header");if(!o)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=y,document.head.appendChild(a)}let e={isLoggedIn:!1};const n=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let v=0;const h=setInterval(()=>{v++,window.$memberstackDom?(clearInterval(h),a(window.$memberstackDom)):v>=30&&(clearInterval(h),a(null))},100)});if(n)try{const{data:a}=await n.getCurrentMember();a&&(e={isLoggedIn:!0,firstName:((l=a.customFields)==null?void 0:l["first-name"])||((p=(c=a.auth)==null?void 0:c.email)==null?void 0:p.split("@")[0])||"User",lastName:((r=a.customFields)==null?void 0:r["last-name"])||"",email:((t=a.auth)==null?void 0:t.email)||"",profileLink:((x=a.customFields)==null?void 0:x["profile-link"])||""})}catch(a){console.warn("MTNS Nav: Error getting member",a)}o.innerHTML=b(e),k(o)}window.MTNSNav={init:u,render:b,styles:y},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",u):u()})();
+    `}function k(o){const e=o.querySelector('[data-dropdown="directory"]'),s=o.querySelector("#dropdown-directory"),n=o.querySelector(".x-nav-user-btn"),l=o.querySelector(".x-nav-user-dropdown"),v=o.querySelector('[data-action="menu"]'),c=o.querySelector('[data-action="search"]'),r=o.querySelector("#x-nav-overlay"),t=o.querySelector("#x-search-overlay"),a=o.querySelector('[data-action="close-menu"]'),x=o.querySelector('[data-action="close-search"]'),p=o.querySelector('[data-toggle="find-creative"]'),u=o.querySelector("#subnav-find-creative");e==null||e.addEventListener("click",d=>{d.stopPropagation();const f=s.classList.toggle("open");e.setAttribute("aria-expanded",f),l!=null&&l.classList.contains("open")&&(l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),n==null||n.addEventListener("click",d=>{d.stopPropagation();const f=l.classList.toggle("open");n.setAttribute("aria-expanded",f),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"))}),v==null||v.addEventListener("click",()=>{r==null||r.classList.add("open"),document.body.classList.add("nav-overlay-open")}),a==null||a.addEventListener("click",()=>{r==null||r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),c==null||c.addEventListener("click",()=>{t==null||t.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var d;return(d=t==null?void 0:t.querySelector(".x-search-input"))==null?void 0:d.focus()},100)}),x==null||x.addEventListener("click",()=>{t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),p==null||p.addEventListener("click",()=>{const d=u==null?void 0:u.classList.toggle("open");p.classList.toggle("active",d)}),document.addEventListener("click",d=>{s&&!d.target.closest('[data-dropdown="directory"]')&&!d.target.closest("#dropdown-directory")&&(s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false")),l&&!d.target.closest(".x-nav-user")&&(l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",d=>{d.key==="Escape"&&(s==null||s.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"),l==null||l.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),r==null||r.classList.remove("open"),t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),r==null||r.querySelectorAll("a").forEach(d=>{d.addEventListener("click",()=>{r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function g(){var l,v,c,r,t;const o=document.querySelector(".x-header");if(!o)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=y,document.head.appendChild(a)}let e={isLoggedIn:!1};const n=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let x=0;const p=setInterval(()=>{x++,window.$memberstackDom?(clearInterval(p),a(window.$memberstackDom)):x>=30&&(clearInterval(p),a(null))},100)});if(n)try{const{data:a}=await n.getCurrentMember();a&&(e={isLoggedIn:!0,firstName:((l=a.customFields)==null?void 0:l["first-name"])||((c=(v=a.auth)==null?void 0:v.email)==null?void 0:c.split("@")[0])||"User",lastName:((r=a.customFields)==null?void 0:r["last-name"])||"",email:((t=a.auth)==null?void 0:t.email)||""})}catch(a){console.warn("MTNS Nav: Error getting member",a)}o.innerHTML=b(e),k(o)}window.MTNSNav={init:g,render:b,styles:y},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",g):g()})();

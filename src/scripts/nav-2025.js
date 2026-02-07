@@ -862,35 +862,33 @@
   // RENDER
   // ============================================
   function renderNav(options = {}) {
-    const { isLoggedIn = false, firstName = 'User', lastName = '', email = '', profileLink = '' } = options;
+    const { isLoggedIn = false, firstName = 'User', lastName = '', email = '' } = options;
 
     const categoryItems = DIRECTORY_CATEGORIES.map(cat => `
       <a href="/directory/${cat.slug}" class="x-nav-dropdown-item">${cat.name}</a>
     `).join('');
 
     const fullName = lastName ? `${firstName} ${lastName}` : firstName;
-    const profileUrl = profileLink || '/profile';
     const userMenuItems = `
-      <a href="${profileUrl}" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${icons.user}</span>My Profile
-      </a>
-      <a href="/profile/edit" class="x-nav-dropdown-item">
+      <a href="/profile/edit-profile" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.edit}</span>Edit Profile
       </a>
-      <a href="/profile/edit-portfolio-supabase" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${icons.briefcase}</span>My Portfolio
+      <a href="/profile/edit-portfolio" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${icons.briefcase}</span>Edit Portfolio
       </a>
-      <a href="/events" class="x-nav-dropdown-item">
+      <a href="/profile/suggest-an-event" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.calendar}</span>My Events
       </a>
-      <div class="x-nav-dropdown-divider"></div>
-      <a href="/support" class="x-nav-dropdown-item">
+      <a href="/profile/support" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.helpCircle}</span>Get Support
       </a>
+      <a href="#" ms-code-field-link="member-webflow-url" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${icons.user}</span>View my Profile
+      </a>
       <div class="x-nav-dropdown-divider"></div>
-      <button type="button" data-ms-action="logout" class="x-nav-dropdown-item danger">
+      <a href="#" data-ms-action="logout" class="x-nav-dropdown-item danger">
         <span class="x-nav-dropdown-item-icon">${icons.logout}</span>Log Out
-      </button>
+      </a>
     `;
 
     const overlayCategoryItems = DIRECTORY_CATEGORIES.map(cat => `
@@ -953,7 +951,7 @@
         <div class="x-nav-overlay-header">
           <div class="x-nav-overlay-logo">${LOGO_SVG}</div>
           <div class="x-nav-overlay-header-actions">
-            ${isLoggedIn ? `<a href="${profileUrl}" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : ''}
+            ${isLoggedIn ? `<a href="#" ms-code-field-link="member-webflow-url" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : ''}
             <button class="x-nav-overlay-close" data-action="close-menu">${icons.x}</button>
           </div>
         </div>
@@ -1141,8 +1139,7 @@
             isLoggedIn: true,
             firstName: member.customFields?.['first-name'] || member.auth?.email?.split('@')[0] || 'User',
             lastName: member.customFields?.['last-name'] || '',
-            email: member.auth?.email || '',
-            profileLink: member.customFields?.['profile-link'] || ''
+            email: member.auth?.email || ''
           };
         }
       } catch (err) { console.warn('MTNS Nav: Error getting member', err); }
