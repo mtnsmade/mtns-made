@@ -1,4 +1,4 @@
-(function(){const f=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],m=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+(function(){const m=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],g=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_nav)">
 <path d="M12.4863 0.209707L7.22333 8.93708L1.96031 0.209707H0V14.793H2.78599V6.66785L6.25382 12.3974H8.19283L11.6607 6.66785V14.793H14.4467V0.209707H12.4863Z" fill="currentColor"/>
 <path d="M21.8086 0.209708V2.70747H25.6253V14.793H28.4113V2.70747H32.2307V0.209708H21.8086Z" fill="currentColor"/>
@@ -14,7 +14,7 @@
 <rect width="151" height="15" fill="white"/>
 </clipPath>
 </defs>
-</svg>`,y=m.replace(/currentColor/g,"#ffffff"),b=`
+</svg>`,w=g.replace(/currentColor/g,"#ffffff"),y=`
     /* MTNS MADE 2025 Navigation */
     :root {
       --nav-height: 50px;
@@ -53,7 +53,7 @@
       z-index: 1000;
       background: var(--nav-bg);
       width: 100%;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     /* Add padding to body to account for fixed header */
@@ -391,7 +391,7 @@
     }
 
     /* ==========================================
-       OVERLAY MENU (Dark)
+       OVERLAY MENU
        ========================================== */
     .x-nav-overlay {
       position: fixed;
@@ -399,9 +399,10 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: var(--overlay-bg);
+      background: var(--nav-bg);
       z-index: 9999;
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
       opacity: 0;
       visibility: hidden;
       transition: opacity 300ms ease, visibility 300ms ease;
@@ -418,6 +419,8 @@
       justify-content: space-between;
       padding: 0 40px;
       height: var(--nav-height);
+      background: var(--nav-bg);
+      flex-shrink: 0;
     }
 
     @media (max-width: 991px) {
@@ -429,7 +432,7 @@
     }
 
     .x-nav-overlay-logo {
-      color: var(--overlay-text);
+      color: var(--nav-text);
     }
 
     .x-nav-overlay-logo svg {
@@ -437,10 +440,37 @@
       width: auto;
     }
 
+    .x-nav-overlay-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .x-nav-overlay-user-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 15px;
+      background: var(--btn-hover);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font-nav-light);
+      font-size: 13px;
+      font-weight: 300;
+      text-decoration: none;
+    }
+
+    .x-nav-overlay-user-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
     .x-nav-overlay-close {
       background: none;
       border: none;
-      color: var(--overlay-text);
+      color: var(--nav-text);
       cursor: pointer;
       padding: 8px;
     }
@@ -450,13 +480,74 @@
       height: 24px;
     }
 
-    .x-nav-overlay-content {
-      padding: 40px;
-      max-width: 800px;
+    .x-nav-overlay-body {
+      flex: 1;
+      background: var(--overlay-bg);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .x-nav-overlay-search {
+      padding: 20px 40px;
+      flex-shrink: 0;
     }
 
     @media (max-width: 991px) {
-      .x-nav-overlay-content { padding: 24px; }
+      .x-nav-overlay-search { padding: 20px 24px; }
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-overlay-search { padding: 16px; }
+    }
+
+    .x-nav-overlay-search-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 16px;
+      gap: 12px;
+    }
+
+    .x-nav-overlay-search-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: var(--font-nav-regular);
+      font-size: 14px;
+      color: var(--overlay-text);
+    }
+
+    .x-nav-overlay-search-input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .x-nav-overlay-search-btn {
+      background: none;
+      border: none;
+      color: var(--overlay-text);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .x-nav-overlay-search-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .x-nav-overlay-content {
+      padding: 0 40px;
+      flex: 1;
+    }
+
+    @media (max-width: 991px) {
+      .x-nav-overlay-content { padding: 0 24px; }
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-overlay-content { padding: 0 16px; }
     }
 
     /* Overlay Nav Items */
@@ -465,10 +556,12 @@
     }
 
     .x-nav-overlay-link {
-      display: block;
-      padding: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
       font-family: var(--font-nav-regular);
-      font-size: 28px;
+      font-size: 16px;
       font-weight: normal;
       color: var(--overlay-text);
       text-decoration: none;
@@ -488,10 +581,21 @@
       color: var(--overlay-hover);
     }
 
+    .x-nav-overlay-link-chevron {
+      width: 16px;
+      height: 16px;
+      opacity: 0.5;
+      transition: transform var(--transition-fast);
+    }
+
+    .x-nav-overlay-link.active .x-nav-overlay-link-chevron {
+      transform: rotate(180deg);
+    }
+
     /* Overlay Subnav (Categories) */
     .x-nav-overlay-subnav {
       display: none;
-      padding: 0 0 20px;
+      padding: 0 0 16px;
       column-count: 2;
       column-gap: 40px;
     }
@@ -510,7 +614,7 @@
       display: block;
       padding: 8px 0;
       font-family: var(--font-nav-regular);
-      font-size: 16px;
+      font-size: 14px;
       font-weight: normal;
       color: var(--overlay-text);
       text-decoration: none;
@@ -538,13 +642,22 @@
 
     /* Overlay Footer Links */
     .x-nav-overlay-footer {
-      margin-top: 60px;
-      padding-top: 20px;
+      padding: 20px 40px 30px;
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+
+    @media (max-width: 991px) {
+      .x-nav-overlay-footer { padding: 20px 24px 30px; }
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-overlay-footer { padding: 16px 16px 30px; }
     }
 
     .x-nav-overlay-footer-link {
       display: block;
-      padding: 8px 0;
+      padding: 6px 0;
       font-family: var(--font-nav-regular);
       font-size: 14px;
       font-weight: normal;
@@ -699,47 +812,47 @@
     body.nav-overlay-open {
       overflow: hidden;
     }
-  `,d={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function w(r={}){const{isLoggedIn:n=!1,firstName:s="User",email:o=""}=r,i=f.map(e=>`
-      <a href="/directory/${e.slug}" class="x-nav-dropdown-item">${e.name}</a>
-    `).join(""),l=`
-      <a href="/profile" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${d.user}</span>My Profile
+  `,i={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function b(o={}){const{isLoggedIn:a=!1,firstName:d="User",email:n="",profileSlug:s=""}=o,p=m.map(v=>`
+      <a href="/directory/${v.slug}" class="x-nav-dropdown-item">${v.name}</a>
+    `).join(""),c=s?`/directory/creative/${s}`:"/profile",r=`
+      <a href="${c}" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${i.user}</span>My Profile
       </a>
       <a href="/profile/edit" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${d.edit}</span>Edit Profile
+        <span class="x-nav-dropdown-item-icon">${i.edit}</span>Edit Profile
       </a>
       <a href="/profile/edit-portfolio-supabase" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${d.briefcase}</span>My Portfolio
+        <span class="x-nav-dropdown-item-icon">${i.briefcase}</span>My Portfolio
       </a>
       <a href="/events" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${d.calendar}</span>My Events
+        <span class="x-nav-dropdown-item-icon">${i.calendar}</span>My Events
       </a>
       <div class="x-nav-dropdown-divider"></div>
       <a href="/support" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${d.helpCircle}</span>Get Support
+        <span class="x-nav-dropdown-item-icon">${i.helpCircle}</span>Get Support
       </a>
       <div class="x-nav-dropdown-divider"></div>
       <a href="/logout" class="x-nav-dropdown-item danger">
-        <span class="x-nav-dropdown-item-icon">${d.logout}</span>Log Out
+        <span class="x-nav-dropdown-item-icon">${i.logout}</span>Log Out
       </a>
-    `,v=f.map(e=>`
-      <a href="/directory/${e.slug}" class="x-nav-overlay-sublink">${e.name}</a>
+    `,t=m.map(v=>`
+      <a href="/directory/${v.slug}" class="x-nav-overlay-sublink">${v.name}</a>
     `).join("");return`
       <nav class="x-nav" role="navigation">
         <div class="x-nav-logo">
-          <a href="/">${m}</a>
+          <a href="/">${g}</a>
         </div>
 
         <div class="x-nav-primary">
           <div class="x-nav-item" data-priority="high">
             <button class="x-nav-link" aria-expanded="false" data-dropdown="directory">
-              Find a Creative<span class="x-nav-chevron">${d.chevronDown}</span>
+              Find a Creative<span class="x-nav-chevron">${i.chevronDown}</span>
             </button>
             <div class="x-nav-dropdown" id="dropdown-directory">
-              ${i}
+              ${p}
               <div class="x-nav-dropdown-footer">
                 <a href="/directory" class="x-nav-dropdown-item view-all">
-                  <span class="x-nav-dropdown-item-icon">${d.grid}</span>View all Categories
+                  <span class="x-nav-dropdown-item-icon">${i.grid}</span>View all Categories
                 </a>
               </div>
             </div>
@@ -751,20 +864,20 @@
         </div>
 
         <div class="x-nav-actions">
-          ${n?"":'<a href="/join" class="x-nav-btn">Become a Member</a>'}
-          ${n?`
+          ${a?"":'<a href="/join" class="x-nav-btn">Become a Member</a>'}
+          ${a?`
             <div class="x-nav-user">
               <button class="x-nav-user-btn" aria-expanded="false">
-                Hello, ${s}<span class="x-nav-user-chevron">${d.chevronDown}</span>
+                Hello, ${d}<span class="x-nav-user-chevron">${i.chevronDown}</span>
               </button>
               <div class="x-nav-user-dropdown">
-                ${o?`<div class="x-nav-user-header"><div class="x-nav-user-name">${s}</div><div class="x-nav-user-email">${o}</div></div>`:""}
-                ${l}
+                ${n?`<div class="x-nav-user-header"><div class="x-nav-user-name">${d}</div><div class="x-nav-user-email">${n}</div></div>`:""}
+                ${r}
               </div>
             </div>
           `:""}
           <button class="x-nav-search" data-action="search">
-            <span class="x-nav-search-icon">${d.search}</span>
+            <span class="x-nav-search-icon">${i.search}</span>
             <span class="x-nav-search-text">Search</span>
           </button>
           <button class="x-nav-hamburger" data-action="menu" aria-label="Menu">
@@ -778,22 +891,33 @@
       <!-- Navigation Overlay -->
       <div class="x-nav-overlay" id="x-nav-overlay">
         <div class="x-nav-overlay-header">
-          <div class="x-nav-overlay-logo">${y}</div>
-          <button class="x-nav-overlay-close" data-action="close-menu">${d.x}</button>
-        </div>
-        <div class="x-nav-overlay-content">
-          <div class="x-nav-overlay-item">
-            <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative</button>
-            <div class="x-nav-overlay-subnav" id="subnav-find-creative">
-              ${v}
-              <a href="/directory" class="x-nav-overlay-sublink view-all">${d.grid} View all Categories</a>
-            </div>
+          <div class="x-nav-overlay-logo">${g}</div>
+          <div class="x-nav-overlay-header-actions">
+            ${a?`<a href="${c}" class="x-nav-overlay-user-btn">Hello, ${d} ${i.chevronDown}</a>`:""}
+            <button class="x-nav-overlay-close" data-action="close-menu">${i.x}</button>
           </div>
-          <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
-          <div class="x-nav-overlay-item"><a href="/opportunities" class="x-nav-overlay-link">Opportunities</a></div>
-          <div class="x-nav-overlay-item"><a href="/resources" class="x-nav-overlay-link">Resources</a></div>
-          <div class="x-nav-overlay-item"><a href="/stories" class="x-nav-overlay-link">Stories</a></div>
-          <div class="x-nav-overlay-item"><a href="/magazine" class="x-nav-overlay-link">Magazine</a></div>
+        </div>
+        <div class="x-nav-overlay-body">
+          <div class="x-nav-overlay-search">
+            <form action="/search" method="get" class="x-nav-overlay-search-wrapper">
+              <input type="text" name="query" class="x-nav-overlay-search-input" placeholder="Search the directory" autocomplete="off">
+              <button type="submit" class="x-nav-overlay-search-btn">${i.search}</button>
+            </form>
+          </div>
+          <div class="x-nav-overlay-content">
+            <div class="x-nav-overlay-item">
+              <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative<span class="x-nav-overlay-link-chevron">${i.chevronDown}</span></button>
+              <div class="x-nav-overlay-subnav" id="subnav-find-creative">
+                ${t}
+                <a href="/directory" class="x-nav-overlay-sublink view-all">${i.grid} View all Categories</a>
+              </div>
+            </div>
+            <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
+            <div class="x-nav-overlay-item"><a href="/opportunities" class="x-nav-overlay-link">Opportunities</a></div>
+            <div class="x-nav-overlay-item"><a href="/resources" class="x-nav-overlay-link">Resources</a></div>
+            <div class="x-nav-overlay-item"><a href="/stories" class="x-nav-overlay-link">Stories</a></div>
+            <div class="x-nav-overlay-item"><a href="/magazine" class="x-nav-overlay-link">Magazine</a></div>
+          </div>
           <div class="x-nav-overlay-footer">
             <a href="/about" class="x-nav-overlay-footer-link">About</a>
             <a href="/contact" class="x-nav-overlay-footer-link">Contact</a>
@@ -805,8 +929,8 @@
       <!-- Search Overlay -->
       <div class="x-search-overlay" id="x-search-overlay">
         <div class="x-search-overlay-header">
-          <div class="x-search-overlay-logo">${y}</div>
-          <button class="x-search-overlay-close" data-action="close-search">${d.x}</button>
+          <div class="x-search-overlay-logo">${w}</div>
+          <button class="x-search-overlay-close" data-action="close-search">${i.x}</button>
         </div>
         <div class="x-search-overlay-content">
           <form class="x-search-form" action="/search" method="get">
@@ -817,4 +941,4 @@
           </form>
         </div>
       </div>
-    `}function k(r){const n=r.querySelector('[data-dropdown="directory"]'),s=r.querySelector("#dropdown-directory"),o=r.querySelector(".x-nav-user-btn"),i=r.querySelector(".x-nav-user-dropdown"),l=r.querySelector('[data-action="menu"]'),v=r.querySelector('[data-action="search"]'),e=r.querySelector("#x-nav-overlay"),a=r.querySelector("#x-search-overlay"),c=r.querySelector('[data-action="close-menu"]'),p=r.querySelector('[data-action="close-search"]'),x=r.querySelector('[data-toggle="find-creative"]'),h=r.querySelector("#subnav-find-creative");n==null||n.addEventListener("click",t=>{t.stopPropagation();const u=s.classList.toggle("open");n.setAttribute("aria-expanded",u),i!=null&&i.classList.contains("open")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),o==null||o.addEventListener("click",t=>{t.stopPropagation();const u=i.classList.toggle("open");o.setAttribute("aria-expanded",u),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),l==null||l.addEventListener("click",()=>{e==null||e.classList.add("open"),document.body.classList.add("nav-overlay-open")}),c==null||c.addEventListener("click",()=>{e==null||e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),v==null||v.addEventListener("click",()=>{a==null||a.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var t;return(t=a==null?void 0:a.querySelector(".x-search-input"))==null?void 0:t.focus()},100)}),p==null||p.addEventListener("click",()=>{a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),x==null||x.addEventListener("click",()=>{const t=h==null?void 0:h.classList.toggle("open");x.classList.toggle("active",t)}),document.addEventListener("click",t=>{s&&!t.target.closest('[data-dropdown="directory"]')&&!t.target.closest("#dropdown-directory")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false")),i&&!t.target.closest(".x-nav-user")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",t=>{t.key==="Escape"&&(s==null||s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),i==null||i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"),e==null||e.classList.remove("open"),a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),e==null||e.querySelectorAll("a").forEach(t=>{t.addEventListener("click",()=>{e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function g(){var i,l,v,e;const r=document.querySelector(".x-header");if(!r)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=b,document.head.appendChild(a)}let n={isLoggedIn:!1};const o=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let c=0;const p=setInterval(()=>{c++,window.$memberstackDom?(clearInterval(p),a(window.$memberstackDom)):c>=30&&(clearInterval(p),a(null))},100)});if(o)try{const{data:a}=await o.getCurrentMember();a&&(n={isLoggedIn:!0,firstName:((i=a.customFields)==null?void 0:i["first-name"])||((v=(l=a.auth)==null?void 0:l.email)==null?void 0:v.split("@")[0])||"User",email:((e=a.auth)==null?void 0:e.email)||""})}catch(a){console.warn("MTNS Nav: Error getting member",a)}r.innerHTML=w(n),k(r)}window.MTNSNav={init:g,render:w,styles:b},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",g):g()})();
+    `}function k(o){const a=o.querySelector('[data-dropdown="directory"]'),d=o.querySelector("#dropdown-directory"),n=o.querySelector(".x-nav-user-btn"),s=o.querySelector(".x-nav-user-dropdown"),p=o.querySelector('[data-action="menu"]'),c=o.querySelector('[data-action="search"]'),r=o.querySelector("#x-nav-overlay"),t=o.querySelector("#x-search-overlay"),v=o.querySelector('[data-action="close-menu"]'),e=o.querySelector('[data-action="close-search"]'),x=o.querySelector('[data-toggle="find-creative"]'),h=o.querySelector("#subnav-find-creative");a==null||a.addEventListener("click",l=>{l.stopPropagation();const f=d.classList.toggle("open");a.setAttribute("aria-expanded",f),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),n==null||n.addEventListener("click",l=>{l.stopPropagation();const f=s.classList.toggle("open");n.setAttribute("aria-expanded",f),d!=null&&d.classList.contains("open")&&(d.classList.remove("open"),a==null||a.setAttribute("aria-expanded","false"))}),p==null||p.addEventListener("click",()=>{r==null||r.classList.add("open"),document.body.classList.add("nav-overlay-open")}),v==null||v.addEventListener("click",()=>{r==null||r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),c==null||c.addEventListener("click",()=>{t==null||t.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var l;return(l=t==null?void 0:t.querySelector(".x-search-input"))==null?void 0:l.focus()},100)}),e==null||e.addEventListener("click",()=>{t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),x==null||x.addEventListener("click",()=>{const l=h==null?void 0:h.classList.toggle("open");x.classList.toggle("active",l)}),document.addEventListener("click",l=>{d&&!l.target.closest('[data-dropdown="directory"]')&&!l.target.closest("#dropdown-directory")&&(d.classList.remove("open"),a==null||a.setAttribute("aria-expanded","false")),s&&!l.target.closest(".x-nav-user")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",l=>{l.key==="Escape"&&(d==null||d.classList.remove("open"),a==null||a.setAttribute("aria-expanded","false"),s==null||s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),r==null||r.classList.remove("open"),t==null||t.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),r==null||r.querySelectorAll("a").forEach(l=>{l.addEventListener("click",()=>{r.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function u(){var s,p,c,r,t,v;const o=document.querySelector(".x-header");if(!o)return;if(!document.getElementById("x-nav-styles")){const e=document.createElement("style");e.id="x-nav-styles",e.textContent=y,document.head.appendChild(e)}let a={isLoggedIn:!1};const n=await new Promise(e=>{if(window.$memberstackDom)return e(window.$memberstackDom);let x=0;const h=setInterval(()=>{x++,window.$memberstackDom?(clearInterval(h),e(window.$memberstackDom)):x>=30&&(clearInterval(h),e(null))},100)});if(n)try{const{data:e}=await n.getCurrentMember();e&&(a={isLoggedIn:!0,firstName:((s=e.customFields)==null?void 0:s["first-name"])||((c=(p=e.auth)==null?void 0:p.email)==null?void 0:c.split("@")[0])||"User",email:((r=e.auth)==null?void 0:r.email)||"",profileSlug:((t=e.customFields)==null?void 0:t["profile-slug"])||((v=e.customFields)==null?void 0:v.slug)||""})}catch(e){console.warn("MTNS Nav: Error getting member",e)}o.innerHTML=b(a),k(o)}window.MTNSNav={init:u,render:b,styles:y},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",u):u()})();

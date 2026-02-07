@@ -83,7 +83,7 @@
       z-index: 1000;
       background: var(--nav-bg);
       width: 100%;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     /* Add padding to body to account for fixed header */
@@ -421,7 +421,7 @@
     }
 
     /* ==========================================
-       OVERLAY MENU (Dark)
+       OVERLAY MENU
        ========================================== */
     .x-nav-overlay {
       position: fixed;
@@ -429,9 +429,10 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: var(--overlay-bg);
+      background: var(--nav-bg);
       z-index: 9999;
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
       opacity: 0;
       visibility: hidden;
       transition: opacity 300ms ease, visibility 300ms ease;
@@ -448,6 +449,8 @@
       justify-content: space-between;
       padding: 0 40px;
       height: var(--nav-height);
+      background: var(--nav-bg);
+      flex-shrink: 0;
     }
 
     @media (max-width: 991px) {
@@ -459,7 +462,7 @@
     }
 
     .x-nav-overlay-logo {
-      color: var(--overlay-text);
+      color: var(--nav-text);
     }
 
     .x-nav-overlay-logo svg {
@@ -467,10 +470,37 @@
       width: auto;
     }
 
+    .x-nav-overlay-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .x-nav-overlay-user-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 15px;
+      background: var(--btn-hover);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font-nav-light);
+      font-size: 13px;
+      font-weight: 300;
+      text-decoration: none;
+    }
+
+    .x-nav-overlay-user-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
     .x-nav-overlay-close {
       background: none;
       border: none;
-      color: var(--overlay-text);
+      color: var(--nav-text);
       cursor: pointer;
       padding: 8px;
     }
@@ -480,13 +510,74 @@
       height: 24px;
     }
 
-    .x-nav-overlay-content {
-      padding: 40px;
-      max-width: 800px;
+    .x-nav-overlay-body {
+      flex: 1;
+      background: var(--overlay-bg);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .x-nav-overlay-search {
+      padding: 20px 40px;
+      flex-shrink: 0;
     }
 
     @media (max-width: 991px) {
-      .x-nav-overlay-content { padding: 24px; }
+      .x-nav-overlay-search { padding: 20px 24px; }
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-overlay-search { padding: 16px; }
+    }
+
+    .x-nav-overlay-search-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 16px;
+      gap: 12px;
+    }
+
+    .x-nav-overlay-search-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: var(--font-nav-regular);
+      font-size: 14px;
+      color: var(--overlay-text);
+    }
+
+    .x-nav-overlay-search-input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .x-nav-overlay-search-btn {
+      background: none;
+      border: none;
+      color: var(--overlay-text);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .x-nav-overlay-search-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .x-nav-overlay-content {
+      padding: 0 40px;
+      flex: 1;
+    }
+
+    @media (max-width: 991px) {
+      .x-nav-overlay-content { padding: 0 24px; }
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-overlay-content { padding: 0 16px; }
     }
 
     /* Overlay Nav Items */
@@ -495,10 +586,12 @@
     }
 
     .x-nav-overlay-link {
-      display: block;
-      padding: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
       font-family: var(--font-nav-regular);
-      font-size: 28px;
+      font-size: 16px;
       font-weight: normal;
       color: var(--overlay-text);
       text-decoration: none;
@@ -518,10 +611,21 @@
       color: var(--overlay-hover);
     }
 
+    .x-nav-overlay-link-chevron {
+      width: 16px;
+      height: 16px;
+      opacity: 0.5;
+      transition: transform var(--transition-fast);
+    }
+
+    .x-nav-overlay-link.active .x-nav-overlay-link-chevron {
+      transform: rotate(180deg);
+    }
+
     /* Overlay Subnav (Categories) */
     .x-nav-overlay-subnav {
       display: none;
-      padding: 0 0 20px;
+      padding: 0 0 16px;
       column-count: 2;
       column-gap: 40px;
     }
@@ -540,7 +644,7 @@
       display: block;
       padding: 8px 0;
       font-family: var(--font-nav-regular);
-      font-size: 16px;
+      font-size: 14px;
       font-weight: normal;
       color: var(--overlay-text);
       text-decoration: none;
@@ -568,13 +672,22 @@
 
     /* Overlay Footer Links */
     .x-nav-overlay-footer {
-      margin-top: 60px;
-      padding-top: 20px;
+      padding: 20px 40px 30px;
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+
+    @media (max-width: 991px) {
+      .x-nav-overlay-footer { padding: 20px 24px 30px; }
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-overlay-footer { padding: 16px 16px 30px; }
     }
 
     .x-nav-overlay-footer-link {
       display: block;
-      padding: 8px 0;
+      padding: 6px 0;
       font-family: var(--font-nav-regular);
       font-size: 14px;
       font-weight: normal;
@@ -749,14 +862,15 @@
   // RENDER
   // ============================================
   function renderNav(options = {}) {
-    const { isLoggedIn = false, firstName = 'User', email = '' } = options;
+    const { isLoggedIn = false, firstName = 'User', email = '', profileSlug = '' } = options;
 
     const categoryItems = DIRECTORY_CATEGORIES.map(cat => `
       <a href="/directory/${cat.slug}" class="x-nav-dropdown-item">${cat.name}</a>
     `).join('');
 
+    const profileUrl = profileSlug ? `/directory/creative/${profileSlug}` : '/profile';
     const userMenuItems = `
-      <a href="/profile" class="x-nav-dropdown-item">
+      <a href="${profileUrl}" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.user}</span>My Profile
       </a>
       <a href="/profile/edit" class="x-nav-dropdown-item">
@@ -836,22 +950,33 @@
       <!-- Navigation Overlay -->
       <div class="x-nav-overlay" id="x-nav-overlay">
         <div class="x-nav-overlay-header">
-          <div class="x-nav-overlay-logo">${LOGO_SVG_WHITE}</div>
-          <button class="x-nav-overlay-close" data-action="close-menu">${icons.x}</button>
-        </div>
-        <div class="x-nav-overlay-content">
-          <div class="x-nav-overlay-item">
-            <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative</button>
-            <div class="x-nav-overlay-subnav" id="subnav-find-creative">
-              ${overlayCategoryItems}
-              <a href="/directory" class="x-nav-overlay-sublink view-all">${icons.grid} View all Categories</a>
-            </div>
+          <div class="x-nav-overlay-logo">${LOGO_SVG}</div>
+          <div class="x-nav-overlay-header-actions">
+            ${isLoggedIn ? `<a href="${profileUrl}" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : ''}
+            <button class="x-nav-overlay-close" data-action="close-menu">${icons.x}</button>
           </div>
-          <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
-          <div class="x-nav-overlay-item"><a href="/opportunities" class="x-nav-overlay-link">Opportunities</a></div>
-          <div class="x-nav-overlay-item"><a href="/resources" class="x-nav-overlay-link">Resources</a></div>
-          <div class="x-nav-overlay-item"><a href="/stories" class="x-nav-overlay-link">Stories</a></div>
-          <div class="x-nav-overlay-item"><a href="/magazine" class="x-nav-overlay-link">Magazine</a></div>
+        </div>
+        <div class="x-nav-overlay-body">
+          <div class="x-nav-overlay-search">
+            <form action="/search" method="get" class="x-nav-overlay-search-wrapper">
+              <input type="text" name="query" class="x-nav-overlay-search-input" placeholder="Search the directory" autocomplete="off">
+              <button type="submit" class="x-nav-overlay-search-btn">${icons.search}</button>
+            </form>
+          </div>
+          <div class="x-nav-overlay-content">
+            <div class="x-nav-overlay-item">
+              <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative<span class="x-nav-overlay-link-chevron">${icons.chevronDown}</span></button>
+              <div class="x-nav-overlay-subnav" id="subnav-find-creative">
+                ${overlayCategoryItems}
+                <a href="/directory" class="x-nav-overlay-sublink view-all">${icons.grid} View all Categories</a>
+              </div>
+            </div>
+            <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
+            <div class="x-nav-overlay-item"><a href="/opportunities" class="x-nav-overlay-link">Opportunities</a></div>
+            <div class="x-nav-overlay-item"><a href="/resources" class="x-nav-overlay-link">Resources</a></div>
+            <div class="x-nav-overlay-item"><a href="/stories" class="x-nav-overlay-link">Stories</a></div>
+            <div class="x-nav-overlay-item"><a href="/magazine" class="x-nav-overlay-link">Magazine</a></div>
+          </div>
           <div class="x-nav-overlay-footer">
             <a href="/about" class="x-nav-overlay-footer-link">About</a>
             <a href="/contact" class="x-nav-overlay-footer-link">Contact</a>
@@ -1014,7 +1139,8 @@
           navOptions = {
             isLoggedIn: true,
             firstName: member.customFields?.['first-name'] || member.auth?.email?.split('@')[0] || 'User',
-            email: member.auth?.email || ''
+            email: member.auth?.email || '',
+            profileSlug: member.customFields?.['profile-slug'] || member.customFields?.['slug'] || ''
           };
         }
       } catch (err) { console.warn('MTNS Nav: Error getting member', err); }
