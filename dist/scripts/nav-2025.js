@@ -810,7 +810,7 @@
         <div class="x-search-overlay-content">
           <form class="x-search-form" action="/search" method="get">
             <div class="x-search-input-wrapper">
-              <input type="text" name="q" class="x-search-input" placeholder="Enter your search" autocomplete="off">
+              <input type="text" name="query" class="x-search-input" placeholder="Enter your search" autocomplete="off">
               <button type="submit" class="x-search-submit">Search</button>
             </div>
           </form>
