@@ -83,6 +83,7 @@
       z-index: 1000;
       background: var(--nav-bg);
       width: 100%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
     /* Add padding to body to account for fixed header */
