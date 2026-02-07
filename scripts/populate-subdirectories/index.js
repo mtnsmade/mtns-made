@@ -180,27 +180,60 @@ Respond in this exact JSON format:
 
 // Find a suitable project to feature for a category
 function findFeaturedProject(projects, subDirectoryId, subDirectoryName) {
-  // Filter projects that have this category and have a feature image
+  // Filter projects that:
+  // 1. Have this category assigned
+  // 2. Have a feature image with a valid URL
   const matchingProjects = projects.filter(p => {
     const categories = p.fieldData?.['relevant-directory-categories'] || [];
-    const hasImage = p.fieldData?.['feature-image']?.url;
-    return categories.includes(subDirectoryId) && hasImage;
+    const featureImage = p.fieldData?.['feature-image'];
+
+    // Must have a feature image with a non-empty URL
+    const hasValidImage = featureImage &&
+                          featureImage.url &&
+                          typeof featureImage.url === 'string' &&
+                          featureImage.url.trim().length > 0;
+
+    // Check if this sub-directory is in the project's categories
+    const hasCategory = categories.includes(subDirectoryId);
+
+    return hasCategory && hasValidImage;
   });
 
   if (matchingProjects.length === 0) {
     return null;
   }
 
-  // Prefer projects with more complete data
+  // Sort to prefer projects with:
+  // 1. Higher quality images (larger file size if available)
+  // 2. More complete data (description, gallery images)
   matchingProjects.sort((a, b) => {
-    const aScore = (a.fieldData?.['project-description'] ? 1 : 0) +
-                   (a.fieldData?.['project-multi-image']?.length || 0);
-    const bScore = (b.fieldData?.['project-description'] ? 1 : 0) +
-                   (b.fieldData?.['project-multi-image']?.length || 0);
+    const aImage = a.fieldData?.['feature-image'];
+    const bImage = b.fieldData?.['feature-image'];
+
+    // Prefer larger images (better quality)
+    const aSize = aImage?.fileSize || 0;
+    const bSize = bImage?.fileSize || 0;
+
+    // Score based on completeness
+    const aScore = (a.fieldData?.['project-description'] ? 2 : 0) +
+                   (a.fieldData?.['project-multi-image']?.length || 0) +
+                   (aSize > 100000 ? 1 : 0); // Bonus for larger images
+    const bScore = (b.fieldData?.['project-description'] ? 2 : 0) +
+                   (b.fieldData?.['project-multi-image']?.length || 0) +
+                   (bSize > 100000 ? 1 : 0);
+
     return bScore - aScore;
   });
 
-  return matchingProjects[0];
+  const selected = matchingProjects[0];
+
+  // Double-check the selected project has a valid image URL
+  if (!selected.fieldData?.['feature-image']?.url) {
+    console.log('   ⚠️  Selected project missing feature image URL, skipping');
+    return null;
+  }
+
+  return selected;
 }
 
 // Main function
@@ -279,9 +312,11 @@ async function main() {
       console.log(`   📋 SEO Desc: ${content.seoDescription.substring(0, 50)}...`);
 
       if (featuredProject) {
+        const imageUrl = featuredProject.fieldData?.['feature-image']?.url;
         console.log(`   🖼️  Featured Project: ${featuredProject.fieldData?.name || 'Unknown'}`);
+        console.log(`   🔗  Image URL: ${imageUrl?.substring(0, 60)}...`);
       } else {
-        console.log('   ⚠️  No suitable project found for feature image');
+        console.log('   ⚠️  No project with feature image found for this category');
       }
 
       // Prepare update data
@@ -291,10 +326,14 @@ async function main() {
         'seo-description': content.seoDescription
       };
 
-      if (featuredProject) {
+      // Only set feature image fields if we have a valid project with an image
+      if (featuredProject && featuredProject.fieldData?.['feature-image']?.url) {
         updateData['project-feature'] = featuredProject.id;
         updateData['member-credit'] = featuredProject.fieldData?.member || null;
         updateData['use-feature-image'] = true;
+      } else {
+        // Explicitly set to false if no valid feature image
+        updateData['use-feature-image'] = false;
       }
 
       // Update Webflow (unless dry run)
