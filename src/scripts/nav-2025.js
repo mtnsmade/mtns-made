@@ -61,7 +61,9 @@
       --overlay-bg: #353435;
       --overlay-text: #ffffff;
       --overlay-hover: #F05D61;
-      --font-nav: "brown", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-nav-bold: "Mtnsmade Bold", sans-serif;
+      --font-nav-regular: "Mtnsmade Regular", sans-serif;
+      --font-nav-light: "Mtnsmade Light", sans-serif;
       --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
       --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -132,9 +134,9 @@
       align-items: center;
       gap: 4px;
       padding: 8px 14px;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-bold);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: normal;
       letter-spacing: 0.025em;
       text-transform: uppercase;
       color: var(--nav-text);
@@ -147,11 +149,13 @@
     }
 
     .x-nav-link:hover {
-      background: rgba(0, 0, 0, 0.04);
+      background: var(--dropdown-item-hover);
+      color: var(--nav-text);
     }
 
     .x-nav-link[aria-expanded="true"] {
-      background: rgba(0, 0, 0, 0.06);
+      background: var(--dropdown-item-hover);
+      color: var(--nav-text);
     }
 
     .x-nav-chevron {
@@ -195,9 +199,9 @@
       gap: 8px;
       width: 100%;
       padding: 8px 12px;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-regular);
       font-size: 14px;
-      font-weight: 400;
+      font-weight: normal;
       color: var(--nav-text);
       text-decoration: none;
       border-radius: 4px;
@@ -210,6 +214,7 @@
 
     .x-nav-dropdown-item:hover {
       background: var(--dropdown-item-hover);
+      color: var(--nav-text);
     }
 
     .x-nav-dropdown-item-icon {
@@ -251,19 +256,19 @@
       flex-shrink: 0;
     }
 
-    /* Buttons - Brown Bold font */
+    /* Buttons - Mtnsmade Light font */
     .x-nav-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 9px 18px;
-      font-family: var(--font-nav);
+      padding: 3px 15px;
+      font-family: var(--font-nav-light);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 300;
       text-decoration: none;
       border: none;
-      border-radius: 50px;
+      border-radius: 8px;
       cursor: pointer;
       transition: background var(--transition-fast), opacity var(--transition-fast);
       white-space: nowrap;
@@ -281,15 +286,15 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 9px 14px;
+      padding: 3px 15px;
       background: var(--btn-bg);
       color: #fff;
       border: none;
-      border-radius: 50px;
+      border-radius: 8px;
       cursor: pointer;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-light);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 300;
       transition: background var(--transition-fast);
     }
 
@@ -315,15 +320,15 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 9px 14px;
+      padding: 3px 15px;
       background: var(--btn-bg);
       color: #fff;
       border: none;
-      border-radius: 50px;
+      border-radius: 8px;
       cursor: pointer;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-light);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 300;
       transition: background var(--transition-fast);
     }
 
@@ -372,14 +377,14 @@
     }
 
     .x-nav-user-name {
-      font-family: var(--font-nav);
-      font-weight: 700;
+      font-family: var(--font-nav-bold);
+      font-weight: normal;
       font-size: 14px;
       color: var(--nav-text);
     }
 
     .x-nav-user-email {
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-regular);
       font-size: 12px;
       color: var(--nav-text-muted);
       margin-top: 2px;
@@ -390,17 +395,17 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 5px;
-      width: 28px;
-      height: 28px;
-      padding: 2px;
+      gap: 6px;
+      width: 40px;
+      height: 40px;
+      padding: 4px 0;
       background: none;
       border: none;
       cursor: pointer;
     }
 
     .x-nav-hamburger-line {
-      width: 100%;
+      width: 40px;
       height: 2px;
       background: var(--nav-text);
       border-radius: 1px;
@@ -484,9 +489,9 @@
     .x-nav-overlay-link {
       display: block;
       padding: 20px 0;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-regular);
       font-size: 28px;
-      font-weight: 400;
+      font-weight: normal;
       color: var(--overlay-text);
       text-decoration: none;
       transition: color var(--transition-fast);
@@ -526,9 +531,9 @@
     .x-nav-overlay-sublink {
       display: block;
       padding: 8px 0;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-regular);
       font-size: 16px;
-      font-weight: 400;
+      font-weight: normal;
       color: var(--overlay-text);
       text-decoration: none;
       transition: color var(--transition-fast);
@@ -562,9 +567,9 @@
     .x-nav-overlay-footer-link {
       display: block;
       padding: 8px 0;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-regular);
       font-size: 14px;
-      font-weight: 400;
+      font-weight: normal;
       color: rgba(255,255,255,0.7);
       text-decoration: none;
       transition: color var(--transition-fast);
@@ -662,7 +667,7 @@
       background: none;
       border: none;
       outline: none;
-      font-family: var(--font-nav);
+      font-family: var(--font-nav-regular);
       font-size: 16px;
       color: var(--overlay-text);
     }
@@ -676,10 +681,10 @@
       background: var(--overlay-hover);
       color: #fff;
       border: none;
-      border-radius: 6px;
-      font-family: var(--font-nav);
+      border-radius: 8px;
+      font-family: var(--font-nav-light);
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 300;
       cursor: pointer;
       transition: opacity var(--transition-fast);
     }
