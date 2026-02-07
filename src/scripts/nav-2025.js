@@ -862,13 +862,14 @@
   // RENDER
   // ============================================
   function renderNav(options = {}) {
-    const { isLoggedIn = false, firstName = 'User', email = '', profileSlug = '' } = options;
+    const { isLoggedIn = false, firstName = 'User', lastName = '', email = '', profileLink = '' } = options;
 
     const categoryItems = DIRECTORY_CATEGORIES.map(cat => `
       <a href="/directory/${cat.slug}" class="x-nav-dropdown-item">${cat.name}</a>
     `).join('');
 
-    const profileUrl = profileSlug ? `/directory/creative/${profileSlug}` : '/profile';
+    const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+    const profileUrl = profileLink || '/profile';
     const userMenuItems = `
       <a href="${profileUrl}" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.user}</span>My Profile
@@ -930,7 +931,7 @@
                 Hello, ${firstName}<span class="x-nav-user-chevron">${icons.chevronDown}</span>
               </button>
               <div class="x-nav-user-dropdown">
-                ${email ? `<div class="x-nav-user-header"><div class="x-nav-user-name">${firstName}</div><div class="x-nav-user-email">${email}</div></div>` : ''}
+                ${email ? `<div class="x-nav-user-header"><div class="x-nav-user-name">${fullName}</div><div class="x-nav-user-email">${email}</div></div>` : ''}
                 ${userMenuItems}
               </div>
             </div>
@@ -1139,8 +1140,9 @@
           navOptions = {
             isLoggedIn: true,
             firstName: member.customFields?.['first-name'] || member.auth?.email?.split('@')[0] || 'User',
+            lastName: member.customFields?.['last-name'] || '',
             email: member.auth?.email || '',
-            profileSlug: member.customFields?.['profile-slug'] || member.customFields?.['slug'] || ''
+            profileLink: member.customFields?.['profile-link'] || ''
           };
         }
       } catch (err) { console.warn('MTNS Nav: Error getting member', err); }
