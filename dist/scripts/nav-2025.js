@@ -832,9 +832,9 @@
         <span class="x-nav-dropdown-item-icon">${i.helpCircle}</span>Get Support
       </a>
       <div class="x-nav-dropdown-divider"></div>
-      <a href="/logout" class="x-nav-dropdown-item danger">
+      <button type="button" data-ms-action="logout" class="x-nav-dropdown-item danger">
         <span class="x-nav-dropdown-item-icon">${i.logout}</span>Log Out
-      </a>
+      </button>
     `,a=m.map(v=>`
       <a href="/directory/${v.slug}" class="x-nav-overlay-sublink">${v.name}</a>
     `).join("");return`

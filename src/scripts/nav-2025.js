@@ -888,9 +888,9 @@
         <span class="x-nav-dropdown-item-icon">${icons.helpCircle}</span>Get Support
       </a>
       <div class="x-nav-dropdown-divider"></div>
-      <a href="/logout" class="x-nav-dropdown-item danger">
+      <button type="button" data-ms-action="logout" class="x-nav-dropdown-item danger">
         <span class="x-nav-dropdown-item-icon">${icons.logout}</span>Log Out
-      </a>
+      </button>
     `;
 
     const overlayCategoryItems = DIRECTORY_CATEGORIES.map(cat => `
