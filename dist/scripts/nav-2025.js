@@ -1,55 +1,48 @@
-(function(){const x=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],h=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_2494_2947)">
-<path d="M12.4863 0.209707L7.22333 8.93708L1.96031 0.209707H0V14.793H2.78599V6.66785L6.25382 12.3974H8.19283L11.6607 6.66785V14.793H14.4467V0.209707H12.4863Z" fill="#1D3748"/>
-<path d="M21.8086 0.209708V2.70747H25.6253V14.793H28.4113V2.70747H32.2307V0.209708H21.8086Z" fill="#1D3748"/>
-<path d="M49.4714 0.209708V9.70872L41.4198 0.209708H39.4595V14.793H42.2455V5.29126L50.2971 14.793H52.2574V0.209708H49.4714Z" fill="#1D3748"/>
-<path d="M60.1863 10.8971C61.012 11.8139 62.2718 12.5022 63.5929 12.5022C64.8314 12.5022 65.6971 11.7306 65.6971 10.6686C65.6971 8.79459 63.0149 8.56336 61.0733 7.418C59.9386 6.75121 59.0304 5.75103 59.0304 4.10557C59.0304 1.50027 61.4035 0 63.798 0C65.2629 0 66.6266 0.354902 67.9876 1.3739L66.544 3.45761C65.9661 2.91719 64.9966 2.50045 64.0457 2.50045C62.9936 2.50045 61.8164 2.96021 61.8164 4.08406C61.8164 6.43933 68.483 5.70801 68.483 10.6256C68.483 13.2094 66.1925 15 63.5902 15C61.6512 15 59.8534 14.188 58.3672 12.8114L60.1837 10.8944L60.1863 10.8971Z" fill="#1D3748"/>
-<path d="M95.6211 0.209708L90.3581 8.93708L85.0951 0.209708H83.1348V14.793H85.9208V6.66785L89.3886 12.3974H91.3276L94.7954 6.66785V14.793H97.5814V0.209708H95.6211Z" fill="#1D3748"/>
-<path d="M132.023 4.3341C131.219 3.31241 130.041 2.71016 128.329 2.71016H126.265V12.2925H128.329C130.041 12.2925 131.219 11.6876 132.023 10.6686C132.683 9.83509 133.075 8.71123 133.075 7.50134C133.075 6.29144 132.683 5.16759 132.023 4.3341ZM128.02 0.209708C130.31 0.209708 131.818 0.709798 132.992 1.58361C134.766 2.91718 135.861 5.08424 135.861 7.50134C135.861 9.91844 134.766 12.0855 132.992 13.4191C131.815 14.2929 130.31 14.793 128.02 14.793H123.479V0.209708H128.02Z" fill="#1D3748"/>
-<path d="M142.125 0.209708V14.793H151V12.2925H144.911V8.22996H149.349V5.72951H144.911V2.70747H150.795V0.209708H142.125Z" fill="#1D3748"/>
-<path d="M110.143 4.75084L112.814 11.0262H107.476L110.143 4.75084ZM109.173 0.209708L102.98 14.793H105.889L106.419 13.5374H113.885L114.415 14.793H117.326L111.133 0.209708H109.173Z" fill="#1D3748"/>
+(function(){const f=[{name:"Artisanal Products",slug:"artisanal-products"},{name:"Craft",slug:"craft"},{name:"Creative Education",slug:"creative-education"},{name:"Cultural Work",slug:"cultural-work"},{name:"Design",slug:"design"},{name:"Performing Arts",slug:"performing-arts"},{name:"Photography",slug:"photography"},{name:"Publishing",slug:"publishing"},{name:"Screen",slug:"screen"},{name:"Visual Arts",slug:"visual-arts"}],m=`<svg width="151" height="15" viewBox="0 0 151 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_nav)">
+<path d="M12.4863 0.209707L7.22333 8.93708L1.96031 0.209707H0V14.793H2.78599V6.66785L6.25382 12.3974H8.19283L11.6607 6.66785V14.793H14.4467V0.209707H12.4863Z" fill="currentColor"/>
+<path d="M21.8086 0.209708V2.70747H25.6253V14.793H28.4113V2.70747H32.2307V0.209708H21.8086Z" fill="currentColor"/>
+<path d="M49.4714 0.209708V9.70872L41.4198 0.209708H39.4595V14.793H42.2455V5.29126L50.2971 14.793H52.2574V0.209708H49.4714Z" fill="currentColor"/>
+<path d="M60.1863 10.8971C61.012 11.8139 62.2718 12.5022 63.5929 12.5022C64.8314 12.5022 65.6971 11.7306 65.6971 10.6686C65.6971 8.79459 63.0149 8.56336 61.0733 7.418C59.9386 6.75121 59.0304 5.75103 59.0304 4.10557C59.0304 1.50027 61.4035 0 63.798 0C65.2629 0 66.6266 0.354902 67.9876 1.3739L66.544 3.45761C65.9661 2.91719 64.9966 2.50045 64.0457 2.50045C62.9936 2.50045 61.8164 2.96021 61.8164 4.08406C61.8164 6.43933 68.483 5.70801 68.483 10.6256C68.483 13.2094 66.1925 15 63.5902 15C61.6512 15 59.8534 14.188 58.3672 12.8114L60.1837 10.8944L60.1863 10.8971Z" fill="currentColor"/>
+<path d="M95.6211 0.209708L90.3581 8.93708L85.0951 0.209708H83.1348V14.793H85.9208V6.66785L89.3886 12.3974H91.3276L94.7954 6.66785V14.793H97.5814V0.209708H95.6211Z" fill="currentColor"/>
+<path d="M132.023 4.3341C131.219 3.31241 130.041 2.71016 128.329 2.71016H126.265V12.2925H128.329C130.041 12.2925 131.219 11.6876 132.023 10.6686C132.683 9.83509 133.075 8.71123 133.075 7.50134C133.075 6.29144 132.683 5.16759 132.023 4.3341ZM128.02 0.209708C130.31 0.209708 131.818 0.709798 132.992 1.58361C134.766 2.91718 135.861 5.08424 135.861 7.50134C135.861 9.91844 134.766 12.0855 132.992 13.4191C131.815 14.2929 130.31 14.793 128.02 14.793H123.479V0.209708H128.02Z" fill="currentColor"/>
+<path d="M142.125 0.209708V14.793H151V12.2925H144.911V8.22996H149.349V5.72951H144.911V2.70747H150.795V0.209708H142.125Z" fill="currentColor"/>
+<path d="M110.143 4.75084L112.814 11.0262H107.476L110.143 4.75084ZM109.173 0.209708L102.98 14.793H105.889L106.419 13.5374H113.885L114.415 14.793H117.326L111.133 0.209708H109.173Z" fill="currentColor"/>
 </g>
 <defs>
-<clipPath id="clip0_2494_2947">
+<clipPath id="clip0_nav">
 <rect width="151" height="15" fill="white"/>
 </clipPath>
 </defs>
-</svg>`,m=`
-    /* ==========================================
-       MTNS MADE 2025 Navigation
-       Font: Brown Bold
-       ========================================== */
-
+</svg>`,y=m.replace(/currentColor/g,"#ffffff"),b=`
+    /* MTNS MADE 2025 Navigation */
     :root {
       --nav-height: 72px;
       --nav-bg: #ffffff;
       --nav-text: #1D3748;
       --nav-text-muted: #64748b;
-      --nav-text-hover: #0f172a;
-      --btn-primary-bg: #4a9a8f;
-      --btn-primary-hover: #3d8a7f;
-      --btn-secondary-bg: #1D3748;
-      --btn-secondary-hover: #2a4558;
+      --btn-bg: #353435;
+      --btn-hover: #F05D61;
       --dropdown-bg: #ffffff;
       --dropdown-border: #e2e8f0;
       --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-      --dropdown-item-hover: #f1f5f9;
+      --dropdown-item-hover: #DCF1EF;
       --dropdown-radius: 8px;
-      --font-nav: "brown", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --overlay-bg: #353435;
+      --overlay-text: #ffffff;
+      --overlay-hover: #F05D61;
+      --font-nav: "brown", -apple-system, BlinkMacSystemFont, sans-serif;
       --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
       --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .x-header * {
+    .x-header *, .x-nav-overlay *, .x-search-overlay * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
-    /* ==========================================
-       Header Container
-       ========================================== */
+    /* Header */
     .x-header {
       position: sticky;
       top: 0;
@@ -68,28 +61,24 @@
     }
 
     @media (max-width: 991px) {
-      .x-nav {
-        padding: 0 24px;
-      }
+      .x-nav { padding: 0 24px; }
     }
 
     @media (max-width: 575px) {
-      .x-nav {
-        padding: 0 16px;
-      }
+      .x-nav { padding: 0 16px; }
     }
 
-    /* ==========================================
-       Logo
-       ========================================== */
+    /* Logo */
     .x-nav-logo {
       flex-shrink: 0;
+      color: var(--nav-text);
     }
 
     .x-nav-logo a {
       display: flex;
       align-items: center;
       text-decoration: none;
+      color: inherit;
     }
 
     .x-nav-logo svg {
@@ -97,9 +86,7 @@
       width: auto;
     }
 
-    /* ==========================================
-       Primary Navigation
-       ========================================== */
+    /* Primary Navigation */
     .x-nav-primary {
       display: flex;
       align-items: center;
@@ -123,7 +110,7 @@
       color: var(--nav-text);
       text-decoration: none;
       border-radius: 6px;
-      transition: background var(--transition-fast), color var(--transition-fast);
+      transition: background var(--transition-fast);
       cursor: pointer;
       background: transparent;
       border: none;
@@ -148,14 +135,12 @@
       transform: rotate(180deg);
     }
 
-    /* ==========================================
-       Dropdown Menu (shadcn style)
-       ========================================== */
+    /* Dropdown (shadcn style) */
     .x-nav-dropdown {
       position: absolute;
       top: calc(100% + 4px);
       left: 0;
-      min-width: 220px;
+      min-width: 200px;
       background: var(--dropdown-bg);
       border: 1px solid var(--dropdown-border);
       border-radius: var(--dropdown-radius);
@@ -180,7 +165,7 @@
       gap: 8px;
       width: 100%;
       padding: 8px 12px;
-      font-family: var(--font-sans);
+      font-family: var(--font-nav);
       font-size: 14px;
       font-weight: 400;
       color: var(--nav-text);
@@ -210,15 +195,6 @@
       margin: 4px 0;
     }
 
-    .x-nav-dropdown-label {
-      padding: 8px 12px 4px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--nav-text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
     .x-nav-dropdown-footer {
       border-top: 1px solid var(--dropdown-border);
       margin-top: 4px;
@@ -227,11 +203,6 @@
 
     .x-nav-dropdown-item.view-all {
       font-weight: 500;
-      color: var(--btn-primary-bg);
-    }
-
-    .x-nav-dropdown-item.view-all:hover {
-      background: rgba(74, 154, 143, 0.08);
     }
 
     .x-nav-dropdown-item.danger {
@@ -242,9 +213,7 @@
       background: #fef2f2;
     }
 
-    /* ==========================================
-       Right Side Actions
-       ========================================== */
+    /* Right Actions */
     .x-nav-actions {
       display: flex;
       align-items: center;
@@ -252,40 +221,28 @@
       flex-shrink: 0;
     }
 
-    /* Buttons */
+    /* Buttons - Brown Bold font */
     .x-nav-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       padding: 9px 18px;
-      font-family: var(--font-sans);
+      font-family: var(--font-nav);
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 700;
       text-decoration: none;
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      transition: all var(--transition-fast);
+      transition: background var(--transition-fast), opacity var(--transition-fast);
       white-space: nowrap;
-    }
-
-    .x-nav-btn-primary {
-      background: var(--btn-primary-bg);
+      background: #F05D61;
       color: #fff;
     }
 
-    .x-nav-btn-primary:hover {
-      background: var(--btn-primary-hover);
-    }
-
-    .x-nav-btn-secondary {
-      background: var(--btn-secondary-bg);
-      color: #fff;
-    }
-
-    .x-nav-btn-secondary:hover {
-      background: var(--btn-secondary-hover);
+    .x-nav-btn:hover {
+      opacity: 0.9;
     }
 
     /* Search Button */
@@ -295,19 +252,19 @@
       justify-content: center;
       gap: 6px;
       padding: 9px 14px;
-      background: var(--btn-secondary-bg);
+      background: var(--btn-bg);
       color: #fff;
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      font-family: var(--font-sans);
+      font-family: var(--font-nav);
       font-size: 13px;
-      font-weight: 500;
-      transition: all var(--transition-fast);
+      font-weight: 700;
+      transition: background var(--transition-fast);
     }
 
     .x-nav-search:hover {
-      background: var(--btn-secondary-hover);
+      background: var(--btn-hover);
     }
 
     .x-nav-search-icon {
@@ -319,9 +276,7 @@
       display: inline;
     }
 
-    /* ==========================================
-       User Dropdown
-       ========================================== */
+    /* User Dropdown Button */
     .x-nav-user {
       position: relative;
     }
@@ -331,19 +286,19 @@
       align-items: center;
       gap: 6px;
       padding: 9px 14px;
-      background: var(--btn-secondary-bg);
+      background: var(--btn-bg);
       color: #fff;
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      font-family: var(--font-sans);
+      font-family: var(--font-nav);
       font-size: 13px;
-      font-weight: 500;
-      transition: all var(--transition-fast);
+      font-weight: 700;
+      transition: background var(--transition-fast);
     }
 
     .x-nav-user-btn:hover {
-      background: var(--btn-secondary-hover);
+      background: var(--btn-hover);
     }
 
     .x-nav-user-chevron {
@@ -387,20 +342,20 @@
     }
 
     .x-nav-user-name {
-      font-weight: 600;
+      font-family: var(--font-nav);
+      font-weight: 700;
       font-size: 14px;
       color: var(--nav-text);
     }
 
     .x-nav-user-email {
+      font-family: var(--font-nav);
       font-size: 12px;
       color: var(--nav-text-muted);
       margin-top: 2px;
     }
 
-    /* ==========================================
-       Hamburger Menu Button
-       ========================================== */
+    /* Hamburger */
     .x-nav-hamburger {
       display: flex;
       flex-direction: column;
@@ -422,261 +377,384 @@
       transition: transform var(--transition-normal), opacity var(--transition-normal);
     }
 
-    .x-nav-hamburger[aria-expanded="true"] .x-nav-hamburger-line:nth-child(1) {
-      transform: translateY(7px) rotate(45deg);
-    }
-
-    .x-nav-hamburger[aria-expanded="true"] .x-nav-hamburger-line:nth-child(2) {
-      opacity: 0;
-    }
-
-    .x-nav-hamburger[aria-expanded="true"] .x-nav-hamburger-line:nth-child(3) {
-      transform: translateY(-7px) rotate(-45deg);
-    }
-
     /* ==========================================
-       Mobile Menu Overlay
+       OVERLAY MENU (Dark)
        ========================================== */
-    .x-nav-mobile {
+    .x-nav-overlay {
       position: fixed;
-      top: var(--nav-height);
+      top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: var(--nav-bg);
-      z-index: 999;
+      background: var(--overlay-bg);
+      z-index: 9999;
       overflow-y: auto;
-      padding: 20px 24px 40px;
-      transform: translateX(100%);
-      transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 300ms ease, visibility 300ms ease;
     }
 
-    .x-nav-mobile.open {
-      transform: translateX(0);
+    .x-nav-overlay.open {
+      opacity: 1;
+      visibility: visible;
     }
 
-    .x-nav-mobile-section {
-      margin-bottom: 24px;
+    .x-nav-overlay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: var(--nav-height);
     }
 
-    .x-nav-mobile-title {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--nav-text-muted);
-      margin-bottom: 12px;
-      padding: 0 4px;
+    @media (max-width: 991px) {
+      .x-nav-overlay-header { padding: 0 24px; }
     }
 
-    .x-nav-mobile-link {
+    @media (max-width: 575px) {
+      .x-nav-overlay-header { padding: 0 16px; }
+    }
+
+    .x-nav-overlay-logo {
+      color: var(--overlay-text);
+    }
+
+    .x-nav-overlay-logo svg {
+      height: 15px;
+      width: auto;
+    }
+
+    .x-nav-overlay-close {
+      background: none;
+      border: none;
+      color: var(--overlay-text);
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    .x-nav-overlay-close svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .x-nav-overlay-content {
+      padding: 40px;
+      max-width: 800px;
+    }
+
+    @media (max-width: 991px) {
+      .x-nav-overlay-content { padding: 24px; }
+    }
+
+    /* Overlay Nav Items */
+    .x-nav-overlay-item {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .x-nav-overlay-link {
       display: block;
-      padding: 14px 4px;
-      font-family: var(--font-sans);
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--nav-text);
-      text-decoration: none;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-    }
-
-    .x-nav-mobile-link:last-child {
-      border-bottom: none;
-    }
-
-    .x-nav-mobile-link:hover {
-      color: var(--nav-text-hover);
-    }
-
-    .x-nav-mobile-link.sub {
-      padding-left: 20px;
-      font-size: 15px;
+      padding: 20px 0;
+      font-family: var(--font-nav);
+      font-size: 28px;
       font-weight: 400;
-      color: var(--nav-text-muted);
-    }
-
-    .x-nav-mobile-btn {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      text-align: center;
-      font-family: var(--font-sans);
-      font-size: 15px;
-      font-weight: 500;
+      color: var(--overlay-text);
       text-decoration: none;
-      border-radius: 50px;
-      margin-bottom: 10px;
+      transition: color var(--transition-fast);
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
     }
 
-    .x-nav-mobile-btn-primary {
-      background: var(--btn-primary-bg);
-      color: #fff;
+    .x-nav-overlay-link:hover {
+      color: var(--overlay-hover);
     }
 
-    .x-nav-mobile-btn-secondary {
-      background: var(--btn-secondary-bg);
-      color: #fff;
+    .x-nav-overlay-link.active {
+      color: var(--overlay-hover);
+    }
+
+    /* Overlay Subnav (Categories) */
+    .x-nav-overlay-subnav {
+      display: none;
+      padding: 0 0 20px;
+      column-count: 2;
+      column-gap: 40px;
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-overlay-subnav {
+        column-count: 1;
+      }
+    }
+
+    .x-nav-overlay-subnav.open {
+      display: block;
+    }
+
+    .x-nav-overlay-sublink {
+      display: block;
+      padding: 8px 0;
+      font-family: var(--font-nav);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--overlay-text);
+      text-decoration: none;
+      transition: color var(--transition-fast);
+      break-inside: avoid;
+    }
+
+    .x-nav-overlay-sublink:hover {
+      color: var(--overlay-hover);
+    }
+
+    .x-nav-overlay-sublink.view-all {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .x-nav-overlay-sublink.view-all svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Overlay Footer Links */
+    .x-nav-overlay-footer {
+      margin-top: 60px;
+      padding-top: 20px;
+    }
+
+    .x-nav-overlay-footer-link {
+      display: block;
+      padding: 8px 0;
+      font-family: var(--font-nav);
+      font-size: 14px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      transition: color var(--transition-fast);
+    }
+
+    .x-nav-overlay-footer-link:hover {
+      color: var(--overlay-text);
     }
 
     /* ==========================================
-       Responsive Breakpoints
+       SEARCH OVERLAY
        ========================================== */
-
-    /* Desktop Min (< 1200px) - Hide search text */
-    @media (max-width: 1199px) {
-      .x-nav-search-text {
-        display: none;
-      }
+    .x-search-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--overlay-bg);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 300ms ease, visibility 300ms ease;
     }
 
-    /* Tablet Max (< 992px) - Hide search */
+    .x-search-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .x-search-overlay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: var(--nav-height);
+    }
+
     @media (max-width: 991px) {
-      .x-nav-search {
-        display: none;
-      }
+      .x-search-overlay-header { padding: 0 24px; }
     }
 
-    /* Tablet Min (< 768px) - Hide low priority nav */
-    @media (max-width: 767px) {
-      .x-nav-item[data-priority="low"] {
-        display: none;
-      }
-    }
-
-    /* Mobile Landscape (< 576px) - Hide all primary nav */
     @media (max-width: 575px) {
-      .x-nav-primary {
-        display: none;
-      }
-
-      .x-nav-actions {
-        gap: 8px;
-      }
-
-      .x-nav-btn,
-      .x-nav-user-btn {
-        padding: 8px 12px;
-        font-size: 12px;
-      }
+      .x-search-overlay-header { padding: 0 16px; }
     }
 
-    /* Mobile Portrait (< 375px) - Minimal */
+    .x-search-overlay-logo {
+      color: var(--overlay-text);
+    }
+
+    .x-search-overlay-logo svg {
+      height: 15px;
+      width: auto;
+    }
+
+    .x-search-overlay-close {
+      background: none;
+      border: none;
+      color: var(--overlay-text);
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    .x-search-overlay-close svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .x-search-overlay-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .x-search-form {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .x-search-input-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 16px 20px;
+      gap: 12px;
+    }
+
+    .x-search-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: var(--font-nav);
+      font-size: 16px;
+      color: var(--overlay-text);
+    }
+
+    .x-search-input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .x-search-submit {
+      padding: 10px 20px;
+      background: var(--overlay-hover);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-nav);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity var(--transition-fast);
+    }
+
+    .x-search-submit:hover {
+      opacity: 0.9;
+    }
+
+    /* ==========================================
+       RESPONSIVE
+       ========================================== */
+    @media (max-width: 1199px) {
+      .x-nav-search-text { display: none; }
+    }
+
+    @media (max-width: 991px) {
+      .x-nav-search { display: none; }
+    }
+
+    @media (max-width: 767px) {
+      .x-nav-item[data-priority="low"] { display: none; }
+    }
+
+    @media (max-width: 575px) {
+      .x-nav-primary { display: none; }
+      .x-nav-actions { gap: 8px; }
+      .x-nav-btn, .x-nav-user-btn { padding: 8px 12px; font-size: 12px; }
+    }
+
     @media (max-width: 374px) {
-      .x-nav-btn-primary {
-        display: none;
-      }
+      .x-nav-btn:not(.x-nav-user-btn) { display: none; }
     }
 
-    /* Body scroll lock */
-    body.nav-mobile-open {
+    body.nav-overlay-open {
       overflow: hidden;
     }
-  `,l={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function b(r={}){const{isLoggedIn:e=!1,firstName:o="User",email:s=""}=r,d=x.map(a=>`
-      <a href="/directory/${a.slug}" class="x-nav-dropdown-item">
-        ${a.name}
-      </a>
-    `).join(""),i=`
+  `,d={chevronDown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',helpCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>'};function w(r={}){const{isLoggedIn:n=!1,firstName:s="User",email:o=""}=r,i=f.map(e=>`
+      <a href="/directory/${e.slug}" class="x-nav-dropdown-item">${e.name}</a>
+    `).join(""),l=`
       <a href="/profile" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.user}</span>
-        My Profile
+        <span class="x-nav-dropdown-item-icon">${d.user}</span>My Profile
       </a>
       <a href="/profile/edit" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.edit}</span>
-        Edit Profile
+        <span class="x-nav-dropdown-item-icon">${d.edit}</span>Edit Profile
       </a>
       <a href="/profile/edit-portfolio-supabase" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.briefcase}</span>
-        My Portfolio
+        <span class="x-nav-dropdown-item-icon">${d.briefcase}</span>My Portfolio
       </a>
       <a href="/events" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.calendar}</span>
-        My Events
+        <span class="x-nav-dropdown-item-icon">${d.calendar}</span>My Events
       </a>
       <div class="x-nav-dropdown-divider"></div>
       <a href="/support" class="x-nav-dropdown-item">
-        <span class="x-nav-dropdown-item-icon">${l.helpCircle}</span>
-        Get Support
+        <span class="x-nav-dropdown-item-icon">${d.helpCircle}</span>Get Support
       </a>
       <div class="x-nav-dropdown-divider"></div>
       <a href="/logout" class="x-nav-dropdown-item danger">
-        <span class="x-nav-dropdown-item-icon">${l.logout}</span>
-        Log Out
+        <span class="x-nav-dropdown-item-icon">${d.logout}</span>Log Out
       </a>
-    `,t=x.map(a=>`
-      <a href="/directory/${a.slug}" class="x-nav-mobile-link sub">${a.name}</a>
+    `,v=f.map(e=>`
+      <a href="/directory/${e.slug}" class="x-nav-overlay-sublink">${e.name}</a>
     `).join("");return`
-      <nav class="x-nav" role="navigation" aria-label="Main navigation">
-        <!-- Logo -->
+      <nav class="x-nav" role="navigation">
         <div class="x-nav-logo">
-          <a href="/">${h}</a>
+          <a href="/">${m}</a>
         </div>
 
-        <!-- Primary Navigation -->
         <div class="x-nav-primary">
-          <!-- Find a Creative (with dropdown) -->
           <div class="x-nav-item" data-priority="high">
-            <button class="x-nav-link" aria-expanded="false" aria-haspopup="true" data-dropdown="directory">
-              Find a Creative
-              <span class="x-nav-chevron">${l.chevronDown}</span>
+            <button class="x-nav-link" aria-expanded="false" data-dropdown="directory">
+              Find a Creative<span class="x-nav-chevron">${d.chevronDown}</span>
             </button>
             <div class="x-nav-dropdown" id="dropdown-directory">
-              ${d}
+              ${i}
               <div class="x-nav-dropdown-footer">
                 <a href="/directory" class="x-nav-dropdown-item view-all">
-                  <span class="x-nav-dropdown-item-icon">${l.grid}</span>
-                  View All Categories
+                  <span class="x-nav-dropdown-item-icon">${d.grid}</span>View all Categories
                 </a>
               </div>
             </div>
           </div>
-
-          <div class="x-nav-item" data-priority="high">
-            <a href="/events" class="x-nav-link">Events</a>
-          </div>
-
-          <div class="x-nav-item" data-priority="high">
-            <a href="/jobs" class="x-nav-link">Jobs</a>
-          </div>
-
-          <div class="x-nav-item" data-priority="low">
-            <a href="/resources" class="x-nav-link">Resources</a>
-          </div>
-
-          <div class="x-nav-item" data-priority="low">
-            <a href="/magazine" class="x-nav-link">Magazine</a>
-          </div>
+          <div class="x-nav-item" data-priority="high"><a href="/events" class="x-nav-link">Events</a></div>
+          <div class="x-nav-item" data-priority="high"><a href="/jobs" class="x-nav-link">Jobs</a></div>
+          <div class="x-nav-item" data-priority="low"><a href="/resources" class="x-nav-link">Resources</a></div>
+          <div class="x-nav-item" data-priority="low"><a href="/magazine" class="x-nav-link">Magazine</a></div>
         </div>
 
-        <!-- Right Actions -->
         <div class="x-nav-actions">
-          ${e?"":`
-            <a href="/join" class="x-nav-btn x-nav-btn-primary">Become a Member</a>
-          `}
-
-          ${e?`
+          ${n?"":'<a href="/join" class="x-nav-btn">Become a Member</a>'}
+          ${n?`
             <div class="x-nav-user">
-              <button class="x-nav-user-btn" aria-expanded="false" aria-haspopup="true">
-                Hello, ${o}
-                <span class="x-nav-user-chevron">${l.chevronDown}</span>
+              <button class="x-nav-user-btn" aria-expanded="false">
+                Hello, ${s}<span class="x-nav-user-chevron">${d.chevronDown}</span>
               </button>
               <div class="x-nav-user-dropdown">
-                ${s?`
-                  <div class="x-nav-user-header">
-                    <div class="x-nav-user-name">${o}</div>
-                    <div class="x-nav-user-email">${s}</div>
-                  </div>
-                `:""}
-                ${i}
+                ${o?`<div class="x-nav-user-header"><div class="x-nav-user-name">${s}</div><div class="x-nav-user-email">${o}</div></div>`:""}
+                ${l}
               </div>
             </div>
           `:""}
-
-          <button class="x-nav-search" aria-label="Search">
-            <span class="x-nav-search-icon">${l.search}</span>
+          <button class="x-nav-search" data-action="search">
+            <span class="x-nav-search-icon">${d.search}</span>
             <span class="x-nav-search-text">Search</span>
           </button>
-
-          <button class="x-nav-hamburger" aria-expanded="false" aria-controls="x-nav-mobile" aria-label="Toggle menu">
+          <button class="x-nav-hamburger" data-action="menu" aria-label="Menu">
             <span class="x-nav-hamburger-line"></span>
             <span class="x-nav-hamburger-line"></span>
             <span class="x-nav-hamburger-line"></span>
@@ -684,42 +762,46 @@
         </div>
       </nav>
 
-      <!-- Mobile Menu -->
-      <div class="x-nav-mobile" id="x-nav-mobile" aria-hidden="true">
-        ${e?"":`
-          <div class="x-nav-mobile-section">
-            <a href="/join" class="x-nav-mobile-btn x-nav-mobile-btn-primary">Become a Member</a>
-          </div>
-        `}
-
-        <div class="x-nav-mobile-section">
-          <h3 class="x-nav-mobile-title">Find a Creative</h3>
-          ${t}
-          <a href="/directory" class="x-nav-mobile-link" style="color: var(--btn-primary-bg); font-weight: 500;">View All Categories</a>
+      <!-- Navigation Overlay -->
+      <div class="x-nav-overlay" id="x-nav-overlay">
+        <div class="x-nav-overlay-header">
+          <div class="x-nav-overlay-logo">${y}</div>
+          <button class="x-nav-overlay-close" data-action="close-menu">${d.x}</button>
         </div>
-
-        <div class="x-nav-mobile-section">
-          <h3 class="x-nav-mobile-title">Navigation</h3>
-          <a href="/events" class="x-nav-mobile-link">Events</a>
-          <a href="/jobs" class="x-nav-mobile-link">Jobs</a>
-          <a href="/resources" class="x-nav-mobile-link">Resources</a>
-          <a href="/magazine" class="x-nav-mobile-link">Magazine</a>
+        <div class="x-nav-overlay-content">
+          <div class="x-nav-overlay-item">
+            <button class="x-nav-overlay-link" data-toggle="find-creative">Find a Creative</button>
+            <div class="x-nav-overlay-subnav" id="subnav-find-creative">
+              ${v}
+              <a href="/directory" class="x-nav-overlay-sublink view-all">${d.grid} View all Categories</a>
+            </div>
+          </div>
+          <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
+          <div class="x-nav-overlay-item"><a href="/opportunities" class="x-nav-overlay-link">Opportunities</a></div>
+          <div class="x-nav-overlay-item"><a href="/resources" class="x-nav-overlay-link">Resources</a></div>
+          <div class="x-nav-overlay-item"><a href="/stories" class="x-nav-overlay-link">Stories</a></div>
+          <div class="x-nav-overlay-item"><a href="/magazine" class="x-nav-overlay-link">Magazine</a></div>
+          <div class="x-nav-overlay-footer">
+            <a href="/about" class="x-nav-overlay-footer-link">About</a>
+            <a href="/contact" class="x-nav-overlay-footer-link">Contact</a>
+            <a href="/support" class="x-nav-overlay-footer-link">Support</a>
+          </div>
         </div>
-
-        ${e?`
-          <div class="x-nav-mobile-section">
-            <h3 class="x-nav-mobile-title">Account</h3>
-            <a href="/profile" class="x-nav-mobile-link">My Profile</a>
-            <a href="/profile/edit" class="x-nav-mobile-link">Edit Profile</a>
-            <a href="/profile/edit-portfolio-supabase" class="x-nav-mobile-link">My Portfolio</a>
-            <a href="/events" class="x-nav-mobile-link">My Events</a>
-            <a href="/support" class="x-nav-mobile-link">Get Support</a>
-            <a href="/logout" class="x-nav-mobile-link" style="color: #dc2626;">Log Out</a>
-          </div>
-        `:`
-          <div class="x-nav-mobile-section">
-            <a href="/login" class="x-nav-mobile-btn x-nav-mobile-btn-secondary">Log In</a>
-          </div>
-        `}
       </div>
-    `}function f(r){const e=r.querySelector('[data-dropdown="directory"]'),o=r.querySelector("#dropdown-directory");e&&o&&e.addEventListener("click",a=>{a.stopPropagation();const p=o.classList.toggle("open");e.setAttribute("aria-expanded",p);const n=r.querySelector(".x-nav-user-dropdown"),c=r.querySelector(".x-nav-user-btn");n!=null&&n.classList.contains("open")&&(n.classList.remove("open"),c==null||c.setAttribute("aria-expanded","false"))});const s=r.querySelector(".x-nav-user-btn"),d=r.querySelector(".x-nav-user-dropdown");s&&d&&s.addEventListener("click",a=>{a.stopPropagation();const p=d.classList.toggle("open");s.setAttribute("aria-expanded",p),o!=null&&o.classList.contains("open")&&(o.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"))});const i=r.querySelector(".x-nav-hamburger"),t=r.querySelector(".x-nav-mobile");i&&t&&i.addEventListener("click",()=>{const a=t.classList.toggle("open");i.setAttribute("aria-expanded",a),t.setAttribute("aria-hidden",!a),document.body.classList.toggle("nav-mobile-open",a)}),document.addEventListener("click",a=>{o&&!a.target.closest('.x-nav-item[data-priority="high"]:first-child')&&(o.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false")),d&&!a.target.closest(".x-nav-user")&&(d.classList.remove("open"),s==null||s.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",a=>{a.key==="Escape"&&(o==null||o.classList.remove("open"),e==null||e.setAttribute("aria-expanded","false"),d==null||d.classList.remove("open"),s==null||s.setAttribute("aria-expanded","false"),t!=null&&t.classList.contains("open")&&(t.classList.remove("open"),i==null||i.setAttribute("aria-expanded","false"),t.setAttribute("aria-hidden","true"),document.body.classList.remove("nav-mobile-open")))}),t==null||t.querySelectorAll("a").forEach(a=>{a.addEventListener("click",()=>{t.classList.remove("open"),i==null||i.setAttribute("aria-expanded","false"),t.setAttribute("aria-hidden","true"),document.body.classList.remove("nav-mobile-open")})})}async function v(){var i,t,a,p;const r=document.querySelector(".x-header");if(!r){console.warn("MTNS Nav: .x-header element not found");return}if(!document.getElementById("x-nav-styles")){const n=document.createElement("style");n.id="x-nav-styles",n.textContent=m,document.head.appendChild(n)}let e={isLoggedIn:!1};const o=()=>{r.innerHTML=b(e),f(r)},d=await new Promise(n=>{if(window.$memberstackDom)n(window.$memberstackDom);else{let c=0;const g=setInterval(()=>{c++,window.$memberstackDom?(clearInterval(g),n(window.$memberstackDom)):c>=30&&(clearInterval(g),n(null))},100)}});if(d)try{const{data:n}=await d.getCurrentMember();n&&(e={isLoggedIn:!0,firstName:((i=n.customFields)==null?void 0:i["first-name"])||((a=(t=n.auth)==null?void 0:t.email)==null?void 0:a.split("@")[0])||"User",email:((p=n.auth)==null?void 0:p.email)||""})}catch(n){console.warn("MTNS Nav: Error getting member",n)}o()}window.MTNSNav={init:v,render:b,styles:m},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",v):v()})();
+
+      <!-- Search Overlay -->
+      <div class="x-search-overlay" id="x-search-overlay">
+        <div class="x-search-overlay-header">
+          <div class="x-search-overlay-logo">${y}</div>
+          <button class="x-search-overlay-close" data-action="close-search">${d.x}</button>
+        </div>
+        <div class="x-search-overlay-content">
+          <form class="x-search-form" action="/search" method="get">
+            <div class="x-search-input-wrapper">
+              <input type="text" name="q" class="x-search-input" placeholder="Enter your search" autocomplete="off">
+              <button type="submit" class="x-search-submit">Search</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `}function k(r){const n=r.querySelector('[data-dropdown="directory"]'),s=r.querySelector("#dropdown-directory"),o=r.querySelector(".x-nav-user-btn"),i=r.querySelector(".x-nav-user-dropdown"),l=r.querySelector('[data-action="menu"]'),v=r.querySelector('[data-action="search"]'),e=r.querySelector("#x-nav-overlay"),a=r.querySelector("#x-search-overlay"),c=r.querySelector('[data-action="close-menu"]'),p=r.querySelector('[data-action="close-search"]'),x=r.querySelector('[data-toggle="find-creative"]'),g=r.querySelector("#subnav-find-creative");n==null||n.addEventListener("click",t=>{t.stopPropagation();const u=s.classList.toggle("open");n.setAttribute("aria-expanded",u),i!=null&&i.classList.contains("open")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),o==null||o.addEventListener("click",t=>{t.stopPropagation();const u=i.classList.toggle("open");o.setAttribute("aria-expanded",u),s!=null&&s.classList.contains("open")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"))}),l==null||l.addEventListener("click",()=>{e==null||e.classList.add("open"),document.body.classList.add("nav-overlay-open")}),c==null||c.addEventListener("click",()=>{e==null||e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),v==null||v.addEventListener("click",()=>{a==null||a.classList.add("open"),document.body.classList.add("nav-overlay-open"),setTimeout(()=>{var t;return(t=a==null?void 0:a.querySelector(".x-search-input"))==null?void 0:t.focus()},100)}),p==null||p.addEventListener("click",()=>{a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open")}),x==null||x.addEventListener("click",()=>{const t=g==null?void 0:g.classList.toggle("open");x.classList.toggle("active",t)}),document.addEventListener("click",t=>{s&&!t.target.closest('[data-dropdown="directory"]')&&!t.target.closest("#dropdown-directory")&&(s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false")),i&&!t.target.closest(".x-nav-user")&&(i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"))}),document.addEventListener("keydown",t=>{t.key==="Escape"&&(s==null||s.classList.remove("open"),n==null||n.setAttribute("aria-expanded","false"),i==null||i.classList.remove("open"),o==null||o.setAttribute("aria-expanded","false"),e==null||e.classList.remove("open"),a==null||a.classList.remove("open"),document.body.classList.remove("nav-overlay-open"))}),e==null||e.querySelectorAll("a").forEach(t=>{t.addEventListener("click",()=>{e.classList.remove("open"),document.body.classList.remove("nav-overlay-open")})})}async function h(){var i,l,v,e;const r=document.querySelector(".x-header");if(!r)return;if(!document.getElementById("x-nav-styles")){const a=document.createElement("style");a.id="x-nav-styles",a.textContent=b,document.head.appendChild(a)}let n={isLoggedIn:!1};const o=await new Promise(a=>{if(window.$memberstackDom)return a(window.$memberstackDom);let c=0;const p=setInterval(()=>{c++,window.$memberstackDom?(clearInterval(p),a(window.$memberstackDom)):c>=30&&(clearInterval(p),a(null))},100)});if(o)try{const{data:a}=await o.getCurrentMember();a&&(n={isLoggedIn:!0,firstName:((i=a.customFields)==null?void 0:i["first-name"])||((v=(l=a.auth)==null?void 0:l.email)==null?void 0:v.split("@")[0])||"User",email:((e=a.auth)==null?void 0:e.email)||""})}catch(a){console.warn("MTNS Nav: Error getting member",a)}r.innerHTML=w(n),k(r)}window.MTNSNav={init:h,render:w,styles:b},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",h):h()})();
