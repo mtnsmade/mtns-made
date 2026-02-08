@@ -752,10 +752,12 @@
         .from('members')
         .select(`
           *,
-          suburbs (id, name, state)
+          suburbs (id, name)
         `)
         .eq('memberstack_id', memberstackId)
         .single();
+
+      console.log('Loaded member data:', member, error);
 
       if (error) throw error;
       if (!member) return null;
