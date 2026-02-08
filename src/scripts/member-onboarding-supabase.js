@@ -438,42 +438,94 @@
       color: #666;
       margin-top: 8px;
     }
-    .ms-accordion {
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-    .ms-accordion-header {
-      padding: 14px 16px;
-      background: #f8f9fa;
-      cursor: pointer;
+    .ms-parent-categories {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 500;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .ms-parent-btn {
+      padding: 8px 16px;
+      border: 1px solid #333;
+      border-radius: 20px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
       font-size: 14px;
+      transition: all 0.2s;
     }
-    .ms-accordion-header:hover {
-      background: #f0f0f0;
+    .ms-parent-btn:hover {
+      background: #f5f5f5;
     }
-    .ms-accordion-arrow {
-      transition: transform 0.2s;
+    .ms-parent-btn.active {
+      background: #333;
+      color: #fff;
     }
-    .ms-accordion.open .ms-accordion-arrow {
-      transform: rotate(180deg);
-    }
-    .ms-accordion-content {
+    .ms-child-categories {
       display: none;
+      flex-wrap: wrap;
+      gap: 8px;
       padding: 16px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      margin-bottom: 16px;
     }
-    .ms-accordion.open .ms-accordion-content {
-      display: block;
+    .ms-child-categories.visible {
+      display: flex;
     }
-    .ms-accordion-count {
+    .ms-child-btn {
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .ms-child-btn:hover {
+      border-color: #999;
+    }
+    .ms-child-btn.selected {
+      border-color: #007bff;
+      color: #007bff;
+    }
+    .ms-selected-categories {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f0f0f0;
+      border-radius: 8px;
+    }
+    .ms-selected-categories h5 {
+      margin: 0 0 8px 0;
       font-size: 12px;
+      font-weight: 600;
       color: #666;
-      font-weight: normal;
+      text-transform: uppercase;
+    }
+    .ms-selected-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ms-selected-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #333;
+      color: #fff;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .ms-selected-tag button {
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      padding: 0;
+      font-size: 14px;
+      line-height: 1;
     }
     .ms-suburb-search {
       position: relative;
@@ -1252,47 +1304,40 @@
     return html;
   }
 
-  function renderDirectoriesSelector() {
-    let html = '';
+  function getCategoryName(id) {
+    const dir = categories.subDirectories.find(d => d.id === id);
+    return dir ? dir.name : id;
+  }
 
+  function renderDirectoriesSelector() {
+    let html = '<div class="ms-category-selector">';
+
+    // Parent category buttons
+    html += '<div class="ms-parent-categories">';
+    categories.directories.forEach(parent => {
+      html += `<button type="button" class="ms-parent-btn" data-parent="${parent.id}">${parent.name}</button>`;
+    });
+    html += '</div>';
+
+    // Child category containers
     categories.directories.forEach(parent => {
       const subDirs = categories.subDirectories.filter(d => d.directory_id === parent.id);
-      if (subDirs.length === 0) return;
-
-      const selectedInGroup = subDirs.filter(d => formData.chosenDirectories.includes(d.id)).length;
-      const isOpen = selectedInGroup > 0;
-
-      html += `
-        <div class="ms-accordion ${isOpen ? 'open' : ''}" data-parent="${parent.id}">
-          <div class="ms-accordion-header">
-            ${parent.name}
-            <span>
-              <span class="ms-accordion-count">${selectedInGroup > 0 ? `(${selectedInGroup} selected)` : ''}</span>
-              <span class="ms-accordion-arrow">▼</span>
-            </span>
-          </div>
-          <div class="ms-accordion-content">
-            <div class="ms-category-grid">
-      `;
-
+      html += `<div class="ms-child-categories" data-parent="${parent.id}">`;
       subDirs.forEach(dir => {
-        const selected = formData.chosenDirectories.includes(dir.id);
-        html += `
-          <label class="ms-category-item ${selected ? 'selected' : ''}" data-id="${dir.id}">
-            <input type="checkbox" value="${dir.id}" ${selected ? 'checked' : ''}>
-            ${dir.name}
-          </label>
-        `;
+        const isSelected = formData.chosenDirectories.includes(dir.id);
+        html += `<button type="button" class="ms-child-btn ${isSelected ? 'selected' : ''}" data-id="${dir.id}">${dir.name}</button>`;
       });
-
-      html += `
-            </div>
-          </div>
-        </div>
-      `;
+      html += '</div>';
     });
 
-    html += `<div class="ms-selected-count"><span id="directory-count">${formData.chosenDirectories.length}</span> categories selected</div>`;
+    // Selected categories display
+    html += `
+      <div class="ms-selected-categories" id="ms-selected-section" style="${formData.chosenDirectories.length ? '' : 'display: none;'}">
+        <h5>Selected Categories</h5>
+        <div class="ms-selected-list" id="ms-selected-list"></div>
+      </div>
+    </div>`;
+
     return html;
   }
 
@@ -1354,14 +1399,8 @@
       });
 
     } else {
-      // Accordion handlers
-      container.querySelectorAll('.ms-accordion-header').forEach(header => {
-        header.addEventListener('click', () => {
-          header.parentElement.classList.toggle('open');
-        });
-      });
-
-      setupCategoryCheckboxes(container, 'chosenDirectories', 'directory-count');
+      // Button-based category selector handlers
+      setupDirectoryCategorySelector(container);
 
       nextBtn.addEventListener('click', () => {
         if (formData.chosenDirectories.length === 0) {
@@ -1375,6 +1414,74 @@
           currentStep = 5;
         }
         renderCurrentStep(container);
+      });
+    }
+  }
+
+  function setupDirectoryCategorySelector(container) {
+    const parentBtns = container.querySelectorAll('.ms-parent-btn');
+    const childContainers = container.querySelectorAll('.ms-child-categories');
+    const selectedList = container.querySelector('#ms-selected-list');
+    const selectedSection = container.querySelector('#ms-selected-section');
+
+    function updateSelectedDisplay() {
+      if (!selectedList || !selectedSection) return;
+
+      selectedList.innerHTML = formData.chosenDirectories.map(id => {
+        const name = getCategoryName(id);
+        return `<span class="ms-selected-tag">${name}<button type="button" data-id="${id}">&times;</button></span>`;
+      }).join('');
+
+      selectedSection.style.display = formData.chosenDirectories.length ? '' : 'none';
+
+      container.querySelectorAll('.ms-child-btn').forEach(btn => {
+        const id = btn.dataset.id;
+        btn.classList.toggle('selected', formData.chosenDirectories.includes(id));
+      });
+    }
+
+    updateSelectedDisplay();
+
+    parentBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parentId = btn.dataset.parent;
+        const isActive = btn.classList.contains('active');
+
+        parentBtns.forEach(b => b.classList.remove('active'));
+        childContainers.forEach(c => c.classList.remove('visible'));
+
+        if (!isActive) {
+          btn.classList.add('active');
+          container.querySelector(`.ms-child-categories[data-parent="${parentId}"]`).classList.add('visible');
+        }
+      });
+    });
+
+    container.querySelectorAll('.ms-child-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const index = formData.chosenDirectories.indexOf(id);
+
+        if (index === -1) {
+          formData.chosenDirectories.push(id);
+        } else {
+          formData.chosenDirectories.splice(index, 1);
+        }
+
+        updateSelectedDisplay();
+      });
+    });
+
+    if (selectedList) {
+      selectedList.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+          const id = e.target.dataset.id;
+          const index = formData.chosenDirectories.indexOf(id);
+          if (index !== -1) {
+            formData.chosenDirectories.splice(index, 1);
+            updateSelectedDisplay();
+          }
+        }
       });
     }
   }
