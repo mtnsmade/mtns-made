@@ -71,6 +71,7 @@ async function handleMemberCreated(data: any) {
   const customFields = payload.customFields || {};
 
   console.log(`Creating member: ${email} (${memberstackId})`);
+  console.log(`Custom fields:`, JSON.stringify(customFields));
 
   // Check if member already exists
   const { data: existing } = await supabase
@@ -84,6 +85,42 @@ async function handleMemberCreated(data: any) {
     return { action: 'skipped', reason: 'already_exists' };
   }
 
+  // Get membership type from custom fields and look up ID
+  const membershipTypeSlug = customFields['membership-type'] || customFields.membershipType || null;
+  let membershipTypeId = null;
+
+  if (membershipTypeSlug) {
+    const { data: membershipType } = await supabase
+      .from('membership_types')
+      .select('id')
+      .eq('slug', membershipTypeSlug)
+      .single();
+
+    if (membershipType) {
+      membershipTypeId = membershipType.id;
+      console.log(`Found membership type: ${membershipTypeSlug} -> ${membershipTypeId}`);
+    } else {
+      console.log(`Membership type not found for slug: ${membershipTypeSlug}`);
+    }
+  }
+
+  // Get suburb from custom fields and look up ID
+  const suburbName = customFields['suburb'] || customFields.suburb || null;
+  let suburbId = null;
+
+  if (suburbName) {
+    const { data: suburb } = await supabase
+      .from('suburbs')
+      .select('id')
+      .ilike('name', suburbName)
+      .single();
+
+    if (suburb) {
+      suburbId = suburb.id;
+      console.log(`Found suburb: ${suburbName} -> ${suburbId}`);
+    }
+  }
+
   // Create member record
   const { error } = await supabase.from('members').insert({
     memberstack_id: memberstackId,
@@ -93,6 +130,8 @@ async function handleMemberCreated(data: any) {
     name: customFields['first-name'] && customFields['last-name']
       ? `${customFields['first-name']} ${customFields['last-name']}`
       : email?.split('@')[0] || 'New Member',
+    membership_type_id: membershipTypeId,
+    suburb_id: suburbId,
     subscription_status: 'active',
   });
 
@@ -102,7 +141,7 @@ async function handleMemberCreated(data: any) {
   }
 
   console.log(`Member created: ${memberstackId}`);
-  return { action: 'created', memberstackId };
+  return { action: 'created', memberstackId, membershipTypeId, suburbId };
 }
 
 async function handleMemberDeleted(data: any) {
