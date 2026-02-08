@@ -6,7 +6,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
-const FROM_EMAIL = 'MTNS MADE <support@mtnsmade.com.au>';
+const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 
 interface EmailRequest {
   to: string | string[];
