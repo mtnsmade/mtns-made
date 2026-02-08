@@ -746,29 +746,37 @@ async function mapMemberToWebflowFields(record: MemberRecord): Promise<Record<st
   // Memberstack ID
   fieldData['memberstack-id'] = record.memberstack_id;
 
+  // Names
+  if (record.first_name) {
+    fieldData['first-name'] = record.first_name;
+  }
+  if (record.last_name) {
+    fieldData['last-name'] = record.last_name;
+  }
+
   // Email
   if (record.email) {
-    fieldData['email'] = record.email;
+    fieldData['email-address'] = record.email;
   }
 
   // Bio
   if (record.bio) {
-    fieldData['public-bio'] = record.bio;
+    fieldData['member-bio'] = record.bio;
   }
 
   // Profile image
   if (record.profile_image_url) {
-    fieldData['profile-pic'] = { url: record.profile_image_url };
+    fieldData['profile-image'] = { url: record.profile_image_url };
   }
 
-  // Feature/header image
+  // Header/feature image
   if (record.header_image_url) {
-    fieldData['feature-image'] = { url: record.header_image_url };
+    fieldData['header-image'] = { url: record.header_image_url };
   }
 
   // Business name
   if (record.business_name) {
-    fieldData['business-name'] = record.business_name;
+    fieldData['trading-or-business-name'] = record.business_name;
   }
 
   // Suburb reference
@@ -787,7 +795,7 @@ async function mapMemberToWebflowFields(record: MemberRecord): Promise<Record<st
     fieldData['instagram'] = record.instagram;
   }
   if (record.facebook) {
-    fieldData['facebook'] = record.facebook;
+    fieldData['fcaebook'] = record.facebook; // Note: typo in Webflow field name
   }
   if (record.linkedin) {
     fieldData['linkedin'] = record.linkedin;
@@ -799,15 +807,42 @@ async function mapMemberToWebflowFields(record: MemberRecord): Promise<Record<st
     fieldData['youtube'] = record.youtube;
   }
 
-  // Categories
+  // Opening hours
+  if (record.opening_monday) {
+    fieldData['opening-monday'] = record.opening_monday;
+  }
+  if (record.opening_tuesday) {
+    fieldData['opening-tuesday'] = record.opening_tuesday;
+  }
+  if (record.opening_wednesday) {
+    fieldData['opening-wednesday'] = record.opening_wednesday;
+  }
+  if (record.opening_thursday) {
+    fieldData['opening-thursday'] = record.opening_thursday;
+  }
+  if (record.opening_friday) {
+    fieldData['opening-friday'] = record.opening_friday;
+  }
+  if (record.opening_saturday) {
+    fieldData['opening-saturday'] = record.opening_saturday;
+  }
+  if (record.opening_sunday) {
+    fieldData['opening-sunday'] = record.opening_sunday;
+  }
+
+  // Display preferences
+  fieldData['member-wants-to-display-public-address'] = record.show_address || false;
+  fieldData['member-wants-to-display-public-opening-hours'] = record.show_opening_hours || false;
+
+  // Categories (sub-directories)
   const categoryWebflowIds = await getMemberCategoryWebflowIds(record.id);
   if (categoryWebflowIds.length > 0) {
     fieldData['chosen-directories'] = categoryWebflowIds;
   }
 
   // Space/Supplier flags
-  fieldData['is-creative-space'] = record.is_creative_space || false;
-  fieldData['is-supplier'] = record.is_supplier || false;
+  fieldData['member-is-creative-space'] = record.is_creative_space || false;
+  fieldData['member-is-supplier'] = record.is_supplier || false;
 
   return fieldData;
 }
