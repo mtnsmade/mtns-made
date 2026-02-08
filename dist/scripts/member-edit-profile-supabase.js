@@ -728,22 +728,17 @@
     }
   }
 
-  async function loadSuburbs(searchTerm) {
+  async function loadAllSuburbs() {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('suburbs')
         .select('id, name, state')
-        .order('name')
-        .limit(20);
+        .order('name');
 
-      if (searchTerm && searchTerm.length >= 2) {
-        query = query.ilike('name', `${searchTerm}%`);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
 
-      return data || [];
+      suburbs = data || [];
+      return suburbs;
     } catch (error) {
       console.error('Error loading suburbs:', error);
       return [];
@@ -1052,11 +1047,10 @@
 
         <div class="ep-form-field">
           <label>Location <span class="required">*</span></label>
-          <div class="ep-suburb-search">
-            <input type="text" class="ep-form-input" id="ep-suburb-search" value="${formData.suburb?.name || ''}" placeholder="Search for your suburb...">
-            <div class="ep-suburb-dropdown" id="ep-suburb-dropdown"></div>
-          </div>
-          <div class="ep-hint">Start typing to search for your suburb</div>
+          <select class="ep-form-input" id="ep-suburb-select">
+            <option value="">Select your suburb...</option>
+            ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}, ${s.state}</option>`).join('')}
+          </select>
         </div>
 
         <div class="ep-form-field">
@@ -1376,10 +1370,7 @@
     const lastNameInput = container.querySelector('#ep-last-name');
     const bioInput = container.querySelector('#ep-bio');
     const bioCount = container.querySelector('#ep-bio-count');
-    const suburbSearch = container.querySelector('#ep-suburb-search');
-    const suburbDropdown = container.querySelector('#ep-suburb-dropdown');
-
-    let searchTimeout = null;
+    const suburbSelect = container.querySelector('#ep-suburb-select');
 
     firstNameInput.addEventListener('input', () => {
       formData.firstName = firstNameInput.value;
@@ -1394,47 +1385,16 @@
       bioCount.textContent = bioInput.value.length;
     });
 
-    // Suburb search
-    suburbSearch.addEventListener('input', async () => {
-      const searchTerm = suburbSearch.value.trim();
-
-      clearTimeout(searchTimeout);
-
-      if (searchTerm.length < 2) {
-        suburbDropdown.classList.remove('visible');
-        return;
-      }
-
-      searchTimeout = setTimeout(async () => {
-        const results = await loadSuburbs(searchTerm);
-        suburbs = results;
-
-        if (results.length > 0) {
-          suburbDropdown.innerHTML = results.map(s =>
-            `<div class="ep-suburb-option" data-id="${s.id}" data-name="${s.name}">${s.name}, ${s.state}</div>`
-          ).join('');
-          suburbDropdown.classList.add('visible');
-        } else {
-          suburbDropdown.classList.remove('visible');
-        }
-      }, 300);
-    });
-
-    suburbDropdown.addEventListener('click', (e) => {
-      const option = e.target.closest('.ep-suburb-option');
-      if (option) {
+    // Suburb dropdown
+    suburbSelect.addEventListener('change', () => {
+      const selectedOption = suburbSelect.options[suburbSelect.selectedIndex];
+      if (selectedOption.value) {
         formData.suburb = {
-          id: option.dataset.id,
-          name: option.dataset.name
+          id: selectedOption.value,
+          name: selectedOption.text.split(',')[0].trim()
         };
-        suburbSearch.value = option.dataset.name;
-        suburbDropdown.classList.remove('visible');
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.ep-suburb-search')) {
-        suburbDropdown.classList.remove('visible');
+      } else {
+        formData.suburb = null;
       }
     });
 
@@ -1814,8 +1774,9 @@
 
       memberData = member;
 
-      // Load categories
+      // Load categories and suburbs
       await loadCategories();
+      await loadAllSuburbs();
 
       // Load member data from Supabase
       await loadMemberData(member.id);
