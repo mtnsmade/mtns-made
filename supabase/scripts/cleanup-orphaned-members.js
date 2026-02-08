@@ -15,9 +15,12 @@ const fs = require('fs');
 // CONFIGURATION
 // ============================================
 
+// Load environment variables
+require('dotenv').config();
+
 const CONFIG = {
-  supabaseUrl: process.env.SUPABASE_URL || 'https://epszwomtxkpjegbjbixr.supabase.co',
-  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDMxMTkzNSwiZXhwIjoyMDg1ODg3OTM1fQ.H553wnuQ6gcrbyhOu-H8V7TE4bZtNaYq7Nd15-_rBmw',
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
 
   memberstackCsv: '/Users/paulmosig/Downloads/member-export-2026-02-06T05-35-58-410Z.csv',
 

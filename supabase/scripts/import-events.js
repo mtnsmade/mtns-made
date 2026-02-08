@@ -14,9 +14,12 @@ const fs = require('fs');
 // CONFIGURATION
 // ============================================
 
+// Load environment variables
+require('dotenv').config();
+
 const CONFIG = {
-  supabaseUrl: 'https://epszwomtxkpjegbjbixr.supabase.co',
-  supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDMxMTkzNSwiZXhwIjoyMDg1ODg3OTM1fQ.H553wnuQ6gcrbyhOu-H8V7TE4bZtNaYq7Nd15-_rBmw',
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
 
   eventsCsv: '/Users/paulmosig/Downloads/MTNS MADE - Events - 64aa21e9193adf43b765fcf1 (1).csv',
 

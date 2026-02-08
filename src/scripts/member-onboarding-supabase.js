@@ -694,7 +694,7 @@
     try {
       const { data, error } = await supabase
         .from('suburbs')
-        .select('id, name, state')
+        .select('id, name')
         .order('name');
 
       if (error) throw error;
@@ -1085,7 +1085,7 @@
             <label>Location <span class="required">*</span></label>
             <select class="ms-form-input" id="ms-suburb-select">
               <option value="">Select your suburb...</option>
-              ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}, ${s.state}</option>`).join('')}
+              ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
             </select>
           </div>
 

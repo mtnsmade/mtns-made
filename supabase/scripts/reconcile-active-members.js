@@ -9,9 +9,12 @@ const { createClient } = require('@supabase/supabase-js');
 const { parse } = require('csv-parse/sync');
 const fs = require('fs');
 
+// Load environment variables
+require('dotenv').config();
+
 const CONFIG = {
-  supabaseUrl: 'https://epszwomtxkpjegbjbixr.supabase.co',
-  supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDMxMTkzNSwiZXhwIjoyMDg1ODg3OTM1fQ.H553wnuQ6gcrbyhOu-H8V7TE4bZtNaYq7Nd15-_rBmw',
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
 
   // Active members only export
   activeMembersCsv: '/Users/paulmosig/Downloads/member-export-2026-02-06T06-59-24-172Z.csv',
