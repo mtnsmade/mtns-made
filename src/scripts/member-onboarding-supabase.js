@@ -1134,14 +1134,6 @@
           ` : ''}
 
           <div class="ms-form-field">
-            <label>Location <span class="required">*</span></label>
-            <select class="ms-form-input" id="ms-suburb-select">
-              <option value="">Select your suburb...</option>
-              ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
-            </select>
-          </div>
-
-          <div class="ms-form-field">
             <label>Bio <span class="required">*</span></label>
             <textarea class="ms-form-input" id="ms-bio" maxlength="2000" placeholder="Tell us about your creative practice, skills, and what you offer...">${formData.bio}</textarea>
             <div class="ms-char-count"><span id="ms-bio-count">${formData.bio.length}</span> / 2000 characters</div>
@@ -1161,7 +1153,6 @@
   function setupStep2Handlers(container, showBusinessName) {
     const bioInput = container.querySelector('#ms-bio');
     const bioCount = container.querySelector('#ms-bio-count');
-    const suburbSelect = container.querySelector('#ms-suburb-select');
     const businessNameInput = showBusinessName ? container.querySelector('#ms-business-name') : null;
     const backBtn = container.querySelector('#ms-back-btn');
     const nextBtn = container.querySelector('#ms-next-btn');
@@ -1178,19 +1169,6 @@
       });
     }
 
-    // Suburb dropdown
-    suburbSelect.addEventListener('change', () => {
-      const selectedOption = suburbSelect.options[suburbSelect.selectedIndex];
-      if (selectedOption.value) {
-        formData.suburb = {
-          id: selectedOption.value,
-          name: selectedOption.text.split(',')[0].trim()
-        };
-      } else {
-        formData.suburb = null;
-      }
-    });
-
     backBtn.addEventListener('click', () => {
       currentStep = 1;
       renderCurrentStep(container);
@@ -1199,10 +1177,6 @@
     nextBtn.addEventListener('click', () => {
       if (showBusinessName && !formData.businessName.trim()) {
         showError(errorBanner, 'Please enter your business name');
-        return;
-      }
-      if (!formData.suburb) {
-        showError(errorBanner, 'Please select your location');
         return;
       }
       if (!formData.bio.trim()) {
