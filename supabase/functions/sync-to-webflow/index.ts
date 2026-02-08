@@ -737,11 +737,18 @@ async function getMemberCategoryWebflowIds(memberId: string): Promise<string[]> 
 }
 
 // Map Supabase member record to Webflow field data
-async function mapMemberToWebflowFields(record: MemberRecord): Promise<Record<string, unknown>> {
+async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boolean = true): Promise<Record<string, unknown>> {
   const fieldData: Record<string, unknown> = {
     name: record.name || record.email?.split('@')[0] || 'Member',
-    slug: record.slug || record.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || record.memberstack_id,
   };
+
+  // Only include slug on create (not update) to avoid duplicate slug errors
+  if (includeSlug) {
+    // Make slug unique by appending last 6 chars of memberstack_id
+    const baseSlug = record.slug || record.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'member';
+    const uniqueSuffix = record.memberstack_id?.slice(-6) || Date.now().toString(36);
+    fieldData.slug = `${baseSlug}-${uniqueSuffix}`;
+  }
 
   // Memberstack ID
   fieldData['memberstack-id'] = record.memberstack_id;
@@ -849,7 +856,7 @@ async function mapMemberToWebflowFields(record: MemberRecord): Promise<Record<st
 
 // Create member in Webflow CMS
 async function createWebflowMember(record: MemberRecord): Promise<string | null> {
-  const fieldData = await mapMemberToWebflowFields(record);
+  const fieldData = await mapMemberToWebflowFields(record, true); // Include slug on create
 
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items`,
@@ -888,7 +895,7 @@ async function createWebflowMember(record: MemberRecord): Promise<string | null>
 
 // Update member in Webflow CMS
 async function updateWebflowMember(webflowId: string, record: MemberRecord): Promise<void> {
-  const fieldData = await mapMemberToWebflowFields(record);
+  const fieldData = await mapMemberToWebflowFields(record, false); // Don't update slug
 
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
