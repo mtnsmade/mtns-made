@@ -736,6 +736,61 @@ async function getMemberCategoryWebflowIds(memberId: string): Promise<string[]> 
   return webflowIds;
 }
 
+// Generate a clean slug from text
+function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .replace(/-+/g, '-');
+}
+
+// Check if a slug exists in Webflow
+async function checkWebflowSlugExists(slug: string): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items?slug=${encodeURIComponent(slug)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+          'accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const result = await response.json();
+    return result.items && result.items.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Find an available slug by appending numbers if needed
+async function findAvailableSlug(baseSlug: string): Promise<string> {
+  // First try the base slug
+  const exists = await checkWebflowSlugExists(baseSlug);
+  if (!exists) {
+    return baseSlug;
+  }
+
+  // Try appending numbers: -2, -3, etc.
+  for (let i = 2; i <= 99; i++) {
+    const candidateSlug = `${baseSlug}-${i}`;
+    const candidateExists = await checkWebflowSlugExists(candidateSlug);
+    if (!candidateExists) {
+      return candidateSlug;
+    }
+  }
+
+  // Fallback: append timestamp
+  return `${baseSlug}-${Date.now().toString(36)}`;
+}
+
 // Map Supabase member record to Webflow field data
 async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boolean = true): Promise<Record<string, unknown>> {
   const fieldData: Record<string, unknown> = {
@@ -744,10 +799,23 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
 
   // Only include slug on create (not update) to avoid duplicate slug errors
   if (includeSlug) {
-    // Make slug unique by appending last 6 chars of memberstack_id
-    const baseSlug = record.slug || record.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'member';
-    const uniqueSuffix = record.memberstack_id?.slice(-6) || Date.now().toString(36);
-    fieldData.slug = `${baseSlug}-${uniqueSuffix}`;
+    // Business accounts use business_name, individuals use firstname-lastname
+    let baseSlug: string;
+    if (record.business_name) {
+      baseSlug = generateSlug(record.business_name);
+    } else if (record.slug) {
+      baseSlug = record.slug;
+    } else if (record.first_name && record.last_name) {
+      baseSlug = generateSlug(`${record.first_name} ${record.last_name}`);
+    } else if (record.name) {
+      baseSlug = generateSlug(record.name);
+    } else {
+      baseSlug = 'member';
+    }
+
+    // Find an available slug
+    fieldData.slug = await findAvailableSlug(baseSlug);
+    console.log(`Generated slug: ${fieldData.slug} (base: ${baseSlug})`);
   }
 
   // Memberstack ID

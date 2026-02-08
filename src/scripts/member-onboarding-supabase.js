@@ -560,6 +560,40 @@
       font-size: 12px;
       margin-top: 4px;
     }
+    .ms-slug-status {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+    .ms-slug-status.available {
+      display: flex;
+      background: #d4edda;
+      color: #155724;
+    }
+    .ms-slug-status.taken {
+      display: flex;
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .ms-slug-status.checking {
+      display: flex;
+      background: #fff3cd;
+      color: #856404;
+    }
+    .ms-slug-status.invalid {
+      display: flex;
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .ms-slug-preview {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
   `;
 
   // ============================================
@@ -589,6 +623,49 @@
 
   function isSpacesSuppliers(type) {
     return type === SPACES_SUPPLIERS_TYPE;
+  }
+
+  // Generate slug from text
+  function generateSlug(text) {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .replace(/-+/g, '-');
+  }
+
+  // Check if a slug is available (not already used by another member)
+  async function checkSlugAvailable(slug, currentMemberId = null) {
+    if (!slug || slug.length < 3) {
+      return { available: false, error: 'Slug must be at least 3 characters' };
+    }
+
+    try {
+      let query = supabase
+        .from('members')
+        .select('id, slug')
+        .eq('slug', slug);
+
+      // Exclude current member when editing
+      if (currentMemberId) {
+        query = query.neq('id', currentMemberId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error checking slug:', error);
+        return { available: true }; // Assume available on error
+      }
+
+      return {
+        available: !data || data.length === 0,
+        error: data && data.length > 0 ? 'This name is already taken' : null
+      };
+    } catch (error) {
+      console.error('Error checking slug:', error);
+      return { available: true }; // Assume available on error
+    }
   }
 
   // Social media URL normalization
@@ -1130,6 +1207,11 @@
             <div class="ms-form-field">
               <label>Business / Trading Name <span class="required">*</span></label>
               <input type="text" class="ms-form-input" id="ms-business-name" value="${formData.businessName}" placeholder="Enter your business or trading name">
+              <div class="ms-slug-preview" id="ms-slug-preview"></div>
+              <div class="ms-slug-status" id="ms-slug-status">
+                <span class="ms-slug-icon"></span>
+                <span class="ms-slug-message"></span>
+              </div>
             </div>
           ` : ''}
 
@@ -1154,19 +1236,90 @@
     const bioInput = container.querySelector('#ms-bio');
     const bioCount = container.querySelector('#ms-bio-count');
     const businessNameInput = showBusinessName ? container.querySelector('#ms-business-name') : null;
+    const slugPreview = showBusinessName ? container.querySelector('#ms-slug-preview') : null;
+    const slugStatus = showBusinessName ? container.querySelector('#ms-slug-status') : null;
     const backBtn = container.querySelector('#ms-back-btn');
     const nextBtn = container.querySelector('#ms-next-btn');
     const errorBanner = container.querySelector('#ms-error-banner');
+
+    let slugCheckTimeout = null;
+    let isSlugAvailable = true;
 
     bioInput.addEventListener('input', () => {
       formData.bio = bioInput.value;
       bioCount.textContent = bioInput.value.length;
     });
 
-    if (businessNameInput) {
+    if (businessNameInput && slugStatus) {
+      const updateSlugStatus = (status, message) => {
+        slugStatus.className = 'ms-slug-status ' + status;
+        const iconEl = slugStatus.querySelector('.ms-slug-icon');
+        const msgEl = slugStatus.querySelector('.ms-slug-message');
+
+        if (status === 'available') {
+          iconEl.textContent = '✓';
+          msgEl.textContent = message || 'This name is available';
+          isSlugAvailable = true;
+        } else if (status === 'taken') {
+          iconEl.textContent = '✗';
+          msgEl.textContent = message || 'This name is already taken';
+          isSlugAvailable = false;
+        } else if (status === 'checking') {
+          iconEl.textContent = '...';
+          msgEl.textContent = 'Checking availability...';
+        } else if (status === 'invalid') {
+          iconEl.textContent = '!';
+          msgEl.textContent = message || 'Name must be at least 4 characters';
+          isSlugAvailable = false;
+        } else {
+          slugStatus.className = 'ms-slug-status';
+          isSlugAvailable = true;
+        }
+      };
+
+      const checkBusinessName = async (name) => {
+        const slug = generateSlug(name);
+
+        if (slugPreview) {
+          slugPreview.textContent = slug ? `Your URL: mtnsmade.com.au/members/${slug}` : '';
+        }
+
+        if (name.trim().length < 4) {
+          if (name.trim().length > 0) {
+            updateSlugStatus('invalid', 'Name must be at least 4 characters');
+          } else {
+            updateSlugStatus('');
+          }
+          return;
+        }
+
+        updateSlugStatus('checking');
+
+        const result = await checkSlugAvailable(slug, supabaseMember?.id);
+
+        if (result.available) {
+          updateSlugStatus('available');
+        } else {
+          updateSlugStatus('taken', result.error);
+        }
+      };
+
       businessNameInput.addEventListener('input', () => {
         formData.businessName = businessNameInput.value;
+
+        // Debounce the slug check
+        if (slugCheckTimeout) {
+          clearTimeout(slugCheckTimeout);
+        }
+        slugCheckTimeout = setTimeout(() => {
+          checkBusinessName(businessNameInput.value);
+        }, 500);
       });
+
+      // Check on initial load if value exists
+      if (formData.businessName) {
+        checkBusinessName(formData.businessName);
+      }
     }
 
     backBtn.addEventListener('click', () => {
@@ -1177,6 +1330,10 @@
     nextBtn.addEventListener('click', () => {
       if (showBusinessName && !formData.businessName.trim()) {
         showError(errorBanner, 'Please enter your business name');
+        return;
+      }
+      if (showBusinessName && !isSlugAvailable) {
+        showError(errorBanner, 'This business name is already taken. Please choose a different name.');
         return;
       }
       if (!formData.bio.trim()) {
