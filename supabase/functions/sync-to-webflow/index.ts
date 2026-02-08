@@ -482,9 +482,9 @@ async function mapEventToWebflowFields(record: EventRecord): Promise<Record<stri
     fieldData['time'] = record.time_display;
   }
 
-  // Location
+  // Location - Webflow uses 'street-address' for location name
   if (record.location_name) {
-    fieldData['location-name'] = record.location_name;
+    fieldData['street-address'] = record.location_name;
   }
   if (record.location_address) {
     fieldData['location-full-street-address'] = record.location_address;
@@ -498,9 +498,9 @@ async function mapEventToWebflowFields(record: EventRecord): Promise<Record<stri
     }
   }
 
-  // Feature image
+  // Feature image - Webflow uses 'image' not 'feature-image'
   if (record.feature_image_url) {
-    fieldData['feature-image'] = { url: record.feature_image_url };
+    fieldData['image'] = { url: record.feature_image_url };
   }
 
   // Links
@@ -516,8 +516,10 @@ async function mapEventToWebflowFields(record: EventRecord): Promise<Record<stri
     fieldData['memberstack-id'] = record.memberstack_id;
   }
 
-  // Supabase ID
-  fieldData['supabase-id'] = record.id;
+  // Member contact email
+  if (record.member_contact_email) {
+    fieldData['member-contact-email'] = record.member_contact_email;
+  }
 
   return fieldData;
 }
