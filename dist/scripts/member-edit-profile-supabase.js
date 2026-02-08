@@ -747,17 +747,19 @@
 
   async function loadMemberData(memberstackId) {
     try {
-      // Load member with suburb
+      // Load member
       const { data: member, error } = await supabase
         .from('members')
-        .select(`
-          *,
-          suburbs (id, name)
-        `)
+        .select('*')
         .eq('memberstack_id', memberstackId)
         .single();
 
       console.log('Loaded member data:', member, error);
+
+      if (error) {
+        console.error('Error loading member:', error);
+        throw error;
+      }
 
       if (error) throw error;
       if (!member) return null;
@@ -794,12 +796,15 @@
       formData.displayAddress = member.show_address || false;
       formData.displayOpeningHours = member.show_opening_hours || false;
 
-      // Suburb
-      if (member.suburbs) {
-        formData.suburb = {
-          id: member.suburbs.id,
-          name: member.suburbs.name
-        };
+      // Suburb - find from loaded suburbs list
+      if (member.suburb_id) {
+        const suburb = suburbs.find(s => s.id === member.suburb_id);
+        if (suburb) {
+          formData.suburb = {
+            id: suburb.id,
+            name: suburb.name
+          };
+        }
       }
 
       // Opening hours
