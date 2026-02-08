@@ -43,6 +43,7 @@ interface MemberRecord {
   profile_image_url: string | null;
   header_image_url: string | null;
   suburb_id: string | null;
+  membership_type_id: string | null;
   business_address: string | null;
   show_address: boolean;
   show_opening_hours: boolean;
@@ -791,6 +792,24 @@ async function findAvailableSlug(baseSlug: string): Promise<string> {
   return `${baseSlug}-${Date.now().toString(36)}`;
 }
 
+// Get membership type Webflow ID from Supabase
+async function getMembershipTypeWebflowId(membershipTypeId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('membership_types')
+    .select('webflow_id')
+    .eq('id', membershipTypeId)
+    .single();
+
+  if (error || !data) {
+    console.error('Error fetching membership type:', error);
+    return null;
+  }
+
+  return data.webflow_id;
+}
+
 // Map Supabase member record to Webflow field data
 async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boolean = true): Promise<Record<string, unknown>> {
   const fieldData: Record<string, unknown> = {
@@ -859,6 +878,15 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
     const suburbWebflowId = await getSuburbWebflowId(record.suburb_id);
     if (suburbWebflowId) {
       fieldData['suburb'] = suburbWebflowId;
+    }
+  }
+
+  // Membership type reference
+  if (record.membership_type_id) {
+    const membershipTypeWebflowId = await getMembershipTypeWebflowId(record.membership_type_id);
+    if (membershipTypeWebflowId) {
+      fieldData['choose-membership-type'] = membershipTypeWebflowId;
+      console.log(`Set membership type: ${membershipTypeWebflowId}`);
     }
   }
 
