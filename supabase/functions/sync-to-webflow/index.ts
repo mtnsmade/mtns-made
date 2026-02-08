@@ -1,5 +1,5 @@
-// Supabase Edge Function: Sync Projects & Events to Webflow CMS
-// Triggers on INSERT/UPDATE/DELETE from projects/events table via Database Webhook
+// Supabase Edge Function: Sync Members, Projects & Events to Webflow CMS
+// Triggers on INSERT/UPDATE/DELETE from members/projects/events table via Database Webhook
 // Maps data to Webflow CMS API v2 format
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -10,6 +10,7 @@ const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const WEBFLOW_SITE_ID = Deno.env.get('WEBFLOW_SITE_ID') || '6481b864324e32f8eb266e2f';
 const WEBFLOW_PROJECTS_COLLECTION_ID = Deno.env.get('WEBFLOW_PROJECTS_COLLECTION_ID') || '64aa150f02bee661d503cf59';
 const WEBFLOW_EVENTS_COLLECTION_ID = '64aa21e9193adf43b765fcf1';
+const WEBFLOW_MEMBERS_COLLECTION_ID = '64a938756620ae4bee88df34';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
@@ -24,8 +25,46 @@ interface WebhookPayload {
   type: 'INSERT' | 'UPDATE' | 'DELETE';
   table: string;
   schema: string;
-  record: ProjectRecord | EventRecord | null;
-  old_record: ProjectRecord | EventRecord | null;
+  record: ProjectRecord | EventRecord | MemberRecord | null;
+  old_record: ProjectRecord | EventRecord | MemberRecord | null;
+}
+
+interface MemberRecord {
+  id: string;
+  memberstack_id: string;
+  webflow_id: string | null;
+  email: string | null;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  slug: string | null;
+  business_name: string | null;
+  bio: string | null;
+  profile_image_url: string | null;
+  header_image_url: string | null;
+  suburb_id: string | null;
+  business_address: string | null;
+  show_address: boolean;
+  show_opening_hours: boolean;
+  opening_monday: string | null;
+  opening_tuesday: string | null;
+  opening_wednesday: string | null;
+  opening_thursday: string | null;
+  opening_friday: string | null;
+  opening_saturday: string | null;
+  opening_sunday: string | null;
+  website: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  linkedin: string | null;
+  tiktok: string | null;
+  youtube: string | null;
+  subscription_status: string;
+  is_creative_space: boolean;
+  is_supplier: boolean;
+  profile_complete: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 interface ProjectRecord {
@@ -662,6 +701,327 @@ async function updateEventWithWebflowId(eventId: string, webflowId: string): Pro
   console.log(`Updated event ${eventId} with Webflow ID: ${webflowId}`);
 }
 
+// ============================================
+// MEMBER FUNCTIONS
+// ============================================
+
+// Get member's category Webflow IDs
+async function getMemberCategoryWebflowIds(memberId: string): Promise<string[]> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('member_sub_directories')
+    .select(`
+      sub_directories (
+        webflow_id
+      )
+    `)
+    .eq('member_id', memberId);
+
+  if (error) {
+    console.error('Error fetching member categories:', error);
+    return [];
+  }
+
+  const webflowIds: string[] = [];
+  if (data) {
+    for (const item of data) {
+      const subDir = item.sub_directories as unknown as CategoryData;
+      if (subDir?.webflow_id) {
+        webflowIds.push(subDir.webflow_id);
+      }
+    }
+  }
+
+  return webflowIds;
+}
+
+// Map Supabase member record to Webflow field data
+async function mapMemberToWebflowFields(record: MemberRecord): Promise<Record<string, unknown>> {
+  const fieldData: Record<string, unknown> = {
+    name: record.name || record.email?.split('@')[0] || 'Member',
+    slug: record.slug || record.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || record.memberstack_id,
+  };
+
+  // Memberstack ID
+  fieldData['memberstack-id'] = record.memberstack_id;
+
+  // Email
+  if (record.email) {
+    fieldData['email'] = record.email;
+  }
+
+  // Bio
+  if (record.bio) {
+    fieldData['public-bio'] = record.bio;
+  }
+
+  // Profile image
+  if (record.profile_image_url) {
+    fieldData['profile-pic'] = { url: record.profile_image_url };
+  }
+
+  // Feature/header image
+  if (record.header_image_url) {
+    fieldData['feature-image'] = { url: record.header_image_url };
+  }
+
+  // Business name
+  if (record.business_name) {
+    fieldData['business-name'] = record.business_name;
+  }
+
+  // Suburb reference
+  if (record.suburb_id) {
+    const suburbWebflowId = await getSuburbWebflowId(record.suburb_id);
+    if (suburbWebflowId) {
+      fieldData['suburb'] = suburbWebflowId;
+    }
+  }
+
+  // Social links
+  if (record.website) {
+    fieldData['website'] = record.website;
+  }
+  if (record.instagram) {
+    fieldData['instagram'] = record.instagram;
+  }
+  if (record.facebook) {
+    fieldData['facebook'] = record.facebook;
+  }
+  if (record.linkedin) {
+    fieldData['linkedin'] = record.linkedin;
+  }
+  if (record.tiktok) {
+    fieldData['tiktok'] = record.tiktok;
+  }
+  if (record.youtube) {
+    fieldData['youtube'] = record.youtube;
+  }
+
+  // Categories
+  const categoryWebflowIds = await getMemberCategoryWebflowIds(record.id);
+  if (categoryWebflowIds.length > 0) {
+    fieldData['chosen-directories'] = categoryWebflowIds;
+  }
+
+  // Space/Supplier flags
+  fieldData['is-creative-space'] = record.is_creative_space || false;
+  fieldData['is-supplier'] = record.is_supplier || false;
+
+  return fieldData;
+}
+
+// Create member in Webflow CMS
+async function createWebflowMember(record: MemberRecord): Promise<string | null> {
+  const fieldData = await mapMemberToWebflowFields(record);
+
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        fieldData,
+        isDraft: record.subscription_status !== 'active' || !record.profile_complete,
+        isArchived: record.subscription_status === 'lapsed',
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow create member error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const itemId = result.id;
+  console.log('Webflow member created:', itemId);
+
+  // Publish if active and profile complete
+  if (record.subscription_status === 'active' && record.profile_complete) {
+    await publishWebflowMember(itemId);
+  }
+
+  return itemId;
+}
+
+// Update member in Webflow CMS
+async function updateWebflowMember(webflowId: string, record: MemberRecord): Promise<void> {
+  const fieldData = await mapMemberToWebflowFields(record);
+
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        fieldData,
+        isDraft: record.subscription_status !== 'active' || !record.profile_complete,
+        isArchived: record.subscription_status === 'lapsed',
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow update member error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('Webflow member updated:', webflowId);
+
+  // Re-publish if active and profile complete
+  if (record.subscription_status === 'active' && record.profile_complete) {
+    await publishWebflowMember(webflowId);
+  }
+}
+
+// Delete member from Webflow CMS
+async function deleteWebflowMember(webflowId: string): Promise<void> {
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'accept': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow delete member error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('Webflow member deleted:', webflowId);
+}
+
+// Publish member in Webflow CMS
+async function publishWebflowMember(itemId: string): Promise<void> {
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/publish`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        itemIds: [itemId],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow publish member error:', response.status, errorText);
+  } else {
+    console.log('Webflow member published:', itemId);
+  }
+}
+
+// Update Supabase member with Webflow ID
+async function updateMemberWithWebflowId(memberId: string, webflowId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from('members')
+    .update({ webflow_id: webflowId })
+    .eq('id', memberId);
+
+  if (error) {
+    console.error('Error updating member with Webflow ID:', error);
+    throw error;
+  }
+
+  console.log(`Updated member ${memberId} with Webflow ID: ${webflowId}`);
+}
+
+// Handle member webhook
+async function handleMemberWebhook(payload: WebhookPayload): Promise<void> {
+  const record = payload.record as MemberRecord | null;
+  const oldRecord = payload.old_record as MemberRecord | null;
+
+  switch (payload.type) {
+    case 'INSERT': {
+      if (!record) {
+        throw new Error('No record in INSERT payload');
+      }
+
+      // Skip if already has Webflow ID
+      if (record.webflow_id) {
+        console.log('Member already has Webflow ID, skipping');
+        break;
+      }
+
+      // Only create in Webflow if profile is complete
+      if (!record.profile_complete) {
+        console.log('Member profile not complete, skipping Webflow sync');
+        break;
+      }
+
+      const webflowId = await createWebflowMember(record);
+
+      if (webflowId) {
+        await updateMemberWithWebflowId(record.id, webflowId);
+      }
+
+      break;
+    }
+
+    case 'UPDATE': {
+      if (!record) {
+        throw new Error('No record in UPDATE payload');
+      }
+
+      // If member is lapsed, archive in Webflow
+      if (record.subscription_status === 'lapsed' && record.webflow_id) {
+        await updateWebflowMember(record.webflow_id, record);
+        break;
+      }
+
+      // If no Webflow ID yet and profile is complete, create
+      if (!record.webflow_id && record.profile_complete) {
+        const webflowId = await createWebflowMember(record);
+        if (webflowId) {
+          await updateMemberWithWebflowId(record.id, webflowId);
+        }
+        break;
+      }
+
+      // If has Webflow ID, update
+      if (record.webflow_id) {
+        await updateWebflowMember(record.webflow_id, record);
+      }
+
+      break;
+    }
+
+    case 'DELETE': {
+      if (oldRecord?.webflow_id) {
+        await deleteWebflowMember(oldRecord.webflow_id);
+      }
+      break;
+    }
+
+    default:
+      console.log('Unknown webhook type:', payload.type);
+  }
+}
+
 // Handle event webhook
 async function handleEventWebhook(payload: WebhookPayload): Promise<void> {
   const record = payload.record as EventRecord | null;
@@ -757,6 +1117,18 @@ serve(async (req: Request) => {
 
     const payload: WebhookPayload = await req.json();
     console.log('Received webhook:', payload.type, payload.table);
+
+    // Handle members table
+    if (payload.table === 'members') {
+      await handleMemberWebhook(payload);
+      return new Response(
+        JSON.stringify({ success: true, type: payload.type, table: 'members' }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     // Handle events table
     if (payload.table === 'events') {
