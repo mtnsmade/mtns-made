@@ -1,6 +1,6 @@
-// Supabase Edge Function: Sync Projects to Webflow CMS
-// Triggers on INSERT/UPDATE/DELETE from projects table via Database Webhook
-// Maps project data to Webflow CMS API v2 format
+// Supabase Edge Function: Sync Projects & Events to Webflow CMS
+// Triggers on INSERT/UPDATE/DELETE from projects/events table via Database Webhook
+// Maps data to Webflow CMS API v2 format
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -8,12 +8,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Environment variables (set in Supabase Dashboard → Edge Functions → Secrets)
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const WEBFLOW_SITE_ID = Deno.env.get('WEBFLOW_SITE_ID') || '6481b864324e32f8eb266e2f';
-const WEBFLOW_COLLECTION_ID = Deno.env.get('WEBFLOW_COLLECTION_ID') || '64aa150f02bee661d503cf59';
+const WEBFLOW_PROJECTS_COLLECTION_ID = Deno.env.get('WEBFLOW_PROJECTS_COLLECTION_ID') || '64aa150f02bee661d503cf59';
+const WEBFLOW_EVENTS_COLLECTION_ID = '64aa21e9193adf43b765fcf1';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Storage bucket name
-const STORAGE_BUCKET = 'project-images';
+// Storage bucket names
+const PROJECT_IMAGES_BUCKET = 'project-images';
+const EVENT_IMAGES_BUCKET = 'event-images';
 
 // Webflow API v2 base URL
 const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
@@ -22,8 +24,8 @@ interface WebhookPayload {
   type: 'INSERT' | 'UPDATE' | 'DELETE';
   table: string;
   schema: string;
-  record: ProjectRecord | null;
-  old_record: ProjectRecord | null;
+  record: ProjectRecord | EventRecord | null;
+  old_record: ProjectRecord | EventRecord | null;
 }
 
 interface ProjectRecord {
@@ -45,6 +47,36 @@ interface ProjectRecord {
   updated_at: string;
 }
 
+interface EventRecord {
+  id: string;
+  webflow_id: string | null;
+  memberstack_id: string | null;
+  eventbrite_id: string | null;
+  name: string;
+  slug: string | null;
+  member_id: string | null;
+  member_contact_email: string | null;
+  time_display: string | null;
+  date_display: string | null;
+  date_start: string | null;
+  date_end: string | null;
+  date_expiry: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  suburb_id: string | null;
+  short_description: string | null;
+  description: string | null;
+  feature_image_url: string | null;
+  rsvp_link: string | null;
+  is_mtns_made_event: boolean;
+  is_featured: boolean;
+  is_past: boolean;
+  is_archived: boolean;
+  is_draft: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface CategoryData {
   webflow_id: string;
 }
@@ -52,6 +84,41 @@ interface CategoryData {
 // Initialize Supabase client with service role key
 function getSupabaseClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+}
+
+// Delete all images from storage
+async function deleteImagesFromStorage(bucket: string, folderPath: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  try {
+    const { data: files, error: listError } = await supabase.storage
+      .from(bucket)
+      .list(folderPath);
+
+    if (listError) {
+      console.error(`Error listing images in ${bucket}:`, listError);
+      return;
+    }
+
+    if (!files || files.length === 0) {
+      console.log(`No images to delete in ${bucket}/${folderPath}`);
+      return;
+    }
+
+    const filePaths = files.map(file => `${folderPath}/${file.name}`);
+
+    const { error: deleteError } = await supabase.storage
+      .from(bucket)
+      .remove(filePaths);
+
+    if (deleteError) {
+      console.error(`Error deleting images from ${bucket}:`, deleteError);
+    } else {
+      console.log(`Deleted ${filePaths.length} images from ${bucket}/${folderPath}`);
+    }
+  } catch (error) {
+    console.error('Error in deleteImagesFromStorage:', error);
+  }
 }
 
 // Delete all images for a project from storage
@@ -206,7 +273,7 @@ async function mapToWebflowFields(record: ProjectRecord): Promise<Record<string,
 // Publish a single item in Webflow CMS
 async function publishWebflowItem(itemId: string): Promise<void> {
   const response = await fetch(
-    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/publish`,
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/publish`,
     {
       method: 'POST',
       headers: {
@@ -233,7 +300,7 @@ async function createWebflowItem(record: ProjectRecord): Promise<string | null> 
   const fieldData = await mapToWebflowFields(record);
 
   const response = await fetch(
-    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items`,
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items`,
     {
       method: 'POST',
       headers: {
@@ -261,7 +328,7 @@ async function createWebflowItem(record: ProjectRecord): Promise<string | null> 
 
   // Update the item to set portfolio-item-id to its own Webflow ID
   await fetch(
-    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/${itemId}`,
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/${itemId}`,
     {
       method: 'PATCH',
       headers: {
@@ -292,7 +359,7 @@ async function updateWebflowItem(webflowId: string, record: ProjectRecord): Prom
   fieldData['portfolio-item-id'] = webflowId;
 
   const response = await fetch(
-    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/${webflowId}`,
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/${webflowId}`,
     {
       method: 'PATCH',
       headers: {
@@ -323,7 +390,7 @@ async function updateWebflowItem(webflowId: string, record: ProjectRecord): Prom
 // Hard delete item from Webflow CMS
 async function deleteWebflowItem(webflowId: string): Promise<void> {
   const response = await fetch(
-    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_COLLECTION_ID}/items/${webflowId}`,
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/${webflowId}`,
     {
       method: 'DELETE',
       headers: {
@@ -359,6 +426,312 @@ async function updateSupabaseWithWebflowId(projectId: string, webflowId: string)
   console.log(`Updated project ${projectId} with Webflow ID: ${webflowId}`);
 }
 
+// ============================================
+// EVENT FUNCTIONS
+// ============================================
+
+// Get suburb Webflow ID
+async function getSuburbWebflowId(suburbId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('suburbs')
+    .select('webflow_id')
+    .eq('id', suburbId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching suburb:', error);
+    return null;
+  }
+
+  return data?.webflow_id || null;
+}
+
+// Map Supabase event record to Webflow field data
+async function mapEventToWebflowFields(record: EventRecord): Promise<Record<string, unknown>> {
+  const fieldData: Record<string, unknown> = {
+    name: record.name,
+    slug: record.slug || record.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+  };
+
+  // Description
+  if (record.description) {
+    fieldData['description'] = record.description;
+  }
+
+  // Short description (auto-generate if not provided)
+  if (record.short_description) {
+    fieldData['short-description'] = record.short_description;
+  } else if (record.description) {
+    // Auto-generate: first 150 chars
+    fieldData['short-description'] = record.description.substring(0, 150) + (record.description.length > 150 ? '...' : '');
+  }
+
+  // Date & Time
+  if (record.date_start) {
+    fieldData['date-event-starts'] = record.date_start;
+  }
+  if (record.date_end) {
+    fieldData['date-event-ends'] = record.date_end;
+  }
+  if (record.date_expiry) {
+    fieldData['event-expiry-date'] = record.date_expiry;
+  }
+  if (record.time_display) {
+    fieldData['time'] = record.time_display;
+  }
+
+  // Location
+  if (record.location_name) {
+    fieldData['location-name'] = record.location_name;
+  }
+  if (record.location_address) {
+    fieldData['location-full-street-address'] = record.location_address;
+  }
+
+  // Suburb reference
+  if (record.suburb_id) {
+    const suburbWebflowId = await getSuburbWebflowId(record.suburb_id);
+    if (suburbWebflowId) {
+      fieldData['choose-suburb'] = suburbWebflowId;
+    }
+  }
+
+  // Feature image
+  if (record.feature_image_url) {
+    fieldData['feature-image'] = { url: record.feature_image_url };
+  }
+
+  // Links
+  if (record.rsvp_link) {
+    fieldData['rsvp-link'] = record.rsvp_link;
+  }
+  if (record.eventbrite_id) {
+    fieldData['eventbrite-event-id'] = record.eventbrite_id;
+  }
+
+  // Memberstack ID
+  if (record.memberstack_id) {
+    fieldData['memberstack-id'] = record.memberstack_id;
+  }
+
+  // Supabase ID
+  fieldData['supabase-id'] = record.id;
+
+  return fieldData;
+}
+
+// Create event in Webflow CMS
+async function createWebflowEvent(record: EventRecord): Promise<string | null> {
+  const fieldData = await mapEventToWebflowFields(record);
+
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_EVENTS_COLLECTION_ID}/items`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        fieldData,
+        isDraft: record.is_draft,
+        isArchived: record.is_archived,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow create event error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const itemId = result.id;
+  console.log('Webflow event created:', itemId);
+
+  // Publish if not draft
+  if (!record.is_draft) {
+    await publishWebflowEvent(itemId);
+  }
+
+  return itemId;
+}
+
+// Update event in Webflow CMS
+async function updateWebflowEvent(webflowId: string, record: EventRecord): Promise<void> {
+  const fieldData = await mapEventToWebflowFields(record);
+
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_EVENTS_COLLECTION_ID}/items/${webflowId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        fieldData,
+        isDraft: record.is_draft,
+        isArchived: record.is_archived,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow update event error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('Webflow event updated:', webflowId);
+
+  // Re-publish if not draft
+  if (!record.is_draft) {
+    await publishWebflowEvent(webflowId);
+  }
+}
+
+// Delete event from Webflow CMS
+async function deleteWebflowEvent(webflowId: string): Promise<void> {
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_EVENTS_COLLECTION_ID}/items/${webflowId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'accept': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow delete event error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('Webflow event deleted:', webflowId);
+}
+
+// Publish event in Webflow CMS
+async function publishWebflowEvent(itemId: string): Promise<void> {
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_EVENTS_COLLECTION_ID}/items/publish`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        itemIds: [itemId],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow publish event error:', response.status, errorText);
+  } else {
+    console.log('Webflow event published:', itemId);
+  }
+}
+
+// Update Supabase event with Webflow ID
+async function updateEventWithWebflowId(eventId: string, webflowId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from('events')
+    .update({ webflow_id: webflowId })
+    .eq('id', eventId);
+
+  if (error) {
+    console.error('Error updating event with Webflow ID:', error);
+    throw error;
+  }
+
+  console.log(`Updated event ${eventId} with Webflow ID: ${webflowId}`);
+}
+
+// Handle event webhook
+async function handleEventWebhook(payload: WebhookPayload): Promise<void> {
+  const record = payload.record as EventRecord | null;
+  const oldRecord = payload.old_record as EventRecord | null;
+
+  switch (payload.type) {
+    case 'INSERT': {
+      if (!record) {
+        throw new Error('No record in INSERT payload');
+      }
+
+      if (record.webflow_id) {
+        console.log('Event already has Webflow ID, skipping');
+        break;
+      }
+
+      const webflowId = await createWebflowEvent(record);
+
+      if (webflowId) {
+        await updateEventWithWebflowId(record.id, webflowId);
+      }
+
+      break;
+    }
+
+    case 'UPDATE': {
+      if (!record) {
+        throw new Error('No record in UPDATE payload');
+      }
+
+      // If event is being archived/deleted
+      if (record.is_archived && record.webflow_id) {
+        await deleteWebflowEvent(record.webflow_id);
+
+        // Delete images from storage
+        if (record.memberstack_id) {
+          await deleteImagesFromStorage(EVENT_IMAGES_BUCKET, record.memberstack_id);
+        }
+
+        break;
+      }
+
+      if (!record.webflow_id) {
+        const webflowId = await createWebflowEvent(record);
+        if (webflowId) {
+          await updateEventWithWebflowId(record.id, webflowId);
+        }
+        break;
+      }
+
+      await updateWebflowEvent(record.webflow_id, record);
+      break;
+    }
+
+    case 'DELETE': {
+      if (oldRecord?.webflow_id) {
+        await deleteWebflowEvent(oldRecord.webflow_id);
+      }
+
+      // Delete images from storage
+      if (oldRecord?.memberstack_id) {
+        await deleteImagesFromStorage(EVENT_IMAGES_BUCKET, oldRecord.memberstack_id);
+      }
+
+      break;
+    }
+
+    default:
+      console.log('Unknown webhook type:', payload.type);
+  }
+}
+
 // Main handler
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -383,15 +756,28 @@ serve(async (req: Request) => {
     const payload: WebhookPayload = await req.json();
     console.log('Received webhook:', payload.type, payload.table);
 
+    // Handle events table
+    if (payload.table === 'events') {
+      await handleEventWebhook(payload);
+      return new Response(
+        JSON.stringify({ success: true, type: payload.type, table: 'events' }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Handle projects table
     if (payload.table !== 'projects') {
-      return new Response(JSON.stringify({ message: 'Ignored: not projects table' }), {
+      return new Response(JSON.stringify({ message: `Ignored: ${payload.table} table not handled` }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const record = payload.record;
-    const oldRecord = payload.old_record;
+    const record = payload.record as ProjectRecord | null;
+    const oldRecord = payload.old_record as ProjectRecord | null;
 
     switch (payload.type) {
       case 'INSERT': {
