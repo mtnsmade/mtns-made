@@ -10,7 +10,7 @@
   // CONFIGURATION
   // ============================================
   const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
+  const SUPABASE_ANON_KEY = 'sb_secret_Fkcjnv3h3awIOEE5qRla9w_mu22-56_';
 
   // Webflow collection IDs (for reference)
   const EVENTS_COLLECTION_ID = '64aa21e9193adf43b765fcf1';
