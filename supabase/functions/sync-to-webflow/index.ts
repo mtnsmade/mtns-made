@@ -890,25 +890,13 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
     }
   }
 
-  // Social links
-  if (record.website) {
-    fieldData['website'] = record.website;
-  }
-  if (record.instagram) {
-    fieldData['instagram'] = record.instagram;
-  }
-  if (record.facebook) {
-    fieldData['fcaebook'] = record.facebook; // Note: typo in Webflow field name
-  }
-  if (record.linkedin) {
-    fieldData['linkedin'] = record.linkedin;
-  }
-  if (record.tiktok) {
-    fieldData['tiktok'] = record.tiktok;
-  }
-  if (record.youtube) {
-    fieldData['youtube'] = record.youtube;
-  }
+  // Social links - always include to allow clearing values
+  fieldData['website'] = record.website || '';
+  fieldData['instagram'] = record.instagram || '';
+  fieldData['fcaebook'] = record.facebook || ''; // Note: typo in Webflow field name
+  fieldData['linkedin'] = record.linkedin || '';
+  fieldData['tiktok'] = record.tiktok || '';
+  fieldData['youtube'] = record.youtube || '';
 
   // Opening hours
   if (record.opening_monday) {
