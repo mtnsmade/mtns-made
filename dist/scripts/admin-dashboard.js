@@ -716,8 +716,7 @@ MTNS MADE Team`;
       `)
       .eq('profile_complete', false)
       .eq('subscription_status', 'active')
-      .order('created_at', { ascending: true })
-      .limit(30);
+      .order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error loading incomplete profiles:', error);
