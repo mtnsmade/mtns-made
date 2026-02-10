@@ -1086,7 +1086,7 @@ MTNS MADE Team`;
               <td class="time-cell">${timeAgo(member.created_at)}</td>
               <td>
                 ${member.webflow_id && member.slug ? `
-                  <a href="${SITE_URL}/member/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
+                  <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
                 ` : '--'}
               </td>
             </tr>
@@ -1135,7 +1135,7 @@ MTNS MADE Team`;
                   <div class="action-btns">
                     <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
                     ${member.webflow_id && member.slug ? `
-                      <a href="${SITE_URL}/member/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
+                      <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
                     ` : ''}
                   </div>
                 </td>
@@ -1227,7 +1227,7 @@ MTNS MADE Team`;
                   <td class="time-cell">${timeAgo(event.created_at)}</td>
                   <td>
                     ${event.webflow_id && event.slug ? `
-                      <a href="${SITE_URL}/events/${event.slug}" target="_blank" class="action-btn view-btn">View</a>
+                      <a href="${SITE_URL}/event/${event.slug}" target="_blank" class="action-btn view-btn">View</a>
                     ` : '--'}
                   </td>
                 </tr>
@@ -1268,7 +1268,7 @@ MTNS MADE Team`;
               <td class="time-cell">${timeAgo(project.updated_at)}</td>
               <td>
                 ${project.webflow_id && project.slug ? `
-                  <a href="${SITE_URL}/project/${project.slug}" target="_blank" class="action-btn view-btn">View</a>
+                  <a href="${SITE_URL}/projects/${project.slug}" target="_blank" class="action-btn view-btn">View</a>
                 ` : '--'}
               </td>
             </tr>
