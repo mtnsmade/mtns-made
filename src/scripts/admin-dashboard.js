@@ -302,6 +302,17 @@
       border-color: #1a1a1a;
     }
 
+    .action-btn.view-btn {
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
     /* Empty state */
     .empty-state {
       padding: 48px 24px;
@@ -615,6 +626,7 @@ MTNS MADE Team`;
       recentMembers,
       memberStats,
       incompleteProfiles,
+      failedSignups,
       recentEvents,
       eventStats,
       recentProjects
@@ -622,6 +634,7 @@ MTNS MADE Team`;
       loadRecentMembers(),
       loadMemberStats(),
       loadIncompleteProfiles(),
+      loadFailedSignups(),
       loadRecentEvents(),
       loadEventStats(),
       loadRecentProjects()
@@ -631,6 +644,7 @@ MTNS MADE Team`;
       recentMembers,
       memberStats,
       incompleteProfiles,
+      failedSignups,
       recentEvents,
       eventStats,
       recentProjects,
@@ -642,7 +656,7 @@ MTNS MADE Team`;
     const { data, error } = await supabase
       .from('members')
       .select(`
-        id, memberstack_id, name, email, first_name, last_name,
+        id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
         created_at, updated_at
@@ -676,7 +690,7 @@ MTNS MADE Team`;
     const { data, error } = await supabase
       .from('members')
       .select(`
-        id, memberstack_id, name, email, first_name, subscription_status,
+        id, memberstack_id, name, email, first_name, slug, subscription_status,
         profile_complete, profile_reminder_sent_at, created_at,
         profile_image_url, header_image_url, bio, suburb_id
       `)
@@ -692,10 +706,30 @@ MTNS MADE Team`;
     return data || [];
   }
 
+  async function loadFailedSignups() {
+    // Failed signups: members who aren't 'active' (trialing, null, or other statuses)
+    const { data, error } = await supabase
+      .from('members')
+      .select(`
+        id, memberstack_id, name, email, first_name, slug,
+        subscription_status, profile_complete, created_at
+      `)
+      .or('subscription_status.is.null,subscription_status.neq.active,subscription_status.eq.trialing')
+      .neq('subscription_status', 'lapsed')
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (error) {
+      console.error('Error loading failed signups:', error);
+      return [];
+    }
+    return data || [];
+  }
+
   async function loadRecentEvents() {
     const { data, error } = await supabase
       .from('events')
-      .select('id, name, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at')
+      .select('id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at')
       .order('created_at', { ascending: false })
       .limit(15);
 
@@ -722,7 +756,7 @@ MTNS MADE Team`;
     const { data, error } = await supabase
       .from('projects')
       .select(`
-        id, name, member_id, webflow_id, is_draft, is_deleted,
+        id, name, slug, member_id, webflow_id, is_draft, is_deleted,
         created_at, updated_at
       `)
       .eq('is_deleted', false)
@@ -885,6 +919,7 @@ MTNS MADE Team`;
           <div class="tabs-container">
             <button class="tab-btn active" data-tab="members">Recent Members</button>
             <button class="tab-btn" data-tab="incomplete">Incomplete (${incompleteCount})</button>
+            <button class="tab-btn" data-tab="failed">Failed Signups (${data.failedSignups.length})</button>
             <button class="tab-btn" data-tab="events">Events</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
           </div>
@@ -895,6 +930,10 @@ MTNS MADE Team`;
 
           <div class="tab-content" id="tab-incomplete">
             ${renderIncompleteTable(data.incompleteProfiles)}
+          </div>
+
+          <div class="tab-content" id="tab-failed">
+            ${renderFailedSignupsTable(data.failedSignups)}
           </div>
 
           <div class="tab-content" id="tab-events">
@@ -1019,6 +1058,7 @@ MTNS MADE Team`;
             <th>Profile</th>
             <th>Webflow</th>
             <th>Joined</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -1044,6 +1084,11 @@ MTNS MADE Team`;
                 </span>
               </td>
               <td class="time-cell">${timeAgo(member.created_at)}</td>
+              <td>
+                ${member.webflow_id && member.slug ? `
+                  <a href="${SITE_URL}/member/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
+                ` : '--'}
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -1087,7 +1132,12 @@ MTNS MADE Team`;
                 </td>
                 <td class="time-cell">${timeAgo(member.created_at)}</td>
                 <td>
-                  <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                  <div class="action-btns">
+                    <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                    ${member.webflow_id && member.slug ? `
+                      <a href="${SITE_URL}/member/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
+                    ` : ''}
+                  </div>
                 </td>
               </tr>
             `;
@@ -1097,11 +1147,48 @@ MTNS MADE Team`;
     `;
   }
 
+  function renderFailedSignupsTable(members) {
+    if (members.length === 0) {
+      return '<div class="empty-state">No failed signups found</div>';
+    }
+
+    return `
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 12px; color: #666;">
+        Members who started signup but never completed payment (not active, not lapsed)
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Status</th>
+            <th>Started</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${members.map(member => `
+            <tr>
+              <td>
+                <div class="name-cell">${member.name || member.first_name || 'No name'}</div>
+                <div class="email-cell">${member.email || '--'}</div>
+              </td>
+              <td>
+                <span class="status pending">
+                  ${member.subscription_status || 'no status'}
+                </span>
+              </td>
+              <td class="time-cell">${timeAgo(member.created_at)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
   function renderEventsTable(events, stats) {
     return `
-      <div style="padding: 12px 16px; border-bottom: 1px solid #333; font-size: 11px; color: #666;">
-        <span style="margin-right: 24px;"><strong style="color: #ffd43b;">${stats.pending}</strong> Pending</span>
-        <span><strong style="color: #69db7c;">${stats.published}</strong> Published</span>
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
+        <span style="margin-right: 24px;"><strong style="color: #f59f00;">${stats.pending}</strong> Pending</span>
+        <span><strong style="color: #1a1a1a;">${stats.published}</strong> Published</span>
       </div>
       ${events.length === 0 ? '<div class="empty-state">No events found</div>' : `
         <table class="admin-table">
@@ -1111,6 +1198,7 @@ MTNS MADE Team`;
               <th>Status</th>
               <th>Webflow</th>
               <th>Created</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -1137,6 +1225,11 @@ MTNS MADE Team`;
                     </span>
                   </td>
                   <td class="time-cell">${timeAgo(event.created_at)}</td>
+                  <td>
+                    ${event.webflow_id && event.slug ? `
+                      <a href="${SITE_URL}/events/${event.slug}" target="_blank" class="action-btn view-btn">View</a>
+                    ` : '--'}
+                  </td>
                 </tr>
               `;
             }).join('')}
@@ -1158,6 +1251,7 @@ MTNS MADE Team`;
             <th>Project</th>
             <th>Webflow</th>
             <th>Updated</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -1172,6 +1266,11 @@ MTNS MADE Team`;
                 </span>
               </td>
               <td class="time-cell">${timeAgo(project.updated_at)}</td>
+              <td>
+                ${project.webflow_id && project.slug ? `
+                  <a href="${SITE_URL}/project/${project.slug}" target="_blank" class="action-btn view-btn">View</a>
+                ` : '--'}
+              </td>
             </tr>
           `).join('')}
         </tbody>
