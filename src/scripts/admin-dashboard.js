@@ -294,6 +294,8 @@
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.15s;
+      text-decoration: none;
+      display: inline-block;
     }
 
     .action-btn:hover {
@@ -302,9 +304,27 @@
       border-color: #1a1a1a;
     }
 
-    .action-btn.view-btn {
-      text-decoration: none;
-      display: inline-block;
+    .action-btn.contact-btn {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+
+    .action-btn.contact-btn:hover {
+      background: #333;
+    }
+
+    .action-btn.contacted {
+      background: #fff;
+      color: #888;
+      border-color: #d0d0d0;
+      cursor: default;
+    }
+
+    .action-btn.contacted:hover {
+      background: #fff;
+      color: #888;
+      border-color: #d0d0d0;
     }
 
     .action-btns {
@@ -707,15 +727,15 @@ MTNS MADE Team`;
   }
 
   async function loadFailedSignups() {
-    // Failed signups: members who aren't 'active' (trialing, null, or other statuses)
+    // Failed signups: members who don't have 'active' or 'lapsed' status
+    // This catches: null, empty string, 'trialing', 'canceled', etc.
     const { data, error } = await supabase
       .from('members')
       .select(`
         id, memberstack_id, name, email, first_name, slug,
-        subscription_status, profile_complete, created_at
+        subscription_status, profile_complete, profile_reminder_sent_at, created_at
       `)
-      .or('subscription_status.is.null,subscription_status.neq.active,subscription_status.eq.trialing')
-      .neq('subscription_status', 'lapsed')
+      .not('subscription_status', 'in', '("active","lapsed")')
       .order('created_at', { ascending: false })
       .limit(30);
 
@@ -857,8 +877,18 @@ MTNS MADE Team`;
         const result = await response.json();
 
         if (result.success) {
+          // Update profile_reminder_sent_at in Supabase
+          await supabase
+            .from('members')
+            .update({ profile_reminder_sent_at: new Date().toISOString() })
+            .eq('id', member.id);
+
           alert('Email sent successfully!');
           modal.remove();
+
+          // Refresh the dashboard to show updated "Contacted" state
+          const container = document.querySelector('.dashboard-feed');
+          if (container) refreshDashboard(container);
         } else {
           alert('Failed to send email: ' + (result.error || 'Unknown error'));
           sendBtn.disabled = false;
@@ -965,7 +995,8 @@ MTNS MADE Team`;
       btn.addEventListener('click', () => {
         const memberId = btn.dataset.memberId;
         const member = data.incompleteProfiles.find(m => m.id === memberId) ||
-                       data.recentMembers.find(m => m.id === memberId);
+                       data.recentMembers.find(m => m.id === memberId) ||
+                       data.failedSignups.find(m => m.id === memberId);
         if (member) {
           showContactModal(member);
         }
@@ -1133,9 +1164,13 @@ MTNS MADE Team`;
                 <td class="time-cell">${timeAgo(member.created_at)}</td>
                 <td>
                   <div class="action-btns">
-                    <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                    ${member.profile_reminder_sent_at ? `
+                      <button class="action-btn contacted" disabled>Contacted</button>
+                    ` : `
+                      <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                    `}
                     ${member.webflow_id && member.slug ? `
-                      <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
+                      <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn">View</a>
                     ` : ''}
                   </div>
                 </td>
@@ -1162,6 +1197,7 @@ MTNS MADE Team`;
             <th>Member</th>
             <th>Status</th>
             <th>Started</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -1177,6 +1213,13 @@ MTNS MADE Team`;
                 </span>
               </td>
               <td class="time-cell">${timeAgo(member.created_at)}</td>
+              <td>
+                ${member.profile_reminder_sent_at ? `
+                  <button class="action-btn contacted" disabled>Contacted</button>
+                ` : `
+                  <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                `}
+              </td>
             </tr>
           `).join('')}
         </tbody>
