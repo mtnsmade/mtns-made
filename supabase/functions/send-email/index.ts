@@ -60,39 +60,58 @@ export async function sendEmail(request: EmailRequest): Promise<EmailResult> {
   }
 }
 
+// CORS headers for all responses
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
+};
+
 // HTTP handler for direct invocation
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const body: EmailRequest = await req.json();
+    const body = await req.json();
 
-    if (!body.to || !body.subject || !body.html) {
+    // Require to and subject, allow either html or text
+    if (!body.to || !body.subject) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Missing required fields: to, subject, html' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'Missing required fields: to, subject' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const result = await sendEmail(body);
+    // Auto-convert text to html if html not provided
+    const emailRequest: EmailRequest = {
+      to: body.to,
+      subject: body.subject,
+      html: body.html || (body.text ? body.text.replace(/\n/g, '<br>') : ''),
+      text: body.text,
+      replyTo: body.replyTo,
+    };
+
+    if (!emailRequest.html && !emailRequest.text) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing required field: html or text' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = await sendEmail(emailRequest);
 
     return new Response(JSON.stringify(result), {
       status: result.success ? 200 : 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Handler error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
