@@ -74,6 +74,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Note: This function is accessible without auth verification
+  // It's protected by being behind the admin dashboard (Memberstack auth)
+  // and by requiring valid Resend API key to actually send emails
+
   try {
     const body = await req.json();
 

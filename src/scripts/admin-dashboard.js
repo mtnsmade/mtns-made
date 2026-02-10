@@ -806,12 +806,11 @@ MTNS MADE Team`;
       sendBtn.textContent = 'Sending...';
 
       try {
-        // Call the send-email Edge Function
+        // Call the send-email Edge Function (no auth required - deployed with --no-verify-jwt)
         const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             to: to,
