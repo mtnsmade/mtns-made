@@ -841,6 +841,31 @@
 
   async function uploadImage(file, memberstackId, type) {
     try {
+      // Delete old images of the same type before uploading new one
+      const { data: existingFiles } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .list(memberstackId);
+
+      if (existingFiles && existingFiles.length > 0) {
+        // Find and delete files that start with the type prefix (profile_ or feature_)
+        const oldFiles = existingFiles
+          .filter(f => f.name.startsWith(`${type}_`))
+          .map(f => `${memberstackId}/${f.name}`);
+
+        if (oldFiles.length > 0) {
+          const { error: deleteError } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .remove(oldFiles);
+
+          if (deleteError) {
+            console.warn('Error deleting old images:', deleteError);
+            // Continue with upload even if delete fails
+          } else {
+            console.log(`Deleted ${oldFiles.length} old ${type} image(s)`);
+          }
+        }
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${type}_${Date.now()}.${fileExt}`;
       const filePath = `${memberstackId}/${fileName}`;
