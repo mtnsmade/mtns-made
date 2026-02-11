@@ -732,6 +732,7 @@ async function updateMemberstack(memberstackId: string, webflowId: string, slug:
           customFields: {
             'webflow-member-id': webflowId,
             'member-webflow-url': webflowUrl,
+            'onboarding-complete': true,
           },
         }),
       }
