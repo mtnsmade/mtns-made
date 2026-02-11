@@ -1006,10 +1006,10 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
 
   console.log('Webflow member updated:', webflowId);
 
-  // Re-publish if active and profile complete
-  if (record.subscription_status === 'active' && record.profile_complete) {
-    await publishWebflowMember(webflowId);
-  }
+  // Always re-publish after update to apply changes
+  // (isDraft/isArchived in the PATCH controls visibility)
+  console.log('Publishing member after update...');
+  await publishWebflowMember(webflowId);
 }
 
 // Delete member from Webflow CMS
@@ -1036,6 +1036,8 @@ async function deleteWebflowMember(webflowId: string): Promise<void> {
 
 // Publish member in Webflow CMS
 async function publishWebflowMember(itemId: string): Promise<void> {
+  console.log('Attempting to publish member:', itemId);
+
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/publish`,
     {
@@ -1051,11 +1053,12 @@ async function publishWebflowMember(itemId: string): Promise<void> {
     }
   );
 
+  const responseText = await response.text();
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Webflow publish member error:', response.status, errorText);
+    console.error('Webflow publish member error:', response.status, responseText);
   } else {
-    console.log('Webflow member published:', itemId);
+    console.log('Webflow member published successfully:', itemId, responseText);
   }
 }
 
