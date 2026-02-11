@@ -13,6 +13,10 @@ const WEBFLOW_EVENTS_COLLECTION_ID = '64aa21e9193adf43b765fcf1';
 const WEBFLOW_MEMBERS_COLLECTION_ID = '64a938756620ae4bee88df34';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
+
+// Site URL for building Webflow member URLs
+const SITE_URL = 'https://www.mtnsmade.com.au';
 
 // Storage bucket names
 const PROJECT_IMAGES_BUCKET = 'project-images';
@@ -703,6 +707,48 @@ async function updateEventWithWebflowId(eventId: string, webflowId: string): Pro
 }
 
 // ============================================
+// MEMBERSTACK SYNC FUNCTIONS
+// ============================================
+
+// Update Memberstack member with Webflow ID and URL
+async function updateMemberstack(memberstackId: string, webflowId: string, slug: string): Promise<void> {
+  if (!MEMBERSTACK_API_KEY) {
+    console.log('MEMBERSTACK_API_KEY not configured, skipping Memberstack sync');
+    return;
+  }
+
+  const webflowUrl = `${SITE_URL}/members/${slug}`;
+
+  try {
+    const response = await fetch(
+      `https://admin.memberstack.com/members/${memberstackId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'X-API-KEY': MEMBERSTACK_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customFields: {
+            'webflow-member-id': webflowId,
+            'member-webflow-url': webflowUrl,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Memberstack update error:', response.status, errorText);
+    } else {
+      console.log('Memberstack updated with Webflow ID and URL:', memberstackId);
+    }
+  } catch (error) {
+    console.error('Error updating Memberstack:', error);
+  }
+}
+
+// ============================================
 // MEMBER FUNCTIONS
 // ============================================
 
@@ -1106,6 +1152,10 @@ async function handleMemberWebhook(payload: WebhookPayload): Promise<void> {
 
       if (webflowId) {
         await updateMemberWithWebflowId(record.id, webflowId);
+        // Sync Webflow ID and URL back to Memberstack
+        if (record.slug) {
+          await updateMemberstack(record.memberstack_id, webflowId, record.slug);
+        }
       }
 
       break;
@@ -1127,6 +1177,10 @@ async function handleMemberWebhook(payload: WebhookPayload): Promise<void> {
         const webflowId = await createWebflowMember(record);
         if (webflowId) {
           await updateMemberWithWebflowId(record.id, webflowId);
+          // Sync Webflow ID and URL back to Memberstack
+          if (record.slug) {
+            await updateMemberstack(record.memberstack_id, webflowId, record.slug);
+          }
         }
         break;
       }

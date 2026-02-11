@@ -1691,11 +1691,20 @@
           <div class="ms-error-banner" id="ms-error-banner" style="display: none;"></div>
 
           <h3 class="ms-step-title">Step 4: Location & Hours</h3>
-          <p class="ms-step-description">This information is optional. You can control what's displayed publicly.</p>
+          <p class="ms-step-description">Select your suburb and optionally add address details.</p>
+
+          <div class="ms-form-field">
+            <label>Suburb <span class="required">*</span></label>
+            <select class="ms-form-input" id="ms-suburb-select">
+              <option value="">Select your suburb...</option>
+              ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+            </select>
+            <div class="ms-hint">This helps members find you in the directory</div>
+          </div>
 
           <div class="ms-form-field">
             <label>Business Address</label>
-            <input type="text" class="ms-form-input" id="ms-address" value="${formData.businessAddress}" placeholder="Enter your business address">
+            <input type="text" class="ms-form-input" id="ms-address" value="${formData.businessAddress}" placeholder="Enter your business address (optional)">
             <div class="ms-hint">This is where customers can find you</div>
           </div>
 
@@ -1741,11 +1750,25 @@
   }
 
   function setupStep4Handlers(container) {
+    const suburbSelect = container.querySelector('#ms-suburb-select');
     const addressInput = container.querySelector('#ms-address');
     const displayAddressToggle = container.querySelector('#ms-display-address');
     const displayHoursToggle = container.querySelector('#ms-display-hours');
     const backBtn = container.querySelector('#ms-back-btn');
     const nextBtn = container.querySelector('#ms-next-btn');
+    const errorBanner = container.querySelector('#ms-error-banner');
+
+    suburbSelect.addEventListener('change', () => {
+      const selectedOption = suburbSelect.options[suburbSelect.selectedIndex];
+      if (selectedOption.value) {
+        formData.suburb = {
+          id: selectedOption.value,
+          name: selectedOption.text
+        };
+      } else {
+        formData.suburb = null;
+      }
+    });
 
     addressInput.addEventListener('input', () => {
       formData.businessAddress = addressInput.value;
@@ -1772,6 +1795,11 @@
     });
 
     nextBtn.addEventListener('click', () => {
+      // Validate suburb selection
+      if (!formData.suburb) {
+        showError(errorBanner, 'Please select your suburb');
+        return;
+      }
       currentStep = 5;
       renderCurrentStep(container);
     });
