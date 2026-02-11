@@ -859,6 +859,28 @@
     }
   }
 
+  async function getMembershipTypeId(membershipSlug) {
+    if (!membershipSlug) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('membership_types')
+        .select('id')
+        .eq('slug', membershipSlug)
+        .single();
+
+      if (error || !data) {
+        console.warn('Membership type not found for slug:', membershipSlug);
+        return null;
+      }
+
+      return data.id;
+    } catch (error) {
+      console.error('Error looking up membership type:', error);
+      return null;
+    }
+  }
+
   async function uploadImage(file, memberstackId, type) {
     try {
       // Delete old images of the same type before uploading new one
@@ -930,8 +952,14 @@
       const displayName = formData.businessName || `${memberData.customFields?.['first-name'] || ''} ${memberData.customFields?.['last-name'] || ''}`.trim();
       const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+      // Look up membership type from Memberstack plan
+      const membershipType = memberData?.customFields?.['membership-type'];
+      const membershipTypeId = await getMembershipTypeId(membershipType);
+      console.log('Membership type:', membershipType, '-> ID:', membershipTypeId);
+
       // Build the update data for Supabase
       const updateData = {
+        membership_type_id: membershipTypeId,
         profile_image_url: profileImageUrl,
         header_image_url: featureImageUrl,
         bio: formData.bio,
