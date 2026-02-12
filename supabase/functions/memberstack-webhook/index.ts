@@ -30,7 +30,7 @@ const corsHeaders = {
 // Memberstack webhook event types
 interface MemberstackWebhookPayload {
   event: string;
-  data: MemberstackMemberData;
+  payload: MemberstackMemberData;  // Memberstack uses "payload" not "data"
 }
 
 interface MemberstackMemberData {
@@ -304,15 +304,15 @@ serve(async (req: Request) => {
 
     switch (payload.event) {
       case 'member.created':
-        await handleMemberCreated(payload.data);
+        await handleMemberCreated(payload.payload);
         break;
 
       case 'member.deleted':
-        await handleMemberDeleted(payload.data);
+        await handleMemberDeleted(payload.payload);
         break;
 
       case 'member.updated':
-        await handleMemberUpdated(payload.data);
+        await handleMemberUpdated(payload.payload);
         break;
 
       default:
