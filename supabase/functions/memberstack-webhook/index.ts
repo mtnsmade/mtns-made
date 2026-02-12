@@ -1,343 +1,344 @@
-/**
- * MTNS MADE - Memberstack Webhook Handler
- *
- * Handles Memberstack webhook events to keep Supabase in sync:
- * - member.created → Create Supabase record
- * - member.deleted → Hard delete from Supabase + Webflow
- * - subscription.canceled → Mark lapsed, unpublish from Webflow
- */
+// Supabase Edge Function: Memberstack Webhook Handler
+// Handles member lifecycle events from Memberstack:
+// - member.created: Create initial member record in Supabase
+// - member.deleted: Soft delete in Supabase + delete from Webflow
+// - member.updated: Sync subscription status changes
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN')!;
-const MEMBERSTACK_WEBHOOK_SECRET = Deno.env.get('MEMBERSTACK_WEBHOOK_SECRET');
+// Environment variables
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
+const MEMBERSTACK_WEBHOOK_SECRET = Deno.env.get('MEMBERSTACK_WEBHOOK_SECRET') || '';
 
-// Webflow collection IDs
+// Webflow config
+const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
 const WEBFLOW_MEMBERS_COLLECTION_ID = '64a938756620ae4bee88df34';
-const WEBFLOW_PROJECTS_COLLECTION_ID = '64aa150f02bee661d503cf59';
-const WEBFLOW_EVENTS_COLLECTION_ID = '64aa21e9193adf43b765fcf1';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Storage bucket for member images
+const MEMBER_IMAGES_BUCKET = 'member-images';
 
-// ============================================
-// WEBFLOW API HELPERS
-// ============================================
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-memberstack-signature',
+};
 
-async function webflowRequest(endpoint: string, options: RequestInit = {}) {
-  const url = `https://api.webflow.com/v2${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
-      'Content-Type': 'application/json',
-      'accept': 'application/json',
-      ...options.headers,
-    },
-  });
+// Memberstack webhook event types
+interface MemberstackWebhookPayload {
+  event: string;
+  data: MemberstackMemberData;
+}
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Webflow API error (${response.status}): ${error}`);
+interface MemberstackMemberData {
+  id: string; // Memberstack ID (e.g., mem_xxx)
+  auth: {
+    email: string;
+  };
+  customFields?: {
+    'first-name'?: string;
+    'last-name'?: string;
+    'membership-type'?: string;
+    'webflow-member-id'?: string;
+    'member-webflow-url'?: string;
+    'onboarding-complete'?: string | boolean;
+  };
+  planConnections?: Array<{
+    planId: string;
+    planName: string;
+    status: string;
+  }>;
+  createdAt?: string;
+  verified?: boolean;
+}
+
+// Initialize Supabase client with service role key
+function getSupabaseClient() {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+}
+
+// Get member from Supabase by Memberstack ID
+async function getMemberByMemberstackId(memberstackId: string) {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('members')
+    .select('*')
+    .eq('memberstack_id', memberstackId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+    console.error('Error fetching member:', error);
   }
 
-  return response.json();
+  return data;
 }
 
-async function unpublishWebflowItem(collectionId: string, itemId: string) {
-  return webflowRequest(`/collections/${collectionId}/items/${itemId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ isDraft: true }),
-  });
-}
-
-async function deleteWebflowItem(collectionId: string, itemId: string) {
-  return webflowRequest(`/collections/${collectionId}/items/${itemId}`, {
-    method: 'DELETE',
-  });
-}
-
-// ============================================
-// EVENT HANDLERS
-// ============================================
-
-async function handleMemberCreated(data: any) {
-  // Memberstack sends: { event, payload: { id, auth: { email }, customFields, ... } }
-  const payload = data.payload || data;
-  const memberstackId = payload.id;
-  const email = payload.auth?.email || payload.email;
-  const customFields = payload.customFields || {};
-
-  console.log(`Creating member: ${email} (${memberstackId})`);
-  console.log(`Custom fields:`, JSON.stringify(customFields));
+// Create member in Supabase
+async function createMember(memberData: MemberstackMemberData): Promise<void> {
+  const supabase = getSupabaseClient();
 
   // Check if member already exists
-  const { data: existing } = await supabase
-    .from('members')
-    .select('id')
-    .eq('memberstack_id', memberstackId)
-    .single();
-
+  const existing = await getMemberByMemberstackId(memberData.id);
   if (existing) {
-    console.log(`Member already exists in Supabase: ${memberstackId}`);
-    return { action: 'skipped', reason: 'already_exists' };
+    console.log('Member already exists in Supabase:', memberData.id);
+    return;
   }
 
-  // Get membership type from custom fields and look up ID
-  const membershipTypeSlug = customFields['membership-type'] || customFields.membershipType || null;
-  let membershipTypeId = null;
-
-  if (membershipTypeSlug) {
-    const { data: membershipType } = await supabase
-      .from('membership_types')
-      .select('id')
-      .eq('slug', membershipTypeSlug)
-      .single();
-
-    if (membershipType) {
-      membershipTypeId = membershipType.id;
-      console.log(`Found membership type: ${membershipTypeSlug} -> ${membershipTypeId}`);
-    } else {
-      console.log(`Membership type not found for slug: ${membershipTypeSlug}`);
+  // Determine subscription status from plan connections
+  let subscriptionStatus = 'pending';
+  if (memberData.planConnections && memberData.planConnections.length > 0) {
+    const activePlan = memberData.planConnections.find(p => p.status === 'ACTIVE');
+    if (activePlan) {
+      subscriptionStatus = 'active';
     }
   }
 
-  // Get suburb from custom fields and look up ID
-  const suburbName = customFields['suburb'] || customFields.suburb || null;
-  let suburbId = null;
-
-  if (suburbName) {
-    const { data: suburb } = await supabase
-      .from('suburbs')
-      .select('id')
-      .ilike('name', suburbName)
-      .single();
-
-    if (suburb) {
-      suburbId = suburb.id;
-      console.log(`Found suburb: ${suburbName} -> ${suburbId}`);
-    }
-  }
-
-  // Create member record
-  const { error } = await supabase.from('members').insert({
-    memberstack_id: memberstackId,
-    email: email,
-    first_name: customFields['first-name'] || customFields.firstName || null,
-    last_name: customFields['last-name'] || customFields.lastName || null,
-    name: customFields['first-name'] && customFields['last-name']
-      ? `${customFields['first-name']} ${customFields['last-name']}`
-      : email?.split('@')[0] || 'New Member',
-    membership_type_id: membershipTypeId,
-    suburb_id: suburbId,
-    subscription_status: 'active',
-  });
-
-  if (error) {
-    console.error(`Error creating member: ${error.message}`);
-    throw error;
-  }
-
-  console.log(`Member created: ${memberstackId}`);
-  return { action: 'created', memberstackId, membershipTypeId, suburbId };
-}
-
-async function handleMemberDeleted(data: any) {
-  const payload = data.payload || data;
-  const memberstackId = payload.id;
-
-  console.log(`Deleting member: ${memberstackId}`);
-
-  // Get member from Supabase (need webflow_id)
-  const { data: supabaseMember } = await supabase
-    .from('members')
-    .select('id, webflow_id, name')
-    .eq('memberstack_id', memberstackId)
-    .single();
-
-  if (!supabaseMember) {
-    console.log(`Member not found in Supabase: ${memberstackId}`);
-    return { action: 'skipped', reason: 'not_found' };
-  }
-
-  // Delete from Webflow if we have the webflow_id
-  if (supabaseMember.webflow_id) {
-    try {
-      // Delete member's projects first
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('webflow_id')
-        .eq('member_id', supabaseMember.id);
-
-      for (const project of projects || []) {
-        if (project.webflow_id) {
-          try {
-            await deleteWebflowItem(WEBFLOW_PROJECTS_COLLECTION_ID, project.webflow_id);
-          } catch (e) {
-            console.error(`Error deleting project from Webflow: ${e}`);
-          }
-        }
-      }
-
-      // Delete member's events
-      const { data: events } = await supabase
-        .from('events')
-        .select('webflow_id')
-        .eq('member_id', supabaseMember.id);
-
-      for (const event of events || []) {
-        if (event.webflow_id) {
-          try {
-            await deleteWebflowItem(WEBFLOW_EVENTS_COLLECTION_ID, event.webflow_id);
-          } catch (e) {
-            console.error(`Error deleting event from Webflow: ${e}`);
-          }
-        }
-      }
-
-      // Delete member
-      await deleteWebflowItem(WEBFLOW_MEMBERS_COLLECTION_ID, supabaseMember.webflow_id);
-      console.log(`Deleted from Webflow: ${supabaseMember.webflow_id}`);
-    } catch (e) {
-      console.error(`Error deleting from Webflow: ${e}`);
-    }
-  }
-
-  // Hard delete from Supabase (CASCADE will delete projects/events)
   const { error } = await supabase
     .from('members')
-    .delete()
-    .eq('memberstack_id', memberstackId);
+    .insert({
+      memberstack_id: memberData.id,
+      email: memberData.auth.email,
+      first_name: memberData.customFields?.['first-name'] || null,
+      last_name: memberData.customFields?.['last-name'] || null,
+      subscription_status: subscriptionStatus,
+      profile_complete: false,
+      is_deleted: false,
+    });
 
   if (error) {
-    console.error(`Error deleting from Supabase: ${error.message}`);
+    console.error('Error creating member:', error);
     throw error;
   }
 
-  console.log(`Member deleted: ${memberstackId}`);
-  return { action: 'deleted', memberstackId };
+  console.log('Member created in Supabase:', memberData.id);
 }
 
-async function handleSubscriptionCanceled(data: any) {
-  const payload = data.payload || data;
-  const memberstackId = payload.id || payload.memberId;
+// Soft delete member in Supabase
+async function softDeleteMember(memberstackId: string): Promise<{ webflowId: string | null }> {
+  const supabase = getSupabaseClient();
 
-  console.log(`Subscription canceled: ${memberstackId}`);
+  // Get the member first to retrieve Webflow ID
+  const member = await getMemberByMemberstackId(memberstackId);
 
-  // Get member from Supabase
-  const { data: supabaseMember } = await supabase
-    .from('members')
-    .select('id, webflow_id, name')
-    .eq('memberstack_id', memberstackId)
-    .single();
-
-  if (!supabaseMember) {
-    console.log(`Member not found in Supabase: ${memberstackId}`);
-    return { action: 'skipped', reason: 'not_found' };
+  if (!member) {
+    console.log('Member not found in Supabase:', memberstackId);
+    return { webflowId: null };
   }
 
-  // Update Supabase status
+  // Soft delete by setting is_deleted flag
   const { error } = await supabase
     .from('members')
     .update({
-      subscription_status: 'lapsed',
-      subscription_lapsed_at: new Date().toISOString(),
+      is_deleted: true,
+      subscription_status: 'deleted',
+      updated_at: new Date().toISOString()
     })
     .eq('memberstack_id', memberstackId);
 
   if (error) {
-    console.error(`Error updating Supabase: ${error.message}`);
+    console.error('Error soft deleting member:', error);
     throw error;
   }
 
-  // Unpublish from Webflow
-  if (supabaseMember.webflow_id) {
-    try {
-      // Unpublish member
-      await unpublishWebflowItem(WEBFLOW_MEMBERS_COLLECTION_ID, supabaseMember.webflow_id);
+  console.log('Member soft deleted in Supabase:', memberstackId);
 
-      // Unpublish member's projects
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('webflow_id')
-        .eq('member_id', supabaseMember.id);
-
-      for (const project of projects || []) {
-        if (project.webflow_id) {
-          try {
-            await unpublishWebflowItem(WEBFLOW_PROJECTS_COLLECTION_ID, project.webflow_id);
-          } catch (e) {
-            console.error(`Error unpublishing project: ${e}`);
-          }
-        }
-      }
-
-      console.log(`Unpublished from Webflow: ${supabaseMember.webflow_id}`);
-    } catch (e) {
-      console.error(`Error unpublishing from Webflow: ${e}`);
-    }
-  }
-
-  console.log(`Member marked as lapsed: ${memberstackId}`);
-  return { action: 'lapsed', memberstackId };
+  return { webflowId: member.webflow_id };
 }
 
-// ============================================
-// MAIN HANDLER
-// ============================================
+// Delete member from Webflow CMS
+async function deleteFromWebflow(webflowId: string): Promise<void> {
+  if (!WEBFLOW_API_TOKEN) {
+    console.log('WEBFLOW_API_TOKEN not configured, skipping Webflow delete');
+    return;
+  }
 
-serve(async (req) => {
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'accept': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    // 404 is OK - item might already be deleted
+    if (response.status === 404) {
+      console.log('Webflow item already deleted or not found:', webflowId);
+      return;
+    }
+    console.error('Webflow delete error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('Member deleted from Webflow:', webflowId);
+}
+
+// Delete member images from storage
+async function deleteMemberImages(memberstackId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  try {
+    // List all files in the member's folder
+    const { data: files, error: listError } = await supabase.storage
+      .from(MEMBER_IMAGES_BUCKET)
+      .list(memberstackId);
+
+    if (listError) {
+      console.error('Error listing member images:', listError);
+      return;
+    }
+
+    if (!files || files.length === 0) {
+      console.log('No images to delete for member:', memberstackId);
+      return;
+    }
+
+    // Build array of file paths to delete
+    const filePaths = files.map(file => `${memberstackId}/${file.name}`);
+
+    // Delete all files
+    const { error: deleteError } = await supabase.storage
+      .from(MEMBER_IMAGES_BUCKET)
+      .remove(filePaths);
+
+    if (deleteError) {
+      console.error('Error deleting member images:', deleteError);
+    } else {
+      console.log(`Deleted ${filePaths.length} images for member:`, memberstackId);
+    }
+  } catch (error) {
+    console.error('Error in deleteMemberImages:', error);
+  }
+}
+
+// Update member subscription status
+async function updateSubscriptionStatus(memberstackId: string, status: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from('members')
+    .update({
+      subscription_status: status,
+      updated_at: new Date().toISOString()
+    })
+    .eq('memberstack_id', memberstackId);
+
+  if (error) {
+    console.error('Error updating subscription status:', error);
+    throw error;
+  }
+
+  console.log('Member subscription status updated:', memberstackId, status);
+}
+
+// Handle member.created event
+async function handleMemberCreated(data: MemberstackMemberData): Promise<void> {
+  console.log('Handling member.created:', data.id);
+  await createMember(data);
+}
+
+// Handle member.deleted event
+async function handleMemberDeleted(data: MemberstackMemberData): Promise<void> {
+  console.log('Handling member.deleted:', data.id);
+
+  // 1. Soft delete in Supabase and get Webflow ID
+  const { webflowId } = await softDeleteMember(data.id);
+
+  // 2. Delete from Webflow if has Webflow ID
+  if (webflowId) {
+    await deleteFromWebflow(webflowId);
+  }
+
+  // 3. Delete images from storage
+  await deleteMemberImages(data.id);
+}
+
+// Handle member.updated event (for subscription changes)
+async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
+  console.log('Handling member.updated:', data.id);
+
+  // Check for subscription status changes
+  if (data.planConnections && data.planConnections.length > 0) {
+    const activePlan = data.planConnections.find(p => p.status === 'ACTIVE');
+    const status = activePlan ? 'active' : 'lapsed';
+    await updateSubscriptionStatus(data.id, status);
+  }
+}
+
+// Main handler
+serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', {
+      status: 405,
+      headers: corsHeaders
     });
   }
 
   try {
-    const body = await req.json();
+    // Verify webhook signature if secret is configured
+    if (MEMBERSTACK_WEBHOOK_SECRET) {
+      const signature = req.headers.get('x-memberstack-signature');
+      if (!signature) {
+        console.warn('Missing webhook signature');
+        // For now, just log warning but continue
+        // In production, you might want to reject unsigned requests
+      }
+      // TODO: Implement signature verification
+    }
 
-    // Log the webhook event
-    console.log('Received webhook:', JSON.stringify(body, null, 2));
+    const payload: MemberstackWebhookPayload = await req.json();
+    console.log('Received Memberstack webhook:', payload.event);
 
-    const event = body.event || body.type;
-    let result;
-
-    switch (event) {
+    switch (payload.event) {
       case 'member.created':
-        result = await handleMemberCreated(body);
+        await handleMemberCreated(payload.data);
         break;
 
       case 'member.deleted':
-        result = await handleMemberDeleted(body);
+        await handleMemberDeleted(payload.data);
         break;
 
-      case 'member.plan.canceled':
-      case 'member.plan.cancelled':
-      case 'subscription.canceled':
-      case 'subscription.cancelled':
-        result = await handleSubscriptionCanceled(body);
+      case 'member.updated':
+        await handleMemberUpdated(payload.data);
         break;
 
       default:
-        console.log(`Unhandled event type: ${event}`);
-        result = { action: 'ignored', event };
+        console.log('Unhandled event type:', payload.event);
     }
 
-    return new Response(JSON.stringify({ success: true, ...result }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Webhook error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, event: payload.event }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+
+  } catch (error) {
+    console.error('Webhook handler error:', error);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
   }
 });
