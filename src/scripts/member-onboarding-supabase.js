@@ -1092,6 +1092,7 @@
         name: displayName,
         business_name: formData.businessName || null,
         suburb_id: formData.suburb?.id || null,
+        business_address: formData.businessAddress || null,
         show_address: formData.displayAddress,
         show_opening_hours: formData.displayOpeningHours,
         // Opening hours
@@ -2112,12 +2113,13 @@
     const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const profileUrl = `/members/${slug}`;
 
-    // Define the loading steps
+    // Define the loading steps with varied durations (ms) to feel more realistic
+    // Total: 800 + 1200 + 900 + 700 = 3600ms + delays = ~4 seconds
     const loadingSteps = [
-      { text: 'Creating your profile page', icon: '1' },
-      { text: 'Uploading profile images', icon: '2' },
-      { text: 'Setting up your categories', icon: '3' },
-      { text: 'Finalizing your listing', icon: '4' }
+      { text: 'Creating your profile page', icon: '1', duration: 800 },
+      { text: 'Uploading profile images', icon: '2', duration: 1200 },
+      { text: 'Setting up your categories', icon: '3', duration: 900 },
+      { text: 'Finalizing your listing', icon: '4', duration: 700 }
     ];
 
     // Render loading screen
@@ -2138,10 +2140,9 @@
       </div>
     `;
 
-    // Animate through the steps
+    // Animate through the steps with varied timing
     const steps = container.querySelectorAll('.ms-loading-step');
     let currentStepIndex = 0;
-    const stepDuration = 500; // 500ms per step = 2 seconds total for 4 steps
 
     function animateStep() {
       if (currentStepIndex > 0 && steps[currentStepIndex - 1]) {
@@ -2153,18 +2154,19 @@
 
       if (currentStepIndex < steps.length) {
         steps[currentStepIndex].classList.add('active');
+        const currentDuration = loadingSteps[currentStepIndex].duration;
         currentStepIndex++;
-        setTimeout(animateStep, stepDuration);
+        setTimeout(animateStep, currentDuration);
       } else {
         // All steps complete, show success screen after a brief pause
         setTimeout(() => {
           renderFinalSuccess(container, profileUrl);
-        }, 400);
+        }, 500);
       }
     }
 
-    // Start animation
-    setTimeout(animateStep, 200);
+    // Start animation after a brief initial delay
+    setTimeout(animateStep, 300);
   }
 
   function renderFinalSuccess(container, profileUrl) {
