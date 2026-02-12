@@ -594,6 +594,131 @@
       color: #666;
       margin-top: 4px;
     }
+    /* Loading animation styles */
+    .ms-loading-screen {
+      text-align: center;
+      padding: 60px 32px;
+    }
+    .ms-loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: ms-spin 0.8s linear infinite;
+      margin: 0 auto 24px;
+    }
+    @keyframes ms-spin {
+      to { transform: rotate(360deg); }
+    }
+    .ms-loading-steps {
+      max-width: 300px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .ms-loading-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      color: #999;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    .ms-loading-step.active {
+      color: #333;
+    }
+    .ms-loading-step.complete {
+      color: #28a745;
+    }
+    .ms-loading-step-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      background: #e0e0e0;
+      color: #999;
+      transition: all 0.3s ease;
+    }
+    .ms-loading-step.active .ms-loading-step-icon {
+      background: #333;
+      color: #fff;
+    }
+    .ms-loading-step.complete .ms-loading-step-icon {
+      background: #28a745;
+      color: #fff;
+    }
+    .ms-success-screen {
+      text-align: center;
+      padding: 60px 32px;
+      animation: ms-fade-in 0.5s ease;
+    }
+    @keyframes ms-fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .ms-success-icon {
+      width: 80px;
+      height: 80px;
+      background: #28a745;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      color: #fff;
+    }
+    .ms-success-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 8px 0;
+    }
+    .ms-success-subtitle {
+      color: #666;
+      font-size: 16px;
+      margin: 0 0 32px 0;
+    }
+    .ms-success-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .ms-success-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 28px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      min-width: 200px;
+    }
+    .ms-success-btn-primary {
+      background: #333;
+      color: #fff;
+      border: 2px solid #333;
+    }
+    .ms-success-btn-primary:hover {
+      background: #555;
+      border-color: #555;
+    }
+    .ms-success-btn-secondary {
+      background: #fff;
+      color: #333;
+      border: 2px solid #333;
+    }
+    .ms-success-btn-secondary:hover {
+      background: #f5f5f5;
+    }
   `;
 
   // ============================================
@@ -1982,29 +2107,80 @@
   }
 
   function renderSuccess(container) {
-    let countdown = 5;
+    // Generate the member profile URL from slug
+    const displayName = formData.businessName || `${memberData.customFields?.['first-name'] || ''} ${memberData.customFields?.['last-name'] || ''}`.trim();
+    const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const profileUrl = `/members/${slug}`;
 
+    // Define the loading steps
+    const loadingSteps = [
+      { text: 'Creating your profile page', icon: '1' },
+      { text: 'Uploading profile images', icon: '2' },
+      { text: 'Setting up your categories', icon: '3' },
+      { text: 'Finalizing your listing', icon: '4' }
+    ];
+
+    // Render loading screen
     container.innerHTML = `
       <div class="ms-container">
-        <div class="ms-form" style="text-align: center; padding: 48px 32px;">
-          <div style="font-size: 48px; margin-bottom: 16px;">&#10003;</div>
-          <h2 style="margin: 0 0 8px 0;">Profile Complete!</h2>
-          <p style="color: #666; margin-bottom: 16px;">Your profile is now set up and ready to go.</p>
-          <p style="color: #999; font-size: 14px;">Transferring you to your dashboard in <span id="countdown">${countdown}</span> seconds...</p>
-          <a href="/profile/start" class="ms-btn" style="display: inline-block; text-decoration: none; margin-top: 16px;">Go to Dashboard Now</a>
+        <div class="ms-form ms-loading-screen">
+          <div class="ms-loading-spinner"></div>
+          <h2 style="margin: 0 0 24px 0; color: #333;">Setting Up Your Profile</h2>
+          <div class="ms-loading-steps">
+            ${loadingSteps.map((step, i) => `
+              <div class="ms-loading-step" data-step="${i}">
+                <span class="ms-loading-step-icon">${step.icon}</span>
+                <span>${step.text}</span>
+              </div>
+            `).join('')}
+          </div>
         </div>
       </div>
     `;
 
-    const countdownEl = container.querySelector('#countdown');
-    const timer = setInterval(() => {
-      countdown--;
-      if (countdownEl) countdownEl.textContent = countdown;
-      if (countdown <= 0) {
-        clearInterval(timer);
-        window.location.href = '/profile/start';
+    // Animate through the steps
+    const steps = container.querySelectorAll('.ms-loading-step');
+    let currentStepIndex = 0;
+    const stepDuration = 500; // 500ms per step = 2 seconds total for 4 steps
+
+    function animateStep() {
+      if (currentStepIndex > 0 && steps[currentStepIndex - 1]) {
+        steps[currentStepIndex - 1].classList.remove('active');
+        steps[currentStepIndex - 1].classList.add('complete');
+        const prevIcon = steps[currentStepIndex - 1].querySelector('.ms-loading-step-icon');
+        if (prevIcon) prevIcon.textContent = '✓';
       }
-    }, 1000);
+
+      if (currentStepIndex < steps.length) {
+        steps[currentStepIndex].classList.add('active');
+        currentStepIndex++;
+        setTimeout(animateStep, stepDuration);
+      } else {
+        // All steps complete, show success screen after a brief pause
+        setTimeout(() => {
+          renderFinalSuccess(container, profileUrl);
+        }, 400);
+      }
+    }
+
+    // Start animation
+    setTimeout(animateStep, 200);
+  }
+
+  function renderFinalSuccess(container, profileUrl) {
+    container.innerHTML = `
+      <div class="ms-container">
+        <div class="ms-form ms-success-screen">
+          <div class="ms-success-icon">✓</div>
+          <h2 class="ms-success-title">Profile Complete!</h2>
+          <p class="ms-success-subtitle">Your MTNS MADE profile is now live and ready to be discovered.</p>
+          <div class="ms-success-buttons">
+            <a href="${profileUrl}" class="ms-success-btn ms-success-btn-primary">View my MTNS MADE Profile</a>
+            <a href="/profile/start" class="ms-success-btn ms-success-btn-secondary">Go to my Dashboard</a>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderCurrentStep(container) {
