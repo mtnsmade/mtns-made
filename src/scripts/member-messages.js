@@ -10,7 +10,7 @@
   'use strict';
 
   const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY0Nzk2NDYsImV4cCI6MjA1MjA1NTY0Nn0.dDZ3MIa8EYbLqrCjbaZjBN2vpfLHj2SgNhNvw1B-YmE';
+  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
 
   let supabase;
   let currentMember = null;
