@@ -19,7 +19,7 @@
   // Inject styles
   const styles = `
     .messages-section {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: inherit;
     }
     .messages-header {
       display: flex;
@@ -47,8 +47,14 @@
       color: #666;
     }
     .messages-empty-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      color: #666;
+    }
+    .messages-empty-icon svg {
+      width: 100%;
+      height: 100%;
     }
     .messages-list {
       display: flex;
@@ -307,7 +313,9 @@
     if (messages.length === 0) {
       html += `
         <div class="messages-empty">
-          <div class="messages-empty-icon">📬</div>
+          <div class="messages-empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 24 24"><path fill="currentColor" d="M7 7h10v2H7zm0 4h7v2H7z"></path><path fill="currentColor" d="M20 2H4c-1.103 0-2 .897-2 2v18l5.333-4H20c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2m0 14H6.667L4 18V4h16z"></path></svg>
+          </div>
           <h3>No messages yet</h3>
           <p>When someone contacts you through your MTNS MADE profile, their messages will appear here.</p>
         </div>
