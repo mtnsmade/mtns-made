@@ -497,6 +497,33 @@
       height: 12px;
     }
 
+    .x-nav-overlay-login-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 15px;
+      background: transparent;
+      color: var(--nav-text);
+      border: 1px solid var(--nav-text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font-nav-light);
+      font-size: 13px;
+      font-weight: 300;
+      text-decoration: none;
+      transition: background var(--transition-fast), color var(--transition-fast);
+    }
+
+    .x-nav-overlay-login-btn:hover {
+      background: var(--nav-text);
+      color: #fff;
+    }
+
+    .x-nav-overlay-login-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
     .x-nav-overlay-close {
       background: none;
       border: none;
@@ -591,7 +618,7 @@
       justify-content: space-between;
       padding: 16px 0;
       font-family: var(--font-nav-regular);
-      font-size: 16px;
+      font-size: 20px;
       font-weight: normal;
       color: var(--overlay-text);
       text-decoration: none;
@@ -855,7 +882,9 @@
     calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
     logout: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`,
     grid: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>`,
-    helpCircle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`
+    helpCircle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`,
+    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v2H7zm0 4h7v2H7z"/><path d="M20 2H4c-1.103 0-2 .897-2 2v18l5.333-4H20c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2m0 14H6.667L4 18V4h16z"/></svg>`,
+    login: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>`
   };
 
   // ============================================
@@ -878,6 +907,9 @@
       </a>
       <a href="/profile/suggest-an-event" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.calendar}</span>My Events
+      </a>
+      <a href="/profile/messages" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${icons.message}</span>My Messages
       </a>
       <a href="/profile/support" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.helpCircle}</span>Get Support
@@ -951,7 +983,7 @@
         <div class="x-nav-overlay-header">
           <div class="x-nav-overlay-logo">${LOGO_SVG}</div>
           <div class="x-nav-overlay-header-actions">
-            ${isLoggedIn ? `<a href="${profileUrl || '/profile'}" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : ''}
+            ${isLoggedIn ? `<a href="${profileUrl || '/profile'}" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : `<a href="/sign-in" class="x-nav-overlay-login-btn">${icons.login} Log In</a>`}
             <button class="x-nav-overlay-close" data-action="close-menu">${icons.x}</button>
           </div>
         </div>
