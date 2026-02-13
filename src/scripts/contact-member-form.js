@@ -62,11 +62,11 @@
     const originalBtnText = submitBtn?.value || submitBtn?.textContent;
 
     // Get form fields (support various Webflow naming conventions)
-    const senderName = form.querySelector('[name="name"], [name="Name"], [name="sender-name"], [name="Your-Name"]')?.value?.trim();
-    const senderEmail = form.querySelector('[name="email"], [name="Email"], [name="your-email"], [name="Your-Email"]')?.value?.trim();
-    const senderPhone = form.querySelector('[name="phone"], [name="Phone"], [name="contact-number"], [name="Contact-Number"]')?.value?.trim();
-    const subject = form.querySelector('[name="subject"], [name="Subject"], [name="subject-of-enquiry"], [name="Subject-Of-Enquiry"], [name="Subject-of-Enquiry"]')?.value?.trim();
-    const message = form.querySelector('[name="message"], [name="Message"], [name="your-message"], [name="Your-Message"]')?.value?.trim();
+    const senderName = form.querySelector('[name="name"], [name="Name"], [name="sender-name"]')?.value?.trim();
+    const senderEmail = form.querySelector('[name="email"], [name="Email"]')?.value?.trim();
+    const senderPhone = form.querySelector('[name="phone"], [name="Phone"], [name="contact-number"], [name="Contact-Number"], [name="Contact-1-Name-2"]')?.value?.trim();
+    const subject = form.querySelector('[name="subject"], [name="Subject"], [name="Enquiry-Subject"], [name="enquiry-subject"]')?.value?.trim();
+    const message = form.querySelector('[name="message"], [name="Message"], [name="Enquiry-Details"], [name="enquiry-details"]')?.value?.trim();
 
     // Validate
     if (!senderName || !senderEmail || !subject || !message) {
