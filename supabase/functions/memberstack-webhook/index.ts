@@ -181,6 +181,107 @@ async function deleteFromWebflow(webflowId: string): Promise<void> {
   console.log('Member deleted from Webflow:', webflowId);
 }
 
+// Archive member in Webflow CMS (hides from directory but keeps data)
+async function archiveInWebflow(webflowId: string): Promise<void> {
+  if (!WEBFLOW_API_TOKEN) {
+    console.log('WEBFLOW_API_TOKEN not configured, skipping Webflow archive');
+    return;
+  }
+
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        isArchived: true,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    if (response.status === 404) {
+      console.log('Webflow item not found for archiving:', webflowId);
+      return;
+    }
+    console.error('Webflow archive error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('Member archived in Webflow:', webflowId);
+
+  // Publish the change
+  await publishWebflowMember(webflowId);
+}
+
+// Unarchive member in Webflow CMS (when they resubscribe)
+async function unarchiveInWebflow(webflowId: string): Promise<void> {
+  if (!WEBFLOW_API_TOKEN) {
+    console.log('WEBFLOW_API_TOKEN not configured, skipping Webflow unarchive');
+    return;
+  }
+
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        isArchived: false,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    if (response.status === 404) {
+      console.log('Webflow item not found for unarchiving:', webflowId);
+      return;
+    }
+    console.error('Webflow unarchive error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('Member unarchived in Webflow:', webflowId);
+
+  // Publish the change
+  await publishWebflowMember(webflowId);
+}
+
+// Publish member in Webflow CMS
+async function publishWebflowMember(webflowId: string): Promise<void> {
+  const response = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/publish`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        itemIds: [webflowId],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Webflow publish error:', response.status, errorText);
+  } else {
+    console.log('Webflow member published:', webflowId);
+  }
+}
+
 // Delete member images from storage
 async function deleteMemberImages(memberstackId: string): Promise<void> {
   const supabase = getSupabaseClient();
@@ -265,11 +366,41 @@ async function handleMemberDeleted(data: MemberstackMemberData): Promise<void> {
 async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
   console.log('Handling member.updated:', data.id);
 
-  // Check for subscription status changes
+  // Get current member data from Supabase
+  const member = await getMemberByMemberstackId(data.id);
+  if (!member) {
+    console.log('Member not found in Supabase for update:', data.id);
+    return;
+  }
+
+  const previousStatus = member.subscription_status;
+
+  // Determine new status from plan connections
+  let newStatus = previousStatus;
   if (data.planConnections && data.planConnections.length > 0) {
     const activePlan = data.planConnections.find(p => p.status === 'ACTIVE');
-    const status = activePlan ? 'active' : 'lapsed';
-    await updateSubscriptionStatus(data.id, status);
+    newStatus = activePlan ? 'active' : 'lapsed';
+  }
+
+  // Update Supabase if status changed
+  if (newStatus !== previousStatus) {
+    await updateSubscriptionStatus(data.id, newStatus);
+    console.log(`Member status changed: ${previousStatus} -> ${newStatus}`);
+
+    // Handle Webflow archive/unarchive if member has a Webflow ID
+    if (member.webflow_id) {
+      if (newStatus === 'lapsed' && previousStatus === 'active') {
+        // Member cancelled - archive in Webflow
+        console.log('Archiving member in Webflow due to cancellation');
+        await archiveInWebflow(member.webflow_id);
+      } else if (newStatus === 'active' && previousStatus === 'lapsed') {
+        // Member resubscribed - unarchive in Webflow
+        console.log('Unarchiving member in Webflow due to resubscription');
+        await unarchiveInWebflow(member.webflow_id);
+      }
+    }
+  } else {
+    console.log('Member status unchanged:', newStatus);
   }
 }
 
