@@ -40,19 +40,26 @@
     console.log('Contact member form found, attaching handler');
 
     // Get member info from hidden fields or data attributes
+    // Check inside form first, then anywhere on page
     const memberstackId = form.querySelector('[name="memberstack-id"]')?.value ||
                           form.querySelector('[name="memberstack"]')?.value ||
                           form.dataset.memberstackId ||
-                          document.querySelector('[data-memberstack-id]')?.dataset.memberstackId;
+                          document.querySelector('[name="memberstack-id"]')?.value ||
+                          document.querySelector('[name="memberstack"]')?.value ||
+                          document.querySelector('[data-memberstack-id]')?.dataset.memberstackId ||
+                          document.querySelector('#memberstack')?.value;
 
     const memberName = form.querySelector('[name="member-name"]')?.value ||
                        form.querySelector('[name="first-name"]')?.value ||
                        form.dataset.memberName ||
+                       document.querySelector('[name="member-name"]')?.value ||
+                       document.querySelector('[name="first-name"]')?.value ||
                        document.querySelector('[data-member-name]')?.dataset.memberName ||
                        document.querySelector('.member-name')?.textContent?.trim();
 
     if (!memberstackId) {
       console.error('Memberstack ID not found for contact form');
+      console.log('Searched for: [name="memberstack-id"], [name="memberstack"], #memberstack, [data-memberstack-id]');
       return;
     }
 
