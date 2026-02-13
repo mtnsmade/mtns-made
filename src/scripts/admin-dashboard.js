@@ -649,7 +649,8 @@ MTNS MADE Team`;
       failedSignups,
       recentEvents,
       eventStats,
-      recentProjects
+      recentProjects,
+      messageStats
     ] = await Promise.all([
       loadRecentMembers(),
       loadMemberStats(),
@@ -657,7 +658,8 @@ MTNS MADE Team`;
       loadFailedSignups(),
       loadRecentEvents(),
       loadEventStats(),
-      loadRecentProjects()
+      loadRecentProjects(),
+      loadMessageStats()
     ]);
 
     return {
@@ -668,6 +670,7 @@ MTNS MADE Team`;
       recentEvents,
       eventStats,
       recentProjects,
+      messageStats,
       loadedAt: new Date()
     };
   }
@@ -704,6 +707,34 @@ MTNS MADE Team`;
     const pendingSync = all?.filter(m => m.profile_complete && !m.webflow_id && m.subscription_status === 'active').length || 0;
 
     return { total, active, lapsed, complete, synced, pendingSync };
+  }
+
+  async function loadMessageStats() {
+    try {
+      // Get current month start
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+      // Total messages
+      const { data: allMessages } = await supabase
+        .from('messages')
+        .select('id, is_read, created_at');
+
+      // This month's messages
+      const { data: monthMessages } = await supabase
+        .from('messages')
+        .select('id')
+        .gte('created_at', monthStart);
+
+      const total = allMessages?.length || 0;
+      const unread = allMessages?.filter(m => !m.is_read).length || 0;
+      const thisMonth = monthMessages?.length || 0;
+
+      return { total, unread, thisMonth };
+    } catch (error) {
+      console.error('Error loading message stats:', error);
+      return { total: 0, unread: 0, thisMonth: 0 };
+    }
   }
 
   async function loadIncompleteProfiles() {
@@ -935,8 +966,8 @@ MTNS MADE Team`;
             <div class="stat-label">Profiles Complete</div>
           </div>
           <div class="stat-cell">
-            <div class="stat-value">${data.memberStats.synced}</div>
-            <div class="stat-label">Synced to Webflow</div>
+            <div class="stat-value">${data.messageStats.thisMonth}</div>
+            <div class="stat-label">Messages This Month</div>
           </div>
         </div>
 
