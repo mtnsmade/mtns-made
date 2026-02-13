@@ -21,17 +21,6 @@
     .messages-section {
       font-family: inherit;
     }
-    .messages-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
-    .messages-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0;
-    }
     .messages-badge {
       background: #dc3545;
       color: #fff;
@@ -300,14 +289,16 @@
   function renderMessages(container) {
     const unreadCount = messages.filter(m => !m.is_read).length;
 
+    // Add unread badge to existing page heading if present
+    if (unreadCount > 0) {
+      const existingHeading = document.querySelector('.messages-page-title, h1');
+      if (existingHeading && !existingHeading.querySelector('.messages-badge')) {
+        existingHeading.insertAdjacentHTML('beforeend', ` <span class="messages-badge">${unreadCount} new</span>`);
+      }
+    }
+
     let html = `
       <div class="messages-section">
-        <div class="messages-header">
-          <h2 class="messages-title">
-            Messages
-            ${unreadCount > 0 ? `<span class="messages-badge">${unreadCount} new</span>` : ''}
-          </h2>
-        </div>
     `;
 
     if (messages.length === 0) {
