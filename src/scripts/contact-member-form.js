@@ -30,10 +30,12 @@
 
     // Get member info from hidden fields or data attributes
     const memberstackId = form.querySelector('[name="memberstack-id"]')?.value ||
+                          form.querySelector('[name="memberstack"]')?.value ||
                           form.dataset.memberstackId ||
                           document.querySelector('[data-memberstack-id]')?.dataset.memberstackId;
 
     const memberName = form.querySelector('[name="member-name"]')?.value ||
+                       form.querySelector('[name="first-name"]')?.value ||
                        form.dataset.memberName ||
                        document.querySelector('[data-member-name]')?.dataset.memberName ||
                        document.querySelector('.member-name')?.textContent?.trim();
@@ -59,12 +61,12 @@
     const submitBtn = form.querySelector('[type="submit"]') || form.querySelector('input[type="submit"]');
     const originalBtnText = submitBtn?.value || submitBtn?.textContent;
 
-    // Get form fields
-    const senderName = form.querySelector('[name="name"], [name="Name"], [name="sender-name"]')?.value?.trim();
-    const senderEmail = form.querySelector('[name="email"], [name="Email"], [name="your-email"]')?.value?.trim();
-    const senderPhone = form.querySelector('[name="phone"], [name="Phone"], [name="contact-number"]')?.value?.trim();
-    const subject = form.querySelector('[name="subject"], [name="Subject"], [name="subject-of-enquiry"]')?.value?.trim();
-    const message = form.querySelector('[name="message"], [name="Message"]')?.value?.trim();
+    // Get form fields (support various Webflow naming conventions)
+    const senderName = form.querySelector('[name="name"], [name="Name"], [name="sender-name"], [name="Your-Name"]')?.value?.trim();
+    const senderEmail = form.querySelector('[name="email"], [name="Email"], [name="your-email"], [name="Your-Email"]')?.value?.trim();
+    const senderPhone = form.querySelector('[name="phone"], [name="Phone"], [name="contact-number"], [name="Contact-Number"]')?.value?.trim();
+    const subject = form.querySelector('[name="subject"], [name="Subject"], [name="subject-of-enquiry"], [name="Subject-Of-Enquiry"], [name="Subject-of-Enquiry"]')?.value?.trim();
+    const message = form.querySelector('[name="message"], [name="Message"], [name="your-message"], [name="Your-Message"]')?.value?.trim();
 
     // Validate
     if (!senderName || !senderEmail || !subject || !message) {
