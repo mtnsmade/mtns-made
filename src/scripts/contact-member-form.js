@@ -16,10 +16,21 @@
 
   // Wait for DOM ready
   function init() {
-    // Find the contact form
-    const form = document.querySelector('.contact-member-form') ||
-                 document.getElementById('contact-member-form') ||
-                 document.querySelector('[data-form="contact-member"]');
+    // Find the contact form - try multiple patterns
+    let form = document.querySelector('.contact-member-form') ||
+               document.getElementById('contact-member-form') ||
+               document.querySelector('[data-form="contact-member"]') ||
+               document.querySelector('.member-contact-form form') ||
+               document.querySelector('[class*="member-contact-form"] form') ||
+               document.querySelector('[class*="contact-member"] form');
+
+    // Also check if data-form is on a parent element
+    if (!form) {
+      const container = document.querySelector('[data-form="contact-member"]');
+      if (container) {
+        form = container.querySelector('form') || container;
+      }
+    }
 
     if (!form) {
       console.log('Contact member form not found on this page');
