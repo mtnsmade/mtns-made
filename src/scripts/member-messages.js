@@ -236,8 +236,15 @@
 
     injectStyles();
 
-    // Initialize Supabase
+    // Initialize Supabase - check if library is loaded
+    if (!window.supabase) {
+      console.error('Supabase library not loaded. Make sure to include the Supabase JS script.');
+      container.innerHTML = '<p>Error: Required library not loaded. Please refresh the page.</p>';
+      return;
+    }
+
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Messages: Supabase client initialized');
 
     // Get current member from Memberstack
     try {
@@ -269,14 +276,26 @@
 
   async function loadMessages(container) {
     try {
-      const { data, error } = await supabase
+      console.log('Messages: Loading for memberstack_id:', currentMember.id);
+
+      const { data, error, status } = await supabase
         .from('messages')
         .select('*')
         .eq('memberstack_id', currentMember.id)
         .eq('is_archived', false)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('Messages: Query response - status:', status, 'error:', error, 'data count:', data?.length);
+
+      if (error) {
+        console.error('Messages: Supabase error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
 
       messages = data || [];
       renderMessages(container);
