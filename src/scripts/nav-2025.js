@@ -977,7 +977,7 @@
         </div>
 
         <div class="x-nav-actions">
-          ${!isLoggedIn ? `<a href="/sign-in" class="x-nav-login">Log In</a>` : ''}
+          ${!isLoggedIn ? `<a href="/tools/login" class="x-nav-login">Log In</a>` : ''}
           ${!isLoggedIn ? `<a href="/join" class="x-nav-btn">Become a Member</a>` : ''}
           ${isLoggedIn ? `
             <div class="x-nav-user">
@@ -1007,7 +1007,7 @@
         <div class="x-nav-overlay-header">
           <div class="x-nav-overlay-logo">${LOGO_SVG}</div>
           <div class="x-nav-overlay-header-actions">
-            ${isLoggedIn ? `<a href="${profileUrl || '/profile'}" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : `<a href="/sign-in" class="x-nav-overlay-login-btn">${icons.login} Log In</a>`}
+            ${isLoggedIn ? `<a href="${profileUrl || '/profile'}" class="x-nav-overlay-user-btn">Hello, ${firstName} ${icons.chevronDown}</a>` : `<a href="/tools/login" class="x-nav-overlay-login-btn">${icons.login} Log In</a>`}
             <button class="x-nav-overlay-close" data-action="close-menu">${icons.x}</button>
           </div>
         </div>
