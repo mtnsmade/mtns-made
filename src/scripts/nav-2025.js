@@ -860,10 +860,33 @@
       .x-nav-primary { display: none; }
       .x-nav-actions { gap: 8px; }
       .x-nav-btn, .x-nav-user-btn { padding: 8px 12px; font-size: 12px; }
+      .x-nav-login { display: none; }
     }
 
     @media (max-width: 374px) {
       .x-nav-btn:not(.x-nav-user-btn) { display: none; }
+    }
+
+    /* Login button in main nav */
+    .x-nav-login {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 15px;
+      background: transparent;
+      color: var(--nav-text);
+      border: 1px solid var(--btn-bg);
+      border-radius: 8px;
+      font-family: var(--font-nav-light);
+      font-size: 13px;
+      font-weight: 300;
+      text-decoration: none;
+      transition: background var(--transition-fast), color var(--transition-fast);
+    }
+
+    .x-nav-login:hover {
+      background: var(--btn-bg);
+      color: #fff;
     }
 
     body.nav-overlay-open {
@@ -954,6 +977,7 @@
         </div>
 
         <div class="x-nav-actions">
+          ${!isLoggedIn ? `<a href="/sign-in" class="x-nav-login">Log In</a>` : ''}
           ${!isLoggedIn ? `<a href="/join" class="x-nav-btn">Become a Member</a>` : ''}
           ${isLoggedIn ? `
             <div class="x-nav-user">
