@@ -977,7 +977,6 @@
         </div>
 
         <div class="x-nav-actions">
-          ${!isLoggedIn ? `<a href="/tools/login" class="x-nav-login">Log In</a>` : ''}
           ${!isLoggedIn ? `<a href="/join" class="x-nav-btn">Become a Member</a>` : ''}
           ${isLoggedIn ? `
             <div class="x-nav-user">
