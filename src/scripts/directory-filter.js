@@ -339,13 +339,14 @@
     const { data: members, error: memError } = await supabase
       .from('members')
       .select(`
-        id, name, slug, business_name,
+        id, name, slug, business_name, memberstack_id,
         profile_image_url, header_image_url, short_summary,
         suburb_id, suburbs(name, slug),
         status, subscription_status, membership_type_id,
         membership_types(name)
       `)
       .in('id', Array.from(memberIds))
+      .not('memberstack_id', 'is', null)
       .order('name');
 
     if (memError) throw memError;
@@ -362,10 +363,11 @@
     console.log('Directory filter: Status breakdown:', statusCounts);
     console.log('Directory filter: Subscription status breakdown:', subStatusCounts);
 
-    // Filter out explicitly inactive/cancelled members, but include those with null or 'active' status
-    // For subscription_status: include active, trialing, or null (might not be set yet)
+    // Filter to only show real members with valid accounts
     allMembers = (members || [])
       .filter(m => {
+        // Must have a Memberstack account (real member)
+        if (!m.memberstack_id) return false;
         const status = m.status || '';
         const subStatus = m.subscription_status || '';
         // Exclude explicitly inactive members
