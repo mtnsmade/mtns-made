@@ -22,65 +22,29 @@
   let memberSubDirectoryMap = {}; // member_id -> [sub_directory_ids]
   let activeFilters = new Set();
 
-  // Inject styles (only for filter buttons - member grid uses existing Webflow styles)
+  // Inject styles (minimal - uses existing Webflow button styles)
   const styles = `
     .directory-filters {
       margin-bottom: 32px;
     }
-    .directory-filters-label {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 12px;
-      color: #666;
-    }
-    .directory-filter-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .directory-filter-btn {
-      padding: 8px 16px;
-      background: #f5f5f5;
-      border: 1px solid #e0e0e0;
-      border-radius: 20px;
-      font-family: inherit;
-      font-size: 14px;
-      color: #333;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .directory-filter-btn:hover {
-      background: #e8e8e8;
-      border-color: #ccc;
-    }
     .directory-filter-btn.active {
-      background: #333;
-      border-color: #333;
-      color: #fff;
+      background-color: #333 !important;
+      border-color: #333 !important;
+      color: #fff !important;
     }
     .directory-filter-btn.active:hover {
-      background: #555;
-      border-color: #555;
+      background-color: #555 !important;
+      border-color: #555 !important;
     }
-    .directory-filter-clear {
-      padding: 8px 16px;
-      background: transparent;
-      border: 1px dashed #ccc;
-      border-radius: 20px;
-      font-family: inherit;
-      font-size: 14px;
-      color: #666;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .directory-filter-clear:hover {
-      border-color: #999;
-      color: #333;
+    .directory-filter-clear.is-secondary {
+      background-color: transparent !important;
+      border-style: dashed !important;
     }
     .directory-member-count {
       margin-top: 16px;
       font-size: 14px;
       color: #666;
+      text-align: center;
     }
     .directory-loading {
       text-align: center;
@@ -96,16 +60,6 @@
       margin: 0 0 8px 0;
       font-size: 18px;
       color: #333;
-    }
-    @media (max-width: 575px) {
-      .directory-filter-buttons {
-        gap: 6px;
-      }
-      .directory-filter-btn,
-      .directory-filter-clear {
-        padding: 6px 12px;
-        font-size: 13px;
-      }
     }
   `;
 
@@ -300,17 +254,27 @@
       return;
     }
 
+    // Use Webflow's existing button structure for styling consistency
     const filterButtons = subDirectories.map(sd => `
-      <button class="directory-filter-btn" data-sub-id="${sd.id}" data-sub-slug="${sd.slug}">
-        ${sd.name}
-      </button>
+      <div role="listitem" class="w-dyn-item">
+        <button class="button w-button directory-filter-btn" data-sub-id="${sd.id}" data-sub-slug="${sd.slug}">
+          ${sd.name}
+        </button>
+      </div>
     `).join('');
 
     container.innerHTML = `
-      <p class="directory-filters-label">Filter by specialty:</p>
-      <div class="directory-filter-buttons">
-        ${filterButtons}
-        <button class="directory-filter-clear" style="display: none;">Clear filters</button>
+      <div class="max-width-large">
+        <div class="margin-top">
+          <div class="w-dyn-list">
+            <div role="list" class="member-categories subdirectory w-dyn-items">
+              ${filterButtons}
+              <div role="listitem" class="w-dyn-item directory-clear-item" style="display: none;">
+                <button class="button w-button directory-filter-clear is-secondary">Clear filters</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <p class="directory-member-count">${allMembers.length} members</p>
     `;
@@ -336,16 +300,17 @@
       btn.classList.add('active');
     }
 
-    // Show/hide clear button
-    const clearBtn = filtersContainer.querySelector('.directory-filter-clear');
-    if (clearBtn) {
-      clearBtn.style.display = activeFilters.size > 0 ? 'inline-block' : 'none';
+    // Show/hide clear button item
+    const clearItem = filtersContainer.querySelector('.directory-clear-item');
+    if (clearItem) {
+      clearItem.style.display = activeFilters.size > 0 ? '' : 'none';
     }
 
     // Filter and re-render
     const filtered = filterMembers();
-    const grid = document.querySelector('.directory-members-grid');
-    renderMembers(grid, filtered);
+    const grid = document.querySelector('.x-member-grid-container') ||
+                 document.querySelector('.directory-members-grid');
+    if (grid) renderMembers(grid, filtered);
 
     // Update count
     const countEl = filtersContainer.querySelector('.directory-member-count');
@@ -364,11 +329,12 @@
       btn.classList.remove('active');
     });
 
-    const clearBtn = filtersContainer.querySelector('.directory-filter-clear');
-    if (clearBtn) clearBtn.style.display = 'none';
+    const clearItem = filtersContainer.querySelector('.directory-clear-item');
+    if (clearItem) clearItem.style.display = 'none';
 
-    const grid = document.querySelector('.directory-members-grid');
-    renderMembers(grid, allMembers);
+    const grid = document.querySelector('.x-member-grid-container') ||
+                 document.querySelector('.directory-members-grid');
+    if (grid) renderMembers(grid, allMembers);
 
     const countEl = filtersContainer.querySelector('.directory-member-count');
     if (countEl) {
