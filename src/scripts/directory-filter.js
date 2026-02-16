@@ -22,7 +22,7 @@
   let memberSubDirectoryMap = {}; // member_id -> [sub_directory_ids]
   let activeFilters = new Set();
 
-  // Inject styles
+  // Inject styles (only for filter buttons - member grid uses existing Webflow styles)
   const styles = `
     .directory-filters {
       margin-bottom: 32px;
@@ -82,64 +82,6 @@
       font-size: 14px;
       color: #666;
     }
-    .directory-members-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 24px;
-    }
-    .directory-member-card {
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      overflow: hidden;
-      transition: box-shadow 0.2s ease;
-    }
-    .directory-member-card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .directory-member-card a {
-      text-decoration: none;
-      color: inherit;
-      display: block;
-    }
-    .directory-member-image {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      background: #f0f0f0;
-    }
-    .directory-member-info {
-      padding: 16px;
-    }
-    .directory-member-name {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 0 0 4px 0;
-      color: #333;
-    }
-    .directory-member-business {
-      font-size: 14px;
-      color: #666;
-      margin: 0 0 8px 0;
-    }
-    .directory-member-location {
-      font-size: 13px;
-      color: #999;
-      margin: 0;
-    }
-    .directory-member-categories {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 12px;
-    }
-    .directory-member-category {
-      font-size: 11px;
-      padding: 2px 8px;
-      background: #f0f0f0;
-      border-radius: 10px;
-      color: #666;
-    }
     .directory-loading {
       text-align: center;
       padding: 60px 20px;
@@ -163,10 +105,6 @@
       .directory-filter-clear {
         padding: 6px 12px;
         font-size: 13px;
-      }
-      .directory-members-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
       }
     }
   `;
@@ -193,11 +131,13 @@
       return;
     }
 
-    const membersGrid = document.querySelector('.directory-members-grid');
+    // Look for the Webflow grid container or fallback
+    const membersGrid = document.querySelector('.x-member-grid-container') ||
+                        document.querySelector('.directory-members-grid');
     const filtersContainer = document.querySelector('.directory-filters');
 
     if (!membersGrid) {
-      console.log('Directory filter: No members grid container found');
+      console.log('Directory filter: No members grid container found (.x-member-grid-container or .directory-members-grid)');
       return;
     }
 
@@ -212,7 +152,7 @@
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Show loading
-    membersGrid.innerHTML = '<div class="directory-loading">Loading members...</div>';
+    membersGrid.innerHTML = '<div class="w-dyn-list"><div class="directory-loading">Loading members...</div></div>';
 
     try {
       await loadDirectoryData(slug);
@@ -290,9 +230,10 @@
       .from('members')
       .select(`
         id, name, slug, business_name,
-        profile_image_url, short_summary,
-        suburb_id, suburbs(name),
-        status, subscription_status
+        profile_image_url, header_image_url, short_summary,
+        suburb_id, suburbs(name, slug),
+        status, subscription_status, membership_type_id,
+        membership_types(name)
       `)
       .in('id', Array.from(memberIds))
       .eq('status', 'active')
@@ -410,47 +351,63 @@
   function renderMembers(container, members) {
     if (members.length === 0) {
       container.innerHTML = `
-        <div class="directory-empty">
-          <h3>No members found</h3>
-          <p>Try clearing your filters or check back later.</p>
+        <div class="w-dyn-list">
+          <div class="w-dyn-empty">
+            <div class="directory-empty">
+              <h3>No members found</h3>
+              <p>Try clearing your filters or check back later.</p>
+            </div>
+          </div>
         </div>
       `;
       return;
     }
 
     const cards = members.map(member => {
-      const imageUrl = member.profile_image_url || '/images/default-profile.jpg';
-      const location = member.suburbs?.name || '';
-      const categories = member.subDirectoryNames.slice(0, 3).join(', ');
+      const featureImage = member.header_image_url || member.profile_image_url || '';
+      const profileImage = member.profile_image_url || '';
+      const suburbName = member.suburbs?.name || '';
+      const suburbSlug = member.suburbs?.slug || '';
+      const memberType = member.membership_types?.name || 'Professional';
+      const displayName = member.business_name || member.name;
 
       return `
-        <div class="directory-member-card" data-member-id="${member.id}">
-          <a href="/members/${member.slug}">
-            <img
-              class="directory-member-image"
-              src="${imageUrl}"
-              alt="${member.name}"
-              loading="lazy"
-              onerror="this.src='/images/default-profile.jpg'"
-            >
-            <div class="directory-member-info">
-              <h3 class="directory-member-name">${member.name}</h3>
-              ${member.business_name ? `<p class="directory-member-business">${member.business_name}</p>` : ''}
-              ${location ? `<p class="directory-member-location">${location}</p>` : ''}
-              ${categories ? `
-                <div class="directory-member-categories">
-                  ${member.subDirectoryNames.slice(0, 3).map(cat =>
-                    `<span class="directory-member-category">${cat}</span>`
-                  ).join('')}
-                </div>
-              ` : ''}
+        <div role="listitem" class="w-dyn-item">
+          <div class="x-member-card">
+            <div class="x-member-feature-image-container">
+              <div class="x-member-type hide">
+                <img src="https://cdn.prod.website-files.com/6481b864324e32f8eb266e31/681ac65056f48d463096333e_Status%3DProfessional.svg" loading="lazy" alt="" class="x-member-type-image">
+                <div class="text-style-allcaps text-color-white small">${memberType}</div>
+                <div>${memberType}</div>
+              </div>
+              <a href="/members/${member.slug}" class="x-member-feature-image w-inline-block">
+                <img src="${featureImage}" loading="lazy" alt="${displayName}" class="x-member-feature-image" onerror="this.style.display='none'">
+              </a>
             </div>
-          </a>
+            <div class="x-member-card-text-container">
+              <div class="x-member-name">
+                <div class="x-member-profile-image">
+                  <img src="${profileImage}" loading="lazy" alt="${displayName}" onerror="this.style.display='none'">
+                </div>
+                <a href="/members/${member.slug}" class="heading-style-h4 member-name">${displayName}</a>
+              </div>
+              <div class="x-member-location">
+                ${suburbSlug ? `<a href="/suburb/${suburbSlug}" class="text-style-allcaps text-weight-light small">${suburbName}</a>` : `<span class="text-style-allcaps text-weight-light small">${suburbName}</span>`}
+              </div>
+            </div>
+          </div>
         </div>
       `;
     }).join('');
 
-    container.innerHTML = cards;
+    // Use the exact Webflow grid structure
+    container.innerHTML = `
+      <div class="w-dyn-list">
+        <div role="list" class="x-member-grid w-dyn-items">
+          ${cards}
+        </div>
+      </div>
+    `;
   }
 
   // Initialize when DOM is ready
