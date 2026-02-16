@@ -173,7 +173,7 @@ async function deleteProjectImages(memberstackId: string, projectId: string): Pr
   try {
     // List all files in the project folder
     const { data: files, error: listError } = await supabase.storage
-      .from(STORAGE_BUCKET)
+      .from(PROJECT_IMAGES_BUCKET)
       .list(folderPath);
 
     if (listError) {
@@ -191,7 +191,7 @@ async function deleteProjectImages(memberstackId: string, projectId: string): Pr
 
     // Delete all files
     const { error: deleteError } = await supabase.storage
-      .from(STORAGE_BUCKET)
+      .from(PROJECT_IMAGES_BUCKET)
       .remove(filePaths);
 
     if (deleteError) {
