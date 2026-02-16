@@ -339,7 +339,7 @@
     const { data: members, error: memError } = await supabase
       .from('members')
       .select(`
-        id, name, slug, business_name, memberstack_id,
+        id, name, slug, business_name, memberstack_id, webflow_id,
         profile_image_url, header_image_url, short_summary,
         suburb_id, suburbs(name, slug),
         status, subscription_status, membership_type_id,
@@ -347,6 +347,7 @@
       `)
       .in('id', Array.from(memberIds))
       .not('memberstack_id', 'is', null)
+      .not('webflow_id', 'is', null)
       .order('name');
 
     if (memError) throw memError;
@@ -363,11 +364,13 @@
     console.log('Directory filter: Status breakdown:', statusCounts);
     console.log('Directory filter: Subscription status breakdown:', subStatusCounts);
 
-    // Filter to only show real members with valid accounts
+    // Filter to only show real members with valid accounts and Webflow pages
     allMembers = (members || [])
       .filter(m => {
         // Must have a Memberstack account (real member)
         if (!m.memberstack_id) return false;
+        // Must have a Webflow CMS page (so profile link works)
+        if (!m.webflow_id) return false;
         const status = m.status || '';
         const subStatus = m.subscription_status || '';
         // Exclude explicitly inactive members
