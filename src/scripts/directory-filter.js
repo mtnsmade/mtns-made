@@ -255,16 +255,34 @@
         membership_types(name)
       `)
       .in('id', Array.from(memberIds))
-      .eq('status', 'active')
       .order('name');
 
     if (memError) throw memError;
 
-    console.log('Directory filter: Fetched', (members || []).length, 'active status members');
+    console.log('Directory filter: Fetched', (members || []).length, 'members from database');
 
-    // Filter to only active/trialing subscription members and add their sub-directory info
+    // Log status breakdown for debugging
+    const statusCounts = {};
+    const subStatusCounts = {};
+    (members || []).forEach(m => {
+      statusCounts[m.status || 'null'] = (statusCounts[m.status || 'null'] || 0) + 1;
+      subStatusCounts[m.subscription_status || 'null'] = (subStatusCounts[m.subscription_status || 'null'] || 0) + 1;
+    });
+    console.log('Directory filter: Status breakdown:', statusCounts);
+    console.log('Directory filter: Subscription status breakdown:', subStatusCounts);
+
+    // Filter out explicitly inactive/cancelled members, but include those with null or 'active' status
+    // For subscription_status: include active, trialing, or null (might not be set yet)
     allMembers = (members || [])
-      .filter(m => m.subscription_status === 'active' || m.subscription_status === 'trialing')
+      .filter(m => {
+        const status = m.status || '';
+        const subStatus = m.subscription_status || '';
+        // Exclude explicitly inactive members
+        if (status === 'inactive' || status === 'deleted') return false;
+        // Exclude explicitly cancelled subscriptions
+        if (subStatus === 'cancelled' || subStatus === 'canceled' || subStatus === 'expired') return false;
+        return true;
+      })
       .map(m => ({
         ...m,
         subDirectoryIds: memberSubDirectoryMap[m.id] || [],
@@ -273,7 +291,7 @@
           .filter(Boolean)
       }));
 
-    console.log('Directory filter: Loaded', allMembers.length, 'members with active/trialing subscription');
+    console.log('Directory filter: Loaded', allMembers.length, 'members after filtering');
   }
 
   function renderFilters(container) {
