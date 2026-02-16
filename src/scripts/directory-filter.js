@@ -348,6 +348,7 @@
       .in('id', Array.from(memberIds))
       .not('memberstack_id', 'is', null)
       .not('webflow_id', 'is', null)
+      .in('subscription_status', ['active', 'trialing'])
       .order('name');
 
     if (memError) throw memError;
@@ -364,19 +365,15 @@
     console.log('Directory filter: Status breakdown:', statusCounts);
     console.log('Directory filter: Subscription status breakdown:', subStatusCounts);
 
-    // Filter to only show real members with valid accounts and Webflow pages
+    // Filter to only show real members with valid accounts, Webflow pages, and active subscriptions
     allMembers = (members || [])
       .filter(m => {
         // Must have a Memberstack account (real member)
         if (!m.memberstack_id) return false;
         // Must have a Webflow CMS page (so profile link works)
         if (!m.webflow_id) return false;
-        const status = m.status || '';
-        const subStatus = m.subscription_status || '';
-        // Exclude explicitly inactive members
-        if (status === 'inactive' || status === 'deleted') return false;
-        // Exclude explicitly cancelled subscriptions
-        if (subStatus === 'cancelled' || subStatus === 'canceled' || subStatus === 'expired') return false;
+        // Must have active or trialing subscription
+        if (m.subscription_status !== 'active' && m.subscription_status !== 'trialing') return false;
         return true;
       })
       .map(m => ({
