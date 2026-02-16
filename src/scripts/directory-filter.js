@@ -183,7 +183,7 @@
     }
 
     currentDirectory = directory;
-    console.log('Directory filter: Found directory', directory.name);
+    console.log('Directory filter: Found directory', directory.name, directory.id);
 
     // 2. Get all sub-directories for this parent
     const { data: subDirs, error: subError } = await supabase
@@ -196,29 +196,48 @@
     subDirectories = subDirs || [];
     console.log('Directory filter: Found', subDirectories.length, 'sub-directories');
 
-    // 3. Get all member-subdirectory relationships for these sub-directories
-    const subDirIds = subDirectories.map(sd => sd.id);
-
-    const { data: memberSubs, error: msError } = await supabase
-      .from('member_sub_directories')
-      .select('member_id, sub_directory_id')
-      .in('sub_directory_id', subDirIds);
-
-    if (msError) throw msError;
-
-    // Build member -> sub_directory mapping
-    memberSubDirectoryMap = {};
+    // 3. Get members from BOTH sources:
+    //    - member_directories (parent directory link)
+    //    - member_sub_directories (sub-directory links)
     const memberIds = new Set();
+    memberSubDirectoryMap = {};
 
-    (memberSubs || []).forEach(ms => {
-      memberIds.add(ms.member_id);
-      if (!memberSubDirectoryMap[ms.member_id]) {
-        memberSubDirectoryMap[ms.member_id] = [];
+    // 3a. Get members linked to the parent directory
+    const { data: parentMembers, error: pmError } = await supabase
+      .from('member_directories')
+      .select('member_id')
+      .eq('directory_id', directory.id);
+
+    if (pmError) {
+      console.log('Directory filter: Error fetching parent directory members:', pmError);
+    } else {
+      console.log('Directory filter: Found', (parentMembers || []).length, 'members via parent directory');
+      (parentMembers || []).forEach(pm => memberIds.add(pm.member_id));
+    }
+
+    // 3b. Get members linked to sub-directories
+    const subDirIds = subDirectories.map(sd => sd.id);
+    if (subDirIds.length > 0) {
+      const { data: memberSubs, error: msError } = await supabase
+        .from('member_sub_directories')
+        .select('member_id, sub_directory_id')
+        .in('sub_directory_id', subDirIds);
+
+      if (msError) {
+        console.log('Directory filter: Error fetching sub-directory members:', msError);
+      } else {
+        console.log('Directory filter: Found', (memberSubs || []).length, 'member-subdirectory links');
+        (memberSubs || []).forEach(ms => {
+          memberIds.add(ms.member_id);
+          if (!memberSubDirectoryMap[ms.member_id]) {
+            memberSubDirectoryMap[ms.member_id] = [];
+          }
+          memberSubDirectoryMap[ms.member_id].push(ms.sub_directory_id);
+        });
       }
-      memberSubDirectoryMap[ms.member_id].push(ms.sub_directory_id);
-    });
+    }
 
-    console.log('Directory filter: Found', memberIds.size, 'unique members');
+    console.log('Directory filter: Found', memberIds.size, 'unique members total');
 
     // 4. Fetch all member details
     if (memberIds.size === 0) {
@@ -241,7 +260,9 @@
 
     if (memError) throw memError;
 
-    // Filter to only active/trialing members and add their sub-directory info
+    console.log('Directory filter: Fetched', (members || []).length, 'active status members');
+
+    // Filter to only active/trialing subscription members and add their sub-directory info
     allMembers = (members || [])
       .filter(m => m.subscription_status === 'active' || m.subscription_status === 'trialing')
       .map(m => ({
@@ -252,7 +273,7 @@
           .filter(Boolean)
       }));
 
-    console.log('Directory filter: Loaded', allMembers.length, 'active members');
+    console.log('Directory filter: Loaded', allMembers.length, 'members with active/trialing subscription');
   }
 
   function renderFilters(container) {
