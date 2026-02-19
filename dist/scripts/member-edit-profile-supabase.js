@@ -118,6 +118,17 @@
       color: #666;
       margin-top: 4px;
     }
+    .ep-compression-status {
+      font-size: 12px;
+      margin-top: 4px;
+      min-height: 18px;
+    }
+    .ep-compression-status.compressing {
+      color: #0066cc;
+    }
+    .ep-compression-status.success {
+      color: #28a745;
+    }
     .ep-form-input {
       width: 100%;
       padding: 12px 14px;
@@ -839,8 +850,93 @@
     }
   }
 
+  // Compress image to fit under Webflow's 4MB limit
+  const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB (safe margin under 4MB limit)
+  const MAX_DIMENSION = 2000; // Max width/height in pixels
+
+  function updateCompressionStatus(type, message, status) {
+    const statusEl = document.getElementById(`${type}-compression-status`);
+    if (statusEl) {
+      statusEl.textContent = message;
+      statusEl.className = 'ep-compression-status' + (status ? ` ${status}` : '');
+    }
+  }
+
+  async function compressImage(file, type) {
+    const originalSize = (file.size / 1024 / 1024).toFixed(1);
+
+    // Skip if already under size limit
+    if (file.size <= MAX_FILE_SIZE) {
+      console.log(`Image ${file.name} is ${originalSize}MB - no compression needed`);
+      return { file, compressed: false, originalSize, finalSize: originalSize };
+    }
+
+    console.log(`Compressing image ${file.name} from ${originalSize}MB...`);
+    updateCompressionStatus(type, `Compressing image (${originalSize}MB)...`, 'compressing');
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const tryCompress = (quality) => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to compress image'));
+                return;
+              }
+
+              const finalSize = (blob.size / 1024 / 1024).toFixed(1);
+              console.log(`Compressed to ${finalSize}MB at quality ${quality}`);
+
+              if (blob.size <= MAX_FILE_SIZE || quality <= 0.3) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve({ file: compressedFile, compressed: true, originalSize, finalSize });
+              } else {
+                tryCompress(quality - 0.1);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+
+        tryCompress(0.8);
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function uploadImage(file, memberstackId, type) {
     try {
+      // Compress image if needed (Webflow has 4MB limit)
+      const { file: compressedFile, compressed, originalSize, finalSize } = await compressImage(file, type);
+
+      if (compressed) {
+        updateCompressionStatus(type, `Compressed from ${originalSize}MB to ${finalSize}MB`, 'success');
+      } else {
+        updateCompressionStatus(type, '', '');
+      }
+
       // Delete old images of the same type before uploading new one
       const { data: existingFiles } = await supabase.storage
         .from(STORAGE_BUCKET)
@@ -866,13 +962,13 @@
         }
       }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${type}_${Date.now()}.${fileExt}`;
+      // Use .jpg extension since we compress to JPEG
+      const fileName = `${type}_${Date.now()}.jpg`;
       const filePath = `${memberstackId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .upload(filePath, file, {
+        .upload(filePath, compressedFile, {
           cacheControl: '3600',
           upsert: true
         });
@@ -991,6 +1087,38 @@
   }
 
   // ============================================
+  // ACTIVITY LOGGING
+  // ============================================
+
+  async function logActivity(activityType, entity = null) {
+    try {
+      const payload = {
+        memberstack_id: memberData.id,
+        activity_type: activityType,
+      };
+
+      if (entity) {
+        payload.entity_type = entity.type || null;
+        payload.entity_id = entity.id || null;
+        payload.entity_name = entity.name || null;
+      }
+
+      await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      // Log error but don't fail the main operation
+      console.warn('Failed to log activity:', error);
+    }
+  }
+
+  // ============================================
   // RENDER FUNCTIONS
   // ============================================
 
@@ -1041,7 +1169,8 @@
                   </div>`
               }
             </div>
-            <div class="ep-hint">This will be your profile photo</div>
+            <div class="ep-hint">Square image recommended. Large images will be automatically compressed.</div>
+            <div class="ep-compression-status" id="profile-compression-status"></div>
           </div>
 
           <div class="ep-form-field">
@@ -1057,7 +1186,8 @@
                   </div>`
               }
             </div>
-            <div class="ep-hint">This appears as the header on your profile page</div>
+            <div class="ep-hint">Landscape image recommended. Large images will be automatically compressed.</div>
+            <div class="ep-compression-status" id="feature-compression-status"></div>
           </div>
         </div>
 
@@ -1383,6 +1513,7 @@
 
       try {
         await saveProfile();
+        await logActivity('profile_update');
         successBanner.textContent = 'Profile updated successfully!';
         successBanner.style.display = 'block';
         successBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
