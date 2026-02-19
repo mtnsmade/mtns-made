@@ -977,6 +977,36 @@
   }
 
   // ============================================
+  // ACTIVITY LOGGING
+  // ============================================
+
+  async function logActivity(activityType, entity = null) {
+    try {
+      const payload = {
+        memberstack_id: currentMember.id,
+        activity_type: activityType,
+      };
+
+      if (entity) {
+        payload.entity_type = 'project';
+        payload.entity_id = entity.id || null;
+        payload.entity_name = entity.name || null;
+      }
+
+      await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      // Log error but don't fail the main operation
+      console.warn('Failed to log activity:', error);
+    }
+  }
+
+  // ============================================
   // IMAGE UPLOAD OPERATIONS
   // ============================================
 
@@ -1369,8 +1399,11 @@
         deleteBtn.textContent = 'Deleting...';
 
         try {
-          await deleteProject(project.id);
-          projects = projects.filter(p => p.id !== project.id);
+          const projectName = project.name;
+          const projectId = project.id;
+          await deleteProject(projectId);
+          await logActivity('project_delete', { id: projectId, name: projectName });
+          projects = projects.filter(p => p.id !== projectId);
           renderProjects(wrapper);
         } catch (error) {
           console.error('Error deleting project:', error);
@@ -1898,6 +1931,7 @@
           });
         }, 'Creating Project');
 
+        await logActivity('project_create', { id: newProject.id, name: newProject.name });
         projects.push(newProject);
         projects.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
         modal.remove();
@@ -2049,6 +2083,8 @@
             gallery_images: projectData.gallery_images || []
           });
         }, 'Saving Changes');
+
+        await logActivity('project_update', { id: updated.id, name: updated.name });
 
         // Update in local array
         const index = projects.findIndex(p => p.id === project.id);

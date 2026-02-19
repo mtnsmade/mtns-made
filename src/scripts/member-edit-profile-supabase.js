@@ -1087,6 +1087,36 @@
   }
 
   // ============================================
+  // ACTIVITY LOGGING
+  // ============================================
+
+  async function logActivity(activityType, entity = null) {
+    try {
+      const payload = {
+        memberstack_id: memberData.id,
+        activity_type: activityType,
+      };
+
+      if (entity) {
+        payload.entity_type = entity.type || null;
+        payload.entity_id = entity.id || null;
+        payload.entity_name = entity.name || null;
+      }
+
+      await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      // Log error but don't fail the main operation
+      console.warn('Failed to log activity:', error);
+    }
+  }
+
+  // ============================================
   // RENDER FUNCTIONS
   // ============================================
 
@@ -1481,6 +1511,7 @@
 
       try {
         await saveProfile();
+        await logActivity('profile_update');
         successBanner.textContent = 'Profile updated successfully!';
         successBanner.style.display = 'block';
         successBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });

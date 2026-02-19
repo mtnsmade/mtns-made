@@ -436,6 +436,94 @@
       border-radius: 3px;
     }
 
+    /* Activity Feed */
+    .activity-feed {
+      padding: 0;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.15s;
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-item:hover {
+      background: #fafafa;
+    }
+
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      background: #f0f0f0;
+      color: #666;
+    }
+
+    .activity-icon.profile {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .activity-icon.project {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .activity-icon.event {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+
+    .activity-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-text {
+      font-size: 13px;
+      color: #333;
+      line-height: 1.4;
+    }
+
+    .activity-text strong {
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .activity-text .entity-name {
+      font-style: italic;
+      color: #555;
+    }
+
+    .activity-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .activity-time {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .activity-action {
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
     /* Modal Overlay */
     .modal-overlay {
       position: fixed;
@@ -650,7 +738,8 @@ MTNS MADE Team`;
       recentEvents,
       eventStats,
       recentProjects,
-      messageStats
+      messageStats,
+      recentActivity
     ] = await Promise.all([
       loadRecentMembers(),
       loadMemberStats(),
@@ -659,7 +748,8 @@ MTNS MADE Team`;
       loadRecentEvents(),
       loadEventStats(),
       loadRecentProjects(),
-      loadMessageStats()
+      loadMessageStats(),
+      loadRecentActivity()
     ]);
 
     return {
@@ -671,6 +761,7 @@ MTNS MADE Team`;
       eventStats,
       recentProjects,
       messageStats,
+      recentActivity,
       loadedAt: new Date()
     };
   }
@@ -818,6 +909,45 @@ MTNS MADE Team`;
       return [];
     }
     return data || [];
+  }
+
+  async function loadRecentActivity() {
+    const { data, error } = await supabase
+      .from('activity_log')
+      .select(`
+        id, member_id, memberstack_id, activity_type, description,
+        entity_type, entity_id, entity_name,
+        member_webflow_url, entity_webflow_url, created_at
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Error loading recent activity:', error);
+      return [];
+    }
+
+    // Enrich with member names
+    const memberIds = [...new Set(data.filter(a => a.member_id).map(a => a.member_id))];
+    let memberNames = {};
+
+    if (memberIds.length > 0) {
+      const { data: members } = await supabase
+        .from('members')
+        .select('id, name, first_name, last_name')
+        .in('id', memberIds);
+
+      if (members) {
+        members.forEach(m => {
+          memberNames[m.id] = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Unknown Member';
+        });
+      }
+    }
+
+    return data.map(activity => ({
+      ...activity,
+      member_name: activity.member_id ? (memberNames[activity.member_id] || 'Unknown Member') : 'Unknown Member'
+    }));
   }
 
   // ============================================
@@ -982,6 +1112,7 @@ MTNS MADE Team`;
             <button class="tab-btn" data-tab="failed">Failed Signups (${data.failedSignups.length})</button>
             <button class="tab-btn" data-tab="events">Events</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
+            <button class="tab-btn" data-tab="activity">Activity</button>
           </div>
 
           <div class="tab-content active" id="tab-members">
@@ -1002,6 +1133,10 @@ MTNS MADE Team`;
 
           <div class="tab-content" id="tab-projects">
             ${renderProjectsTable(data.recentProjects)}
+          </div>
+
+          <div class="tab-content" id="tab-activity">
+            ${renderActivityFeed(data.recentActivity)}
           </div>
         </div>
       </div>
@@ -1348,6 +1483,53 @@ MTNS MADE Team`;
           `).join('')}
         </tbody>
       </table>
+    `;
+  }
+
+  function renderActivityFeed(activities) {
+    if (!activities || activities.length === 0) {
+      return '<div class="empty-state">No recent activity</div>';
+    }
+
+    const getActivityIcon = (type) => {
+      if (type === 'profile_update') return { class: 'profile', icon: '👤' };
+      if (type.startsWith('project_')) return { class: 'project', icon: '📁' };
+      if (type.startsWith('event_')) return { class: 'event', icon: '📅' };
+      return { class: '', icon: '📝' };
+    };
+
+    const getViewUrl = (activity) => {
+      if (activity.entity_webflow_url) return activity.entity_webflow_url;
+      if (activity.member_webflow_url) return activity.member_webflow_url;
+      return null;
+    };
+
+    return `
+      <div class="activity-feed">
+        ${activities.map(activity => {
+          const icon = getActivityIcon(activity.activity_type);
+          const viewUrl = getViewUrl(activity);
+
+          return `
+            <div class="activity-item">
+              <div class="activity-icon ${icon.class}">${icon.icon}</div>
+              <div class="activity-content">
+                <div class="activity-text">
+                  <strong>${activity.member_name}</strong> ${activity.description}
+                </div>
+                <div class="activity-meta">
+                  <span class="activity-time">${timeAgo(activity.created_at)}</span>
+                </div>
+              </div>
+              <div class="activity-action">
+                ${viewUrl ? `
+                  <a href="${viewUrl}" target="_blank" class="action-btn">View</a>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
     `;
   }
 

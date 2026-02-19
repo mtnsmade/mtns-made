@@ -708,6 +708,36 @@
   }
 
   // ============================================
+  // ACTIVITY LOGGING
+  // ============================================
+
+  async function logActivity(activityType, entity = null) {
+    try {
+      const payload = {
+        memberstack_id: currentMember.id,
+        activity_type: activityType,
+      };
+
+      if (entity) {
+        payload.entity_type = 'event';
+        payload.entity_id = entity.id || null;
+        payload.entity_name = entity.name || null;
+      }
+
+      await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      // Log error but don't fail the main operation
+      console.warn('Failed to log activity:', error);
+    }
+  }
+
+  // ============================================
   // INITIALIZATION
   // ============================================
 
@@ -1182,12 +1212,14 @@
       let savedEvent;
       if (isEdit) {
         savedEvent = await updateEvent(existingEvent.id, eventObj);
+        await logActivity('event_update', { id: savedEvent.id, name: savedEvent.name });
         const index = events.findIndex(e => e.id === existingEvent.id);
         if (index > -1) {
           events[index] = savedEvent;
         }
       } else {
         savedEvent = await createEvent(eventObj);
+        await logActivity('event_submit', { id: savedEvent.id, name: savedEvent.name });
         events.unshift(savedEvent);
       }
 
