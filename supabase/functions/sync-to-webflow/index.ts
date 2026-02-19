@@ -1040,22 +1040,11 @@ async function createWebflowMember(record: MemberRecord): Promise<string | null>
 async function updateWebflowMember(webflowId: string, record: MemberRecord): Promise<void> {
   const fieldData = await mapMemberToWebflowFields(record, false); // Don't update slug
 
-  // Extract image fields to send separately (Webflow image update workaround)
-  const imageFields: Record<string, unknown> = {};
-  if (fieldData['profile-image']) {
-    imageFields['profile-image'] = fieldData['profile-image'];
-    delete fieldData['profile-image'];
-  }
-  if (fieldData['header-image']) {
-    imageFields['header-image'] = fieldData['header-image'];
-    delete fieldData['header-image'];
-  }
-  const hasImageUpdates = Object.keys(imageFields).length > 0;
+  console.log('Updating member:', webflowId);
+  console.log('Profile image URL:', record.profile_image_url);
+  console.log('Header image URL:', record.header_image_url);
 
-  console.log('Updating member (images handled separately):', webflowId);
-  console.log('Image fields to update:', JSON.stringify(imageFields));
-
-  // Send main update WITHOUT images
+  // Send update with all fields including images (same as create)
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
     {
@@ -1073,54 +1062,26 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
     }
   );
 
+  const responseText = await response.text();
+  console.log('Webflow PATCH response:', response.status);
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Webflow update member error:', response.status, errorText);
-    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
+    console.error('Webflow update member error:', response.status, responseText);
+    throw new Error(`Webflow API error: ${response.status} - ${responseText}`);
   }
 
-  console.log('Webflow member updated (without images):', webflowId);
-
-  // Now send images in a SEPARATE request (include name to satisfy Webflow validation)
-  if (hasImageUpdates) {
-    console.log('Sending image update separately...');
-    const imageFieldsWithName = {
-      name: record.name || record.email?.split('@')[0] || 'Member',
-      ...imageFields,
-    };
-    console.log('Image request payload:', JSON.stringify(imageFieldsWithName));
-
-    const imageResponse = await fetch(
-      `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: JSON.stringify({ fieldData: imageFieldsWithName }),
-      }
-    );
-
-    const imageResponseText = await imageResponse.text();
-    console.log('Webflow image update response:', imageResponse.status, imageResponseText);
-
-    if (!imageResponse.ok) {
-      console.error('Webflow image update error:', imageResponse.status, imageResponseText);
-    } else {
-      // Parse and check what Webflow actually stored
-      try {
-        const imageResult = JSON.parse(imageResponseText);
-        console.log('Webflow stored profile-image:', JSON.stringify(imageResult.fieldData?.['profile-image']));
-        console.log('Webflow stored header-image:', JSON.stringify(imageResult.fieldData?.['header-image']));
-      } catch (e) {
-        console.log('Could not parse image response');
-      }
-    }
+  // Log what Webflow returned for images
+  try {
+    const result = JSON.parse(responseText);
+    console.log('Webflow returned profile-image:', JSON.stringify(result.fieldData?.['profile-image']));
+    console.log('Webflow returned header-image:', JSON.stringify(result.fieldData?.['header-image']));
+  } catch (e) {
+    console.log('Response:', responseText.substring(0, 500));
   }
 
-  // Publish to apply all changes
+  console.log('Webflow member updated:', webflowId);
+
+  // Publish to apply changes
   console.log('Publishing member after update...');
   await publishWebflowMember(webflowId);
 }
