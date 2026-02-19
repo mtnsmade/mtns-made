@@ -1081,9 +1081,15 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
 
   console.log('Webflow member updated (without images):', webflowId);
 
-  // Now send images in a SEPARATE request
+  // Now send images in a SEPARATE request (include name to satisfy Webflow validation)
   if (hasImageUpdates) {
     console.log('Sending image update separately...');
+    const imageFieldsWithName = {
+      name: record.name || record.email?.split('@')[0] || 'Member',
+      ...imageFields,
+    };
+    console.log('Image request payload:', JSON.stringify(imageFieldsWithName));
+
     const imageResponse = await fetch(
       `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
       {
@@ -1093,7 +1099,7 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
           'Content-Type': 'application/json',
           'accept': 'application/json',
         },
-        body: JSON.stringify({ fieldData: imageFields }),
+        body: JSON.stringify({ fieldData: imageFieldsWithName }),
       }
     );
 
