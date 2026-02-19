@@ -859,6 +859,12 @@ async function getMembershipTypeWebflowId(membershipTypeId: string): Promise<str
 
 // Map Supabase member record to Webflow field data
 async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boolean = true): Promise<Record<string, unknown>> {
+  // Debug: log image URLs
+  console.log('Member image URLs:', {
+    profile_image_url: record.profile_image_url,
+    header_image_url: record.header_image_url,
+  });
+
   const fieldData: Record<string, unknown> = {
     name: record.name || record.email?.split('@')[0] || 'Member',
   };
@@ -981,6 +987,12 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
   // Space/Supplier flags
   fieldData['member-is-creative-space'] = record.is_creative_space || false;
   fieldData['member-is-supplier'] = record.is_supplier || false;
+
+  // Debug: log what we're sending to Webflow
+  console.log('Webflow fieldData images:', {
+    'profile-image': fieldData['profile-image'],
+    'header-image': fieldData['header-image'],
+  });
 
   return fieldData;
 }
