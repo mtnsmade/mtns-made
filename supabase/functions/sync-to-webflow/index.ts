@@ -1040,11 +1040,6 @@ async function createWebflowMember(record: MemberRecord): Promise<string | null>
 async function updateWebflowMember(webflowId: string, record: MemberRecord): Promise<void> {
   const fieldData = await mapMemberToWebflowFields(record, false); // Don't update slug
 
-  console.log('Updating member:', webflowId);
-  console.log('Profile image URL:', record.profile_image_url);
-  console.log('Header image URL:', record.header_image_url);
-
-  // Send update with all fields including images (same as create)
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
     {
@@ -1062,21 +1057,10 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
     }
   );
 
-  const responseText = await response.text();
-  console.log('Webflow PATCH response:', response.status);
-
   if (!response.ok) {
-    console.error('Webflow update member error:', response.status, responseText);
-    throw new Error(`Webflow API error: ${response.status} - ${responseText}`);
-  }
-
-  // Log what Webflow returned for images
-  try {
-    const result = JSON.parse(responseText);
-    console.log('Webflow returned profile-image:', JSON.stringify(result.fieldData?.['profile-image']));
-    console.log('Webflow returned header-image:', JSON.stringify(result.fieldData?.['header-image']));
-  } catch (e) {
-    console.log('Response:', responseText.substring(0, 500));
+    const errorText = await response.text();
+    console.error('Webflow update member error:', response.status, errorText);
+    throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
   }
 
   console.log('Webflow member updated:', webflowId);

@@ -118,6 +118,17 @@
       color: #666;
       margin-top: 4px;
     }
+    .ep-compression-status {
+      font-size: 12px;
+      margin-top: 4px;
+      min-height: 18px;
+    }
+    .ep-compression-status.compressing {
+      color: #0066cc;
+    }
+    .ep-compression-status.success {
+      color: #28a745;
+    }
     .ep-form-input {
       width: 100%;
       padding: 12px 14px;
@@ -843,14 +854,25 @@
   const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB (safe margin under 4MB limit)
   const MAX_DIMENSION = 2000; // Max width/height in pixels
 
-  async function compressImage(file) {
-    // Skip if already under size limit and not too large dimension-wise
+  function updateCompressionStatus(type, message, status) {
+    const statusEl = document.getElementById(`${type}-compression-status`);
+    if (statusEl) {
+      statusEl.textContent = message;
+      statusEl.className = 'ep-compression-status' + (status ? ` ${status}` : '');
+    }
+  }
+
+  async function compressImage(file, type) {
+    const originalSize = (file.size / 1024 / 1024).toFixed(1);
+
+    // Skip if already under size limit
     if (file.size <= MAX_FILE_SIZE) {
-      console.log(`Image ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB - no compression needed`);
-      return file;
+      console.log(`Image ${file.name} is ${originalSize}MB - no compression needed`);
+      return { file, compressed: false, originalSize, finalSize: originalSize };
     }
 
-    console.log(`Compressing image ${file.name} from ${(file.size / 1024 / 1024).toFixed(2)}MB...`);
+    console.log(`Compressing image ${file.name} from ${originalSize}MB...`);
+    updateCompressionStatus(type, `Compressing image (${originalSize}MB)...`, 'compressing');
 
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -858,10 +880,8 @@
       const ctx = canvas.getContext('2d');
 
       img.onload = () => {
-        // Calculate new dimensions
         let { width, height } = img;
 
-        // Scale down if dimensions are too large
         if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
           const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
           width = Math.round(width * ratio);
@@ -872,7 +892,6 @@
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Try different quality levels to get under size limit
         const tryCompress = (quality) => {
           canvas.toBlob(
             (blob) => {
@@ -881,17 +900,16 @@
                 return;
               }
 
-              console.log(`Compressed to ${(blob.size / 1024 / 1024).toFixed(2)}MB at quality ${quality}`);
+              const finalSize = (blob.size / 1024 / 1024).toFixed(1);
+              console.log(`Compressed to ${finalSize}MB at quality ${quality}`);
 
               if (blob.size <= MAX_FILE_SIZE || quality <= 0.3) {
-                // Create a new File from the blob
                 const compressedFile = new File([blob], file.name, {
                   type: 'image/jpeg',
                   lastModified: Date.now(),
                 });
-                resolve(compressedFile);
+                resolve({ file: compressedFile, compressed: true, originalSize, finalSize });
               } else {
-                // Try lower quality
                 tryCompress(quality - 0.1);
               }
             },
@@ -900,7 +918,7 @@
           );
         };
 
-        tryCompress(0.8); // Start at 80% quality
+        tryCompress(0.8);
       };
 
       img.onerror = () => reject(new Error('Failed to load image for compression'));
@@ -911,7 +929,13 @@
   async function uploadImage(file, memberstackId, type) {
     try {
       // Compress image if needed (Webflow has 4MB limit)
-      const compressedFile = await compressImage(file);
+      const { file: compressedFile, compressed, originalSize, finalSize } = await compressImage(file, type);
+
+      if (compressed) {
+        updateCompressionStatus(type, `Compressed from ${originalSize}MB to ${finalSize}MB`, 'success');
+      } else {
+        updateCompressionStatus(type, '', '');
+      }
 
       // Delete old images of the same type before uploading new one
       const { data: existingFiles } = await supabase.storage
@@ -1113,7 +1137,8 @@
                   </div>`
               }
             </div>
-            <div class="ep-hint">This will be your profile photo</div>
+            <div class="ep-hint">Square image recommended. Large images will be automatically compressed.</div>
+            <div class="ep-compression-status" id="profile-compression-status"></div>
           </div>
 
           <div class="ep-form-field">
@@ -1129,7 +1154,8 @@
                   </div>`
               }
             </div>
-            <div class="ep-hint">This appears as the header on your profile page</div>
+            <div class="ep-hint">Landscape image recommended. Large images will be automatically compressed.</div>
+            <div class="ep-compression-status" id="feature-compression-status"></div>
           </div>
         </div>
 
