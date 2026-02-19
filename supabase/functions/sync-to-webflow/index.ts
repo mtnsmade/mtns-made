@@ -1040,45 +1040,22 @@ async function createWebflowMember(record: MemberRecord): Promise<string | null>
 async function updateWebflowMember(webflowId: string, record: MemberRecord): Promise<void> {
   const fieldData = await mapMemberToWebflowFields(record, false); // Don't update slug
 
-  // Workaround for Webflow image update issue:
-  // Clear image fields, publish to commit, then set new values
-  const hasImageUpdates = record.profile_image_url || record.header_image_url;
-
-  if (hasImageUpdates) {
-    console.log('Clearing image fields first (Webflow workaround)...');
-    const clearImageFields: Record<string, unknown> = {};
-    if (record.profile_image_url) {
-      clearImageFields['profile-image'] = null;
-    }
-    if (record.header_image_url) {
-      clearImageFields['header-image'] = null;
-    }
-
-    const clearResponse = await fetch(
-      `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: JSON.stringify({ fieldData: clearImageFields }),
-      }
-    );
-
-    if (!clearResponse.ok) {
-      const errorText = await clearResponse.text();
-      console.error('Webflow clear images error:', clearResponse.status, errorText);
-    } else {
-      console.log('Image fields cleared, publishing to commit...');
-      // Publish to commit the cleared state before setting new images
-      await publishWebflowMember(webflowId);
-      console.log('Clear published, now setting new images');
-    }
+  // Extract image fields to send separately (Webflow image update workaround)
+  const imageFields: Record<string, unknown> = {};
+  if (fieldData['profile-image']) {
+    imageFields['profile-image'] = fieldData['profile-image'];
+    delete fieldData['profile-image'];
   }
+  if (fieldData['header-image']) {
+    imageFields['header-image'] = fieldData['header-image'];
+    delete fieldData['header-image'];
+  }
+  const hasImageUpdates = Object.keys(imageFields).length > 0;
 
-  // Now send the actual update with new values
+  console.log('Updating member (images handled separately):', webflowId);
+  console.log('Image fields to update:', JSON.stringify(imageFields));
+
+  // Send main update WITHOUT images
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
     {
@@ -1102,10 +1079,33 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
     throw new Error(`Webflow API error: ${response.status} - ${errorText}`);
   }
 
-  console.log('Webflow member updated:', webflowId);
+  console.log('Webflow member updated (without images):', webflowId);
 
-  // Always re-publish after update to apply changes
-  // (isDraft/isArchived in the PATCH controls visibility)
+  // Now send images in a SEPARATE request
+  if (hasImageUpdates) {
+    console.log('Sending image update separately...');
+    const imageResponse = await fetch(
+      `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify({ fieldData: imageFields }),
+      }
+    );
+
+    if (!imageResponse.ok) {
+      const errorText = await imageResponse.text();
+      console.error('Webflow image update error:', imageResponse.status, errorText);
+    } else {
+      console.log('Webflow images updated successfully');
+    }
+  }
+
+  // Publish to apply all changes
   console.log('Publishing member after update...');
   await publishWebflowMember(webflowId);
 }
