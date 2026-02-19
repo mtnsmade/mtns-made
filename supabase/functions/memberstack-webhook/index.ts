@@ -363,6 +363,33 @@ async function handleMemberDeleted(data: MemberstackMemberData): Promise<void> {
 }
 
 // Handle member.updated event (for subscription changes)
+async function handleMemberPlanCanceled(data: MemberstackMemberData): Promise<void> {
+  console.log('Handling member.plan.canceled:', data.id);
+
+  // Get current member data from Supabase
+  const member = await getMemberByMemberstackId(data.id);
+  if (!member) {
+    console.log('Member not found in Supabase for plan cancellation:', data.id);
+    return;
+  }
+
+  const previousStatus = member.subscription_status;
+
+  // Plan was canceled - mark as lapsed
+  if (previousStatus !== 'lapsed') {
+    await updateSubscriptionStatus(data.id, 'lapsed');
+    console.log(`Member status changed due to plan cancellation: ${previousStatus} -> lapsed`);
+
+    // Archive in Webflow if member has a Webflow ID
+    if (member.webflow_id) {
+      console.log('Archiving member in Webflow due to plan cancellation');
+      await archiveInWebflow(member.webflow_id);
+    }
+  } else {
+    console.log('Member already lapsed, no change needed');
+  }
+}
+
 async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
   console.log('Handling member.updated:', data.id);
 
@@ -444,6 +471,10 @@ serve(async (req: Request) => {
 
       case 'member.updated':
         await handleMemberUpdated(payload.payload);
+        break;
+
+      case 'member.plan.canceled':
+        await handleMemberPlanCanceled(payload.payload);
         break;
 
       default:
