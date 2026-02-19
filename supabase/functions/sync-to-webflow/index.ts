@@ -1103,11 +1103,20 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
       }
     );
 
+    const imageResponseText = await imageResponse.text();
+    console.log('Webflow image update response:', imageResponse.status, imageResponseText);
+
     if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error('Webflow image update error:', imageResponse.status, errorText);
+      console.error('Webflow image update error:', imageResponse.status, imageResponseText);
     } else {
-      console.log('Webflow images updated successfully');
+      // Parse and check what Webflow actually stored
+      try {
+        const imageResult = JSON.parse(imageResponseText);
+        console.log('Webflow stored profile-image:', JSON.stringify(imageResult.fieldData?.['profile-image']));
+        console.log('Webflow stored header-image:', JSON.stringify(imageResult.fieldData?.['header-image']));
+      } catch (e) {
+        console.log('Could not parse image response');
+      }
     }
   }
 
