@@ -1041,7 +1041,7 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
   const fieldData = await mapMemberToWebflowFields(record, false); // Don't update slug
 
   // Workaround for Webflow image update issue:
-  // First clear image fields, then set new values in a second request
+  // Clear image fields, publish to commit, then set new values
   const hasImageUpdates = record.profile_image_url || record.header_image_url;
 
   if (hasImageUpdates) {
@@ -1071,7 +1071,10 @@ async function updateWebflowMember(webflowId: string, record: MemberRecord): Pro
       const errorText = await clearResponse.text();
       console.error('Webflow clear images error:', clearResponse.status, errorText);
     } else {
-      console.log('Image fields cleared');
+      console.log('Image fields cleared, publishing to commit...');
+      // Publish to commit the cleared state before setting new images
+      await publishWebflowMember(webflowId);
+      console.log('Clear published, now setting new images');
     }
   }
 
