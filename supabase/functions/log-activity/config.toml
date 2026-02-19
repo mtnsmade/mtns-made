@@ -1,0 +1,3 @@
+# Disable JWT verification for log-activity function
+# This allows public access similar to other Edge Functions
+verify_jwt = false

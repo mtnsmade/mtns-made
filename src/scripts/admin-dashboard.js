@@ -486,6 +486,21 @@
       color: #f57c00;
     }
 
+    .activity-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: #f0f0f0;
+    }
+
+    .activity-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     .activity-content {
       flex: 1;
       min-width: 0;
@@ -927,26 +942,30 @@ MTNS MADE Team`;
       return [];
     }
 
-    // Enrich with member names
+    // Enrich with member names and profile images
     const memberIds = [...new Set(data.filter(a => a.member_id).map(a => a.member_id))];
-    let memberNames = {};
+    let memberData = {};
 
     if (memberIds.length > 0) {
       const { data: members } = await supabase
         .from('members')
-        .select('id, name, first_name, last_name')
+        .select('id, name, first_name, last_name, profile_image_url')
         .in('id', memberIds);
 
       if (members) {
         members.forEach(m => {
-          memberNames[m.id] = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Unknown Member';
+          memberData[m.id] = {
+            name: m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Unknown Member',
+            profile_image_url: m.profile_image_url || null
+          };
         });
       }
     }
 
     return data.map(activity => ({
       ...activity,
-      member_name: activity.member_id ? (memberNames[activity.member_id] || 'Unknown Member') : 'Unknown Member'
+      member_name: activity.member_id ? (memberData[activity.member_id]?.name || 'Unknown Member') : 'Unknown Member',
+      member_profile_image: activity.member_id ? (memberData[activity.member_id]?.profile_image_url || null) : null
     }));
   }
 
@@ -1509,10 +1528,17 @@ MTNS MADE Team`;
         ${activities.map(activity => {
           const icon = getActivityIcon(activity.activity_type);
           const viewUrl = getViewUrl(activity);
+          const hasProfileImage = activity.member_profile_image;
 
           return `
             <div class="activity-item">
-              <div class="activity-icon ${icon.class}">${icon.icon}</div>
+              ${hasProfileImage ? `
+                <div class="activity-avatar">
+                  <img src="${activity.member_profile_image}" alt="${activity.member_name}">
+                </div>
+              ` : `
+                <div class="activity-icon ${icon.class}">${icon.icon}</div>
+              `}
               <div class="activity-content">
                 <div class="activity-text">
                   <strong>${activity.member_name}</strong> ${activity.description}
