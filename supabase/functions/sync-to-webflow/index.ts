@@ -1040,6 +1040,42 @@ async function createWebflowMember(record: MemberRecord): Promise<string | null>
 async function updateWebflowMember(webflowId: string, record: MemberRecord): Promise<void> {
   const fieldData = await mapMemberToWebflowFields(record, false); // Don't update slug
 
+  // Workaround for Webflow image update issue:
+  // First clear image fields, then set new values in a second request
+  const hasImageUpdates = record.profile_image_url || record.header_image_url;
+
+  if (hasImageUpdates) {
+    console.log('Clearing image fields first (Webflow workaround)...');
+    const clearImageFields: Record<string, unknown> = {};
+    if (record.profile_image_url) {
+      clearImageFields['profile-image'] = null;
+    }
+    if (record.header_image_url) {
+      clearImageFields['header-image'] = null;
+    }
+
+    const clearResponse = await fetch(
+      `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify({ fieldData: clearImageFields }),
+      }
+    );
+
+    if (!clearResponse.ok) {
+      const errorText = await clearResponse.text();
+      console.error('Webflow clear images error:', clearResponse.status, errorText);
+    } else {
+      console.log('Image fields cleared');
+    }
+  }
+
+  // Now send the actual update with new values
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${webflowId}`,
     {
