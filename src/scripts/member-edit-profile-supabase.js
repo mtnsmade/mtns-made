@@ -839,8 +839,80 @@
     }
   }
 
+  // Compress image to fit under Webflow's 4MB limit
+  const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB (safe margin under 4MB limit)
+  const MAX_DIMENSION = 2000; // Max width/height in pixels
+
+  async function compressImage(file) {
+    // Skip if already under size limit and not too large dimension-wise
+    if (file.size <= MAX_FILE_SIZE) {
+      console.log(`Image ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB - no compression needed`);
+      return file;
+    }
+
+    console.log(`Compressing image ${file.name} from ${(file.size / 1024 / 1024).toFixed(2)}MB...`);
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      img.onload = () => {
+        // Calculate new dimensions
+        let { width, height } = img;
+
+        // Scale down if dimensions are too large
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Try different quality levels to get under size limit
+        const tryCompress = (quality) => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to compress image'));
+                return;
+              }
+
+              console.log(`Compressed to ${(blob.size / 1024 / 1024).toFixed(2)}MB at quality ${quality}`);
+
+              if (blob.size <= MAX_FILE_SIZE || quality <= 0.3) {
+                // Create a new File from the blob
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                // Try lower quality
+                tryCompress(quality - 0.1);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+
+        tryCompress(0.8); // Start at 80% quality
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function uploadImage(file, memberstackId, type) {
     try {
+      // Compress image if needed (Webflow has 4MB limit)
+      const compressedFile = await compressImage(file);
+
       // Delete old images of the same type before uploading new one
       const { data: existingFiles } = await supabase.storage
         .from(STORAGE_BUCKET)
@@ -866,13 +938,13 @@
         }
       }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${type}_${Date.now()}.${fileExt}`;
+      // Use .jpg extension since we compress to JPEG
+      const fileName = `${type}_${Date.now()}.jpg`;
       const filePath = `${memberstackId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .upload(filePath, file, {
+        .upload(filePath, compressedFile, {
           cacheControl: '3600',
           upsert: true
         });
