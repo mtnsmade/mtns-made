@@ -486,6 +486,16 @@
       color: #f57c00;
     }
 
+    .activity-icon.canceled {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .activity-icon.reactivated {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
     .activity-avatar {
       width: 32px;
       height: 32px;
@@ -1514,6 +1524,8 @@ MTNS MADE Team`;
       if (type === 'profile_update') return { class: 'profile', icon: '👤' };
       if (type.startsWith('project_')) return { class: 'project', icon: '📁' };
       if (type.startsWith('event_')) return { class: 'event', icon: '📅' };
+      if (type === 'subscription_canceled') return { class: 'canceled', icon: '🚫' };
+      if (type === 'subscription_reactivated') return { class: 'reactivated', icon: '✅' };
       return { class: '', icon: '📝' };
     };
 

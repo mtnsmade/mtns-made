@@ -27,6 +27,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-memberstack-signature',
 };
 
+// Log activity to activity_log table via Edge Function
+async function logActivity(memberstackId: string, activityType: string): Promise<void> {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        memberstack_id: memberstackId,
+        activity_type: activityType,
+      }),
+    });
+    console.log('Activity logged:', activityType, memberstackId);
+  } catch (error) {
+    console.warn('Failed to log activity:', error);
+  }
+}
+
 // Memberstack webhook event types
 interface MemberstackWebhookPayload {
   event: string;
@@ -385,6 +404,9 @@ async function handleMemberPlanCanceled(data: MemberstackMemberData): Promise<vo
       console.log('Archiving member in Webflow due to plan cancellation');
       await archiveInWebflow(member.webflow_id);
     }
+
+    // Log to activity feed
+    await logActivity(data.id, 'subscription_canceled');
   } else {
     console.log('Member already lapsed, no change needed');
   }
@@ -420,10 +442,19 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
         // Member cancelled - archive in Webflow
         console.log('Archiving member in Webflow due to cancellation');
         await archiveInWebflow(member.webflow_id);
+        await logActivity(data.id, 'subscription_canceled');
       } else if (newStatus === 'active' && previousStatus === 'lapsed') {
         // Member resubscribed - unarchive in Webflow
         console.log('Unarchiving member in Webflow due to resubscription');
         await unarchiveInWebflow(member.webflow_id);
+        await logActivity(data.id, 'subscription_reactivated');
+      }
+    } else {
+      // No Webflow ID, but still log the activity
+      if (newStatus === 'lapsed' && previousStatus === 'active') {
+        await logActivity(data.id, 'subscription_canceled');
+      } else if (newStatus === 'active' && previousStatus === 'lapsed') {
+        await logActivity(data.id, 'subscription_reactivated');
       }
     }
   } else {

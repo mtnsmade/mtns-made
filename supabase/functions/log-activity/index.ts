@@ -39,6 +39,10 @@ function generateDescription(activityType: string, entityName?: string): string 
       return entityName ? `submitted an event '${entityName}'` : 'submitted a new event';
     case 'event_update':
       return entityName ? `updated the event '${entityName}'` : 'updated an event';
+    case 'subscription_canceled':
+      return 'cancelled their subscription';
+    case 'subscription_reactivated':
+      return 'reactivated their subscription';
     default:
       return 'performed an action';
   }
@@ -96,7 +100,7 @@ serve(async (req) => {
     }
 
     // Validate activity type
-    const validTypes = ['profile_update', 'project_create', 'project_update', 'project_delete', 'event_submit', 'event_update'];
+    const validTypes = ['profile_update', 'project_create', 'project_update', 'project_delete', 'event_submit', 'event_update', 'subscription_canceled', 'subscription_reactivated'];
     if (!validTypes.includes(body.activity_type)) {
       return new Response(
         JSON.stringify({ success: false, error: `Invalid activity_type. Must be one of: ${validTypes.join(', ')}` }),
