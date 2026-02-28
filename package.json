@@ -13,6 +13,8 @@
     "test-connection": "webflow-scripts test"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "sharp": "^0.34.5",
     "vite": "^5.0.0"
   }
 }
