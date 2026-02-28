@@ -333,6 +333,34 @@
       flex-wrap: wrap;
     }
 
+    /* Approve/Reject buttons */
+    .action-btn.approve-btn {
+      background: #10b981;
+      color: #fff;
+      border-color: #10b981;
+    }
+
+    .action-btn.approve-btn:hover {
+      background: #059669;
+      border-color: #059669;
+    }
+
+    .action-btn.reject-btn {
+      background: #ef4444;
+      color: #fff;
+      border-color: #ef4444;
+    }
+
+    .action-btn.reject-btn:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     /* Empty state */
     .empty-state {
       padding: 48px 24px;
@@ -1196,6 +1224,101 @@ MTNS MADE Team`;
         }
       });
     });
+
+    // Setup approve buttons
+    container.querySelectorAll('.approve-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const eventId = btn.dataset.eventId;
+        const eventName = btn.dataset.eventName;
+
+        if (!confirm(`Approve event "${eventName}"?\n\nThis will publish the event and notify the member.`)) {
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Approving...';
+
+        try {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'apikey': SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              eventId: eventId,
+              action: 'approve',
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            alert(`Event "${eventName}" has been approved!\n\nThe member will be notified and the event will sync to Webflow.`);
+            refreshDashboard(container);
+          } else {
+            alert(`Failed to approve event: ${result.error}`);
+            btn.disabled = false;
+            btn.textContent = 'Approve';
+          }
+        } catch (error) {
+          console.error('Approve error:', error);
+          alert('Error approving event. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Approve';
+        }
+      });
+    });
+
+    // Setup reject buttons
+    container.querySelectorAll('.reject-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const eventId = btn.dataset.eventId;
+        const eventName = btn.dataset.eventName;
+
+        const reason = prompt(`Reject event "${eventName}"?\n\nOptionally enter a reason (or leave blank):`);
+
+        if (reason === null) {
+          return; // User cancelled
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Rejecting...';
+
+        try {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'apikey': SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              eventId: eventId,
+              action: 'reject',
+              rejectionReason: reason || undefined,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            alert(`Event "${eventName}" has been rejected.\n\nThe member will be notified.`);
+            refreshDashboard(container);
+          } else {
+            alert(`Failed to reject event: ${result.error}`);
+            btn.disabled = false;
+            btn.textContent = 'Reject';
+          }
+        } catch (error) {
+          console.error('Reject error:', error);
+          alert('Error rejecting event. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Reject';
+        }
+      });
+    });
   }
 
   function renderIssuesSection(data) {
@@ -1463,9 +1586,15 @@ MTNS MADE Team`;
                   </td>
                   <td class="time-cell">${timeAgo(event.created_at)}</td>
                   <td>
-                    ${event.webflow_id && event.slug ? `
-                      <a href="${SITE_URL}/event/${event.slug}" target="_blank" class="action-btn view-btn">View</a>
-                    ` : '--'}
+                    <div class="action-btns">
+                      ${status === 'pending' ? `
+                        <button class="action-btn approve-btn" data-event-id="${event.id}" data-event-name="${event.name}">Approve</button>
+                        <button class="action-btn reject-btn" data-event-id="${event.id}" data-event-name="${event.name}">Reject</button>
+                      ` : ''}
+                      ${event.webflow_id && event.slug ? `
+                        <a href="${SITE_URL}/event/${event.slug}" target="_blank" class="action-btn view-btn">View</a>
+                      ` : ''}
+                    </div>
                   </td>
                 </tr>
               `;
