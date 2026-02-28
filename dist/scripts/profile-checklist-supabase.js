@@ -1,16 +1,4 @@
-// Profile Checklist - Supabase Version
-// Displays profile completion status by reading from Supabase
-// Shows which fields are complete/incomplete with links to fix
-
-(function() {
-  console.log('Profile checklist Supabase script loaded');
-
-  const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
-
-  let supabase = null;
-
-  const styles = `
+(function(){console.log("Profile checklist Supabase script loaded");const p="https://epszwomtxkpjegbjbixr.supabase.co",d="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH";let l=null;const m=`
     .pc-container {
       font-family: inherit;
     }
@@ -107,206 +95,33 @@
       color: #666;
       margin-top: 8px;
     }
-  `;
-
-  function waitForDependencies() {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      const maxAttempts = 50;
-      const check = setInterval(() => {
-        attempts++;
-        if (window.$memberstackDom && window.supabase) {
-          clearInterval(check);
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(check);
-          reject(new Error('Dependencies not loaded'));
-        }
-      }, 100);
-    });
-  }
-
-  async function getMemberProfile(memberstackId) {
-    try {
-      // Get member with category counts
-      const { data: member, error } = await supabase
-        .from('members')
-        .select(`
+  `;function u(){return new Promise((o,e)=>{let t=0;const i=50,c=setInterval(()=>{t++,window.$memberstackDom&&window.supabase?(clearInterval(c),o()):t>=i&&(clearInterval(c),e(new Error("Dependencies not loaded")))},100)})}async function f(o){try{const{data:e,error:t}=await l.from("members").select(`
           id,
           profile_image_url,
           header_image_url,
           bio,
           profile_complete,
           suburb_id
-        `)
-        .eq('memberstack_id', memberstackId)
-        .single();
-
-      if (error) throw error;
-      if (!member) return null;
-
-      // Check if member has categories
-      const { count: categoryCount } = await supabase
-        .from('member_sub_directories')
-        .select('*', { count: 'exact', head: true })
-        .eq('member_id', member.id);
-
-      // Check project count
-      const { count: projectCount } = await supabase
-        .from('projects')
-        .select('*', { count: 'exact', head: true })
-        .eq('memberstack_id', memberstackId)
-        .eq('is_deleted', false);
-
-      return {
-        ...member,
-        hasCategories: categoryCount > 0,
-        projectCount: projectCount || 0
-      };
-    } catch (error) {
-      console.error('Error loading member profile:', error);
-      return null;
-    }
-  }
-
-  function renderChecklist(container, profile) {
-    if (!profile) {
-      container.innerHTML = '<div class="pc-loading">Unable to load profile data.</div>';
-      return;
-    }
-
-    const checks = [
-      {
-        name: 'Profile Picture',
-        complete: !!profile.profile_image_url,
-        link: '/profile/edit-profile',
-        completeText: 'Profile picture added',
-        incompleteText: 'No profile picture'
-      },
-      {
-        name: 'Feature Image',
-        complete: !!profile.header_image_url,
-        link: '/profile/edit-profile',
-        completeText: 'Feature image added',
-        incompleteText: 'No feature image'
-      },
-      {
-        name: 'Bio',
-        complete: profile.bio && profile.bio.length >= 50,
-        link: '/profile/edit-profile',
-        completeText: 'Bio added',
-        incompleteText: 'No bio added'
-      },
-      {
-        name: 'Categories',
-        complete: profile.hasCategories,
-        link: '/profile/edit-profile',
-        completeText: 'Categories selected',
-        incompleteText: 'No categories selected'
-      },
-      {
-        name: 'Location',
-        complete: !!profile.suburb_id,
-        link: '/profile/edit-profile',
-        completeText: 'Location set',
-        incompleteText: 'No location set'
-      },
-      {
-        name: 'Projects',
-        complete: profile.projectCount > 0,
-        link: '/profile/edit-portfolio',
-        completeText: `${profile.projectCount} project${profile.projectCount !== 1 ? 's' : ''} added`,
-        incompleteText: 'No projects added'
-      }
-    ];
-
-    const completedCount = checks.filter(c => c.complete).length;
-    const totalCount = checks.length;
-    const allComplete = completedCount === totalCount;
-    const percentage = Math.round((completedCount / totalCount) * 100);
-
-    let html = '<div class="pc-container">';
-
-    if (allComplete) {
-      html += `
+        `).eq("memberstack_id",o).single();if(t)throw t;if(!e)return null;const{count:i}=await l.from("member_sub_directories").select("*",{count:"exact",head:!0}).eq("member_id",e.id),{count:c}=await l.from("projects").select("*",{count:"exact",head:!0}).eq("memberstack_id",o).eq("is_deleted",!1);return{...e,hasCategories:i>0,projectCount:c||0}}catch(e){return console.error("Error loading member profile:",e),null}}function g(o,e){if(!e){o.innerHTML='<div class="pc-loading">Unable to load profile data.</div>';return}const t=[{name:"Profile Picture",complete:!!e.profile_image_url,link:"/profile/edit-profile",completeText:"Profile picture added",incompleteText:"No profile picture"},{name:"Feature Image",complete:!!e.header_image_url,link:"/profile/edit-profile",completeText:"Feature image added",incompleteText:"No feature image"},{name:"Bio",complete:e.bio&&e.bio.length>=50,link:"/profile/edit-profile",completeText:"Bio added",incompleteText:"No bio added"},{name:"Categories",complete:e.hasCategories,link:"/profile/edit-profile",completeText:"Categories selected",incompleteText:"No categories selected"},{name:"Location",complete:!!e.suburb_id,link:"/profile/edit-profile",completeText:"Location set",incompleteText:"No location set"},{name:"Projects",complete:e.projectCount>0,link:"/profile/edit-portfolio",completeText:`${e.projectCount} project${e.projectCount!==1?"s":""} added`,incompleteText:"No projects added"}],i=t.filter(r=>r.complete).length,c=t.length,x=i===c,s=Math.round(i/c*100);let n='<div class="pc-container">';x?n+=`
         <div class="pc-complete-banner">
           <span class="pc-complete-icon">&#10003;</span>
           <span class="pc-complete-text">Your profile is complete! You're all set.</span>
         </div>
-      `;
-    } else {
-      html += `
+      `:n+=`
         <div class="pc-progress">
           <div class="pc-progress-bar">
-            <div class="pc-progress-fill" style="width: ${percentage}%"></div>
+            <div class="pc-progress-fill" style="width: ${s}%"></div>
           </div>
-          <div class="pc-progress-text">${completedCount} of ${totalCount} complete (${percentage}%)</div>
+          <div class="pc-progress-text">${i} of ${c} complete (${s}%)</div>
         </div>
-      `;
-    }
-
-    html += '<div class="pc-items">';
-
-    checks.forEach(check => {
-      if (check.complete) {
-        html += `
+      `,n+='<div class="pc-items">',t.forEach(r=>{r.complete?n+=`
           <div class="pc-item complete">
             <span class="pc-item-icon">&#10003;</span>
-            <span class="pc-item-text">${check.completeText}</span>
+            <span class="pc-item-text">${r.completeText}</span>
           </div>
-        `;
-      } else {
-        html += `
+        `:n+=`
           <div class="pc-item incomplete">
             <span class="pc-item-icon">&#10007;</span>
-            <span class="pc-item-text">${check.incompleteText} - <a href="${check.link}" class="pc-item-link">Add now</a></span>
+            <span class="pc-item-text">${r.incompleteText} - <a href="${r.link}" class="pc-item-link">Add now</a></span>
           </div>
-        `;
-      }
-    });
-
-    html += '</div></div>';
-
-    container.innerHTML = html;
-  }
-
-  async function init() {
-    const container = document.querySelector('.profile-completeness');
-    if (!container) {
-      console.log('No checklist container found');
-      return;
-    }
-
-    // Add styles
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    document.head.appendChild(styleEl);
-
-    container.innerHTML = '<div class="pc-loading">Loading profile...</div>';
-
-    try {
-      await waitForDependencies();
-
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-      const { data: member } = await window.$memberstackDom.getCurrentMember();
-      if (!member) {
-        container.innerHTML = '<div class="pc-loading">Please log in to view your profile.</div>';
-        return;
-      }
-
-      const profile = await getMemberProfile(member.id);
-      renderChecklist(container, profile);
-
-    } catch (error) {
-      console.error('Checklist init error:', error);
-      container.innerHTML = '<div class="pc-loading">Error loading profile checklist.</div>';
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+        `}),n+="</div></div>",o.innerHTML=n}async function a(){const o=document.querySelector(".profile-completeness");if(!o){console.log("No checklist container found");return}const e=document.createElement("style");e.textContent=m,document.head.appendChild(e),o.innerHTML='<div class="pc-loading">Loading profile...</div>';try{await u(),l=window.supabase.createClient(p,d);const{data:t}=await window.$memberstackDom.getCurrentMember();if(!t){o.innerHTML='<div class="pc-loading">Please log in to view your profile.</div>';return}const i=await f(t.id);g(o,i)}catch(t){console.error("Checklist init error:",t),o.innerHTML='<div class="pc-loading">Error loading profile checklist.</div>'}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",a):a()})();

@@ -1,40 +1,4 @@
-// Member Projects Supabase Script
-// Manages member projects using Supabase as the data store
-// Replaces Memberstack JSON, Zapier, and Uploadcare with Supabase
-
-(function() {
-  console.log('Member projects Supabase script loaded');
-
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
-  const STORAGE_BUCKET = 'project-images';
-  const MAX_GALLERY_IMAGES = 20;
-
-  // Project limits by membership type
-  const PROJECT_LIMITS = {
-    'emerging': 2,
-    'professional': 5,
-    'small-business': 5,
-    'not-for-profit': 5,
-    'large-business': 8,
-    'spaces-suppliers': 5
-  };
-
-  // ============================================
-  // STATE
-  // ============================================
-  let supabase = null;
-  let currentMember = null;
-  let projects = [];
-  let categories = { directories: [], subDirectories: [] };
-
-  // ============================================
-  // STYLES
-  // ============================================
-  const styles = `
+(function(){console.log("Member projects Supabase script loaded");const $="https://epszwomtxkpjegbjbixr.supabase.co",E="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",P="project-images",_=20,H={emerging:2,professional:5,"small-business":5,"not-for-profit":5,"large-business":8,"spaces-suppliers":5};let v=null,y=null,f=[],x={directories:[],subDirectories:[]};const G=`
     .mp-container {
       font-family: inherit;
       width: 100%;
@@ -688,680 +652,78 @@
     @keyframes mp-spin {
       to { transform: rotate(360deg); }
     }
-  `;
-
-  // ============================================
-  // SUPABASE CLIENT INITIALIZATION
-  // ============================================
-  function initSupabase() {
-    if (!window.supabase) {
-      console.error('Supabase JS library not loaded');
-      return false;
-    }
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Supabase client initialized');
-    return true;
-  }
-
-  // ============================================
-  // UTILITY FUNCTIONS
-  // ============================================
-
-  function getProjectLimit(membershipType) {
-    if (!membershipType) return 2;
-    const type = membershipType.toLowerCase();
-    return PROJECT_LIMITS[type] || 2;
-  }
-
-  function generateSlug(name) {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .substring(0, 50) + '-' + Date.now().toString(36);
-  }
-
-  function sanitizeText(text) {
-    if (!text || typeof text !== 'string') return '';
-    return text
-      .replace(/[\r\n]+/g, ' ')
-      .replace(/[\x00-\x1F\x7F]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function formatUrl(url) {
-    if (!url || url.trim() === '') return '';
-    let formatted = url.trim();
-    if (!/^https?:\/\//i.test(formatted)) {
-      formatted = 'https://' + formatted;
-    }
-    try {
-      new URL(formatted);
-      return formatted;
-    } catch {
-      return '';
-    }
-  }
-
-  function isValidUrl(url) {
-    if (!url || url.trim() === '') return true; // Empty is valid (optional field)
-    let testUrl = url.trim();
-    if (!/^https?:\/\//i.test(testUrl)) {
-      testUrl = 'https://' + testUrl;
-    }
-    try {
-      const urlObj = new URL(testUrl);
-      // Must have a valid hostname with at least one dot (e.g., example.com)
-      if (!urlObj.hostname || !urlObj.hostname.includes('.')) {
-        return false;
-      }
-      // Check for common valid TLDs pattern (at least 2 chars after last dot)
-      const parts = urlObj.hostname.split('.');
-      const tld = parts[parts.length - 1];
-      if (tld.length < 2) {
-        return false;
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function isValidShowreelUrl(url) {
-    if (!url || url.trim() === '') return true; // Empty is valid (optional field)
-    let testUrl = url.trim();
-    if (!/^https?:\/\//i.test(testUrl)) {
-      testUrl = 'https://' + testUrl;
-    }
-    try {
-      const urlObj = new URL(testUrl);
-      const hostname = urlObj.hostname.toLowerCase();
-      // Check for YouTube
-      if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-        return true;
-      }
-      // Check for Vimeo
-      if (hostname.includes('vimeo.com')) {
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }
-
-  // ============================================
-  // SUPABASE DATA OPERATIONS
-  // ============================================
-
-  async function loadCategories() {
-    try {
-      const { data: directories, error: dirError } = await supabase
-        .from('directories')
-        .select('id, webflow_id, name, slug')
-        .order('display_order');
-
-      if (dirError) throw dirError;
-
-      const { data: subDirectories, error: subError } = await supabase
-        .from('sub_directories')
-        .select('id, webflow_id, name, slug, directory_slug')
-        .order('name');
-
-      if (subError) throw subError;
-
-      console.log(`Loaded ${directories.length} directories and ${subDirectories.length} sub-directories`);
-      return { directories, subDirectories };
-    } catch (error) {
-      console.error('Error loading categories:', error);
-      return { directories: [], subDirectories: [] };
-    }
-  }
-
-  async function loadProjects(memberstackId) {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
+  `;function Y(){return window.supabase?(v=window.supabase.createClient($,E),console.log("Supabase client initialized"),!0):(console.error("Supabase JS library not loaded"),!1)}function C(r){if(!r)return 2;const e=r.toLowerCase();return H[e]||2}function V(r){return r.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").substring(0,50)+"-"+Date.now().toString(36)}function w(r){if(!r||r.trim()==="")return"";let e=r.trim();/^https?:\/\//i.test(e)||(e="https://"+e);try{return new URL(e),e}catch{return""}}function k(r){if(!r||r.trim()==="")return!0;let e=r.trim();/^https?:\/\//i.test(e)||(e="https://"+e);try{const o=new URL(e);if(!o.hostname||!o.hostname.includes("."))return!1;const t=o.hostname.split(".");return!(t[t.length-1].length<2)}catch{return!1}}function L(r){if(!r||r.trim()==="")return!0;let e=r.trim();/^https?:\/\//i.test(e)||(e="https://"+e);try{const t=new URL(e).hostname.toLowerCase();return!!(t.includes("youtube.com")||t.includes("youtu.be")||t.includes("vimeo.com"))}catch{return!1}}async function W(){try{const{data:r,error:e}=await v.from("directories").select("id, webflow_id, name, slug").order("display_order");if(e)throw e;const{data:o,error:t}=await v.from("sub_directories").select("id, webflow_id, name, slug, directory_slug").order("name");if(t)throw t;return console.log(`Loaded ${r.length} directories and ${o.length} sub-directories`),{directories:r,subDirectories:o}}catch(r){return console.error("Error loading categories:",r),{directories:[],subDirectories:[]}}}async function J(r){try{const{data:e,error:o}=await v.from("projects").select(`
           *,
           project_sub_directories (
             sub_directory_id
           )
-        `)
-        .eq('memberstack_id', memberstackId)
-        .eq('is_deleted', false)
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-
-      // Transform to include category IDs array
-      const transformed = data.map(project => ({
-        ...project,
-        categories: project.project_sub_directories?.map(psd => psd.sub_directory_id) || [],
-        gallery_images: project.gallery_images || []
-      }));
-
-      console.log(`Loaded ${transformed.length} projects for member ${memberstackId}`);
-      return transformed;
-    } catch (error) {
-      console.error('Error loading projects:', error);
-      return [];
-    }
-  }
-
-  async function createProject(projectData) {
-    try {
-      const { categories, ...projectFields } = projectData;
-
-      // Insert project
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert({
-          memberstack_id: currentMember.id,
-          name: projectFields.name,
-          slug: generateSlug(projectFields.name),
-          description: projectFields.description,
-          feature_image_url: projectFields.feature_image_url || null,
-          gallery_images: projectFields.gallery_images || [],
-          external_link: projectFields.external_link || null,
-          showreel_link: projectFields.showreel_link || null,
-          display_order: projectFields.display_order || 0,
-          is_draft: false,
-          is_deleted: false
-        })
-        .select()
-        .single();
-
-      if (projectError) throw projectError;
-
-      // Insert category relationships
-      if (categories && categories.length > 0) {
-        const categoryRows = categories.map(subDirId => ({
-          project_id: project.id,
-          sub_directory_id: subDirId
-        }));
-
-        const { error: catError } = await supabase
-          .from('project_sub_directories')
-          .insert(categoryRows);
-
-        if (catError) {
-          console.error('Error linking categories:', catError);
-        }
-      }
-
-      console.log('Project created:', project.id);
-      return { ...project, categories: categories || [], gallery_images: project.gallery_images || [] };
-    } catch (error) {
-      console.error('Error creating project:', error);
-      throw error;
-    }
-  }
-
-  async function updateProject(projectId, projectData) {
-    try {
-      const { categories, ...projectFields } = projectData;
-
-      // Update project
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .update({
-          name: projectFields.name,
-          description: projectFields.description,
-          feature_image_url: projectFields.feature_image_url || null,
-          gallery_images: projectFields.gallery_images || [],
-          external_link: projectFields.external_link || null,
-          showreel_link: projectFields.showreel_link || null,
-          display_order: projectFields.display_order || 0
-        })
-        .eq('id', projectId)
-        .eq('memberstack_id', currentMember.id)
-        .select()
-        .single();
-
-      if (projectError) throw projectError;
-
-      // Update category relationships
-      // First delete existing
-      const { error: deleteError } = await supabase
-        .from('project_sub_directories')
-        .delete()
-        .eq('project_id', projectId);
-
-      if (deleteError) {
-        console.error('Error deleting old categories:', deleteError);
-      }
-
-      // Then insert new
-      if (categories && categories.length > 0) {
-        const categoryRows = categories.map(subDirId => ({
-          project_id: projectId,
-          sub_directory_id: subDirId
-        }));
-
-        const { error: catError } = await supabase
-          .from('project_sub_directories')
-          .insert(categoryRows);
-
-        if (catError) {
-          console.error('Error linking categories:', catError);
-        }
-      }
-
-      console.log('Project updated:', projectId);
-      return { ...project, categories: categories || [], gallery_images: project.gallery_images || [] };
-    } catch (error) {
-      console.error('Error updating project:', error);
-      throw error;
-    }
-  }
-
-  async function deleteProject(projectId) {
-    try {
-      // Soft delete
-      const { error } = await supabase
-        .from('projects')
-        .update({ is_deleted: true })
-        .eq('id', projectId)
-        .eq('memberstack_id', currentMember.id);
-
-      if (error) throw error;
-
-      console.log('Project deleted:', projectId);
-      return true;
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      throw error;
-    }
-  }
-
-  // ============================================
-  // ACTIVITY LOGGING
-  // ============================================
-
-  async function logActivity(activityType, entity = null) {
-    try {
-      const payload = {
-        memberstack_id: currentMember.id,
-        activity_type: activityType,
-      };
-
-      if (entity) {
-        payload.entity_type = 'project';
-        payload.entity_id = entity.id || null;
-        payload.entity_name = entity.name || null;
-      }
-
-      await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      // Log error but don't fail the main operation
-      console.warn('Failed to log activity:', error);
-    }
-  }
-
-  // ============================================
-  // IMAGE UPLOAD OPERATIONS
-  // ============================================
-
-  async function uploadImage(file, projectId) {
-    const timestamp = Date.now();
-    const ext = file.name.split('.').pop();
-    const path = `${currentMember.id}/${projectId || 'new'}/${timestamp}.${ext}`;
-
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) throw error;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(path);
-
-    console.log('Image uploaded:', publicUrl);
-    return publicUrl;
-  }
-
-  async function deleteImage(url) {
-    try {
-      // Extract path from URL
-      const urlObj = new URL(url);
-      const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/project-images\/(.+)/);
-      if (!pathMatch) return;
-
-      const path = pathMatch[1];
-      const { error } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .remove([path]);
-
-      if (error) {
-        console.error('Error deleting image:', error);
-      }
-    } catch (error) {
-      console.error('Error parsing image URL:', error);
-    }
-  }
-
-  // ============================================
-  // UI HELPERS
-  // ============================================
-
-  function getCategoryName(categoryId) {
-    const subDir = categories.subDirectories.find(sd => sd.id === categoryId);
-    return subDir ? subDir.name : categoryId;
-  }
-
-  function getSubDirectoriesByParent(parentSlug) {
-    return categories.subDirectories.filter(sd => sd.directory_slug === parentSlug);
-  }
-
-  function setupUrlValidation(container) {
-    const input = container.querySelector('#mp-form-external_link');
-    const errorMsg = container.querySelector('#mp-url-error');
-    if (!input || !errorMsg) return;
-
-    const validate = () => {
-      const value = input.value.trim();
-      if (value === '') {
-        input.classList.remove('error', 'valid');
-        errorMsg.classList.remove('visible');
-      } else if (isValidUrl(value)) {
-        input.classList.remove('error');
-        input.classList.add('valid');
-        errorMsg.classList.remove('visible');
-      } else {
-        input.classList.remove('valid');
-        input.classList.add('error');
-        errorMsg.classList.add('visible');
-      }
-    };
-
-    input.addEventListener('blur', validate);
-    input.addEventListener('input', () => {
-      if (input.classList.contains('error') && isValidUrl(input.value)) {
-        input.classList.remove('error');
-        input.classList.add('valid');
-        errorMsg.classList.remove('visible');
-      }
-    });
-
-    if (input.value.trim()) {
-      validate();
-    }
-  }
-
-  function setupShowreelValidation(container) {
-    const input = container.querySelector('#mp-form-showreel_link');
-    const errorMsg = container.querySelector('#mp-showreel-error');
-    if (!input || !errorMsg) return;
-
-    const validate = () => {
-      const value = input.value.trim();
-      if (value === '') {
-        input.classList.remove('error', 'valid');
-        errorMsg.classList.remove('visible');
-      } else if (isValidShowreelUrl(value)) {
-        input.classList.remove('error');
-        input.classList.add('valid');
-        errorMsg.classList.remove('visible');
-      } else {
-        input.classList.remove('valid');
-        input.classList.add('error');
-        errorMsg.classList.add('visible');
-      }
-    };
-
-    input.addEventListener('blur', validate);
-    input.addEventListener('input', () => {
-      if (input.classList.contains('error') && isValidShowreelUrl(input.value)) {
-        input.classList.remove('error');
-        input.classList.add('valid');
-        errorMsg.classList.remove('visible');
-      }
-    });
-
-    if (input.value.trim()) {
-      validate();
-    }
-  }
-
-  // ============================================
-  // PROGRESS BAR
-  // ============================================
-
-  const PROGRESS_STEPS = [
-    { text: 'Preparing project...', progress: 10 },
-    { text: 'Optimising images...', progress: 25 },
-    { text: 'Compiling data...', progress: 45 },
-    { text: 'Populating categories...', progress: 60 },
-    { text: 'Syncing to portfolio...', progress: 80 },
-    { text: 'Finalising...', progress: 95 }
-  ];
-
-  function showProgressOverlay(title = 'Creating Project') {
-    const overlay = document.createElement('div');
-    overlay.className = 'mp-progress-overlay';
-    overlay.id = 'mp-progress-overlay';
-    overlay.innerHTML = `
+        `).eq("memberstack_id",r).eq("is_deleted",!1).order("display_order",{ascending:!0});if(o)throw o;const t=e.map(i=>{var n;return{...i,categories:((n=i.project_sub_directories)==null?void 0:n.map(c=>c.sub_directory_id))||[],gallery_images:i.gallery_images||[]}});return console.log(`Loaded ${t.length} projects for member ${r}`),t}catch(e){return console.error("Error loading projects:",e),[]}}async function K(r){try{const{categories:e,...o}=r,{data:t,error:i}=await v.from("projects").insert({memberstack_id:y.id,name:o.name,slug:V(o.name),description:o.description,feature_image_url:o.feature_image_url||null,gallery_images:o.gallery_images||[],external_link:o.external_link||null,showreel_link:o.showreel_link||null,display_order:o.display_order||0,is_draft:!1,is_deleted:!1}).select().single();if(i)throw i;if(e&&e.length>0){const n=e.map(l=>({project_id:t.id,sub_directory_id:l})),{error:c}=await v.from("project_sub_directories").insert(n);c&&console.error("Error linking categories:",c)}return console.log("Project created:",t.id),{...t,categories:e||[],gallery_images:t.gallery_images||[]}}catch(e){throw console.error("Error creating project:",e),e}}async function X(r,e){try{const{categories:o,...t}=e,{data:i,error:n}=await v.from("projects").update({name:t.name,description:t.description,feature_image_url:t.feature_image_url||null,gallery_images:t.gallery_images||[],external_link:t.external_link||null,showreel_link:t.showreel_link||null,display_order:t.display_order||0}).eq("id",r).eq("memberstack_id",y.id).select().single();if(n)throw n;const{error:c}=await v.from("project_sub_directories").delete().eq("project_id",r);if(c&&console.error("Error deleting old categories:",c),o&&o.length>0){const l=o.map(d=>({project_id:r,sub_directory_id:d})),{error:a}=await v.from("project_sub_directories").insert(l);a&&console.error("Error linking categories:",a)}return console.log("Project updated:",r),{...i,categories:o||[],gallery_images:i.gallery_images||[]}}catch(o){throw console.error("Error updating project:",o),o}}async function Q(r){try{const{error:e}=await v.from("projects").update({is_deleted:!0}).eq("id",r).eq("memberstack_id",y.id);if(e)throw e;return console.log("Project deleted:",r),!0}catch(e){throw console.error("Error deleting project:",e),e}}async function q(r,e=null){try{const o={memberstack_id:y.id,activity_type:r};e&&(o.entity_type="project",o.entity_id=e.id||null,o.entity_name=e.name||null),await fetch(`${$}/functions/v1/log-activity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${E}`,apikey:E},body:JSON.stringify(o)})}catch(o){console.warn("Failed to log activity:",o)}}async function z(r,e){const o=Date.now(),t=r.name.split(".").pop(),i=`${y.id}/${e||"new"}/${o}.${t}`,{data:n,error:c}=await v.storage.from(P).upload(i,r,{cacheControl:"3600",upsert:!1});if(c)throw c;const{data:{publicUrl:l}}=v.storage.from(P).getPublicUrl(i);return console.log("Image uploaded:",l),l}function I(r){const e=x.subDirectories.find(o=>o.id===r);return e?e.name:r}function Z(r){return x.subDirectories.filter(e=>e.directory_slug===r)}function A(r){const e=r.querySelector("#mp-form-external_link"),o=r.querySelector("#mp-url-error");if(!e||!o)return;const t=()=>{const i=e.value.trim();i===""?(e.classList.remove("error","valid"),o.classList.remove("visible")):k(i)?(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible")):(e.classList.remove("valid"),e.classList.add("error"),o.classList.add("visible"))};e.addEventListener("blur",t),e.addEventListener("input",()=>{e.classList.contains("error")&&k(e.value)&&(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible"))}),e.value.trim()&&t()}function U(r){const e=r.querySelector("#mp-form-showreel_link"),o=r.querySelector("#mp-showreel-error");if(!e||!o)return;const t=()=>{const i=e.value.trim();i===""?(e.classList.remove("error","valid"),o.classList.remove("visible")):L(i)?(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible")):(e.classList.remove("valid"),e.classList.add("error"),o.classList.add("visible"))};e.addEventListener("blur",t),e.addEventListener("input",()=>{e.classList.contains("error")&&L(e.value)&&(e.classList.remove("error"),e.classList.add("valid"),o.classList.remove("visible"))}),e.value.trim()&&t()}const T=[{text:"Preparing project...",progress:10},{text:"Optimising images...",progress:25},{text:"Compiling data...",progress:45},{text:"Populating categories...",progress:60},{text:"Syncing to portfolio...",progress:80},{text:"Finalising...",progress:95}];function ee(r="Creating Project"){const e=document.createElement("div");return e.className="mp-progress-overlay",e.id="mp-progress-overlay",e.innerHTML=`
       <div class="mp-progress-container">
         <div class="mp-progress-spinner"></div>
-        <div class="mp-progress-title">${title}</div>
+        <div class="mp-progress-title">${r}</div>
         <div class="mp-progress-bar-wrapper">
           <div class="mp-progress-bar-fill" style="width: 5%;"></div>
         </div>
         <div class="mp-progress-status">Initialising...</div>
       </div>
-    `;
-    document.body.appendChild(overlay);
-    return overlay;
-  }
-
-  function updateProgress(overlay, stepIndex) {
-    if (!overlay) return;
-    const step = PROGRESS_STEPS[stepIndex];
-    if (!step) return;
-
-    const fill = overlay.querySelector('.mp-progress-bar-fill');
-    const status = overlay.querySelector('.mp-progress-status');
-
-    if (fill) {
-      fill.style.width = step.progress + '%';
-    }
-
-    if (status) {
-      status.classList.add('fade');
-      setTimeout(() => {
-        status.textContent = step.text;
-        status.classList.remove('fade');
-      }, 150);
-    }
-  }
-
-  function hideProgressOverlay() {
-    const overlay = document.getElementById('mp-progress-overlay');
-    if (overlay) {
-      // Show completion briefly
-      const fill = overlay.querySelector('.mp-progress-bar-fill');
-      const status = overlay.querySelector('.mp-progress-status');
-      if (fill) fill.style.width = '100%';
-      if (status) status.textContent = 'Complete!';
-
-      setTimeout(() => {
-        overlay.remove();
-      }, 500);
-    }
-  }
-
-  async function runWithProgress(asyncFn, title = 'Creating Project') {
-    const overlay = showProgressOverlay(title);
-    let stepIndex = 0;
-
-    // Start cycling through steps
-    const interval = setInterval(() => {
-      if (stepIndex < PROGRESS_STEPS.length) {
-        updateProgress(overlay, stepIndex);
-        stepIndex++;
-      }
-    }, 600);
-
-    try {
-      const result = await asyncFn();
-      clearInterval(interval);
-      hideProgressOverlay();
-      return result;
-    } catch (error) {
-      clearInterval(interval);
-      const existingOverlay = document.getElementById('mp-progress-overlay');
-      if (existingOverlay) existingOverlay.remove();
-      throw error;
-    }
-  }
-
-  // ============================================
-  // RENDER FUNCTIONS
-  // ============================================
-
-  function renderProjects(wrapper) {
-    if (projects.length === 0) {
-      wrapper.innerHTML = `
+    `,document.body.appendChild(e),e}function re(r,e){if(!r)return;const o=T[e];if(!o)return;const t=r.querySelector(".mp-progress-bar-fill"),i=r.querySelector(".mp-progress-status");t&&(t.style.width=o.progress+"%"),i&&(i.classList.add("fade"),setTimeout(()=>{i.textContent=o.text,i.classList.remove("fade")},150))}function te(){const r=document.getElementById("mp-progress-overlay");if(r){const e=r.querySelector(".mp-progress-bar-fill"),o=r.querySelector(".mp-progress-status");e&&(e.style.width="100%"),o&&(o.textContent="Complete!"),setTimeout(()=>{r.remove()},500)}}async function M(r,e="Creating Project"){const o=ee(e);let t=0;const i=setInterval(()=>{t<T.length&&(re(o,t),t++)},600);try{const n=await r();return clearInterval(i),te(),n}catch(n){clearInterval(i);const c=document.getElementById("mp-progress-overlay");throw c&&c.remove(),n}}function S(r){var c;if(f.length===0){r.innerHTML=`
         <div class="mp-empty">
           <p>You don't have any projects yet</p>
           <button class="mp-btn" id="mp-add-first">Add Your First Project</button>
         </div>
-      `;
-      wrapper.querySelector('#mp-add-first').addEventListener('click', () => openAddModal(wrapper));
-      return;
-    }
-
-    const membershipType = currentMember?.customFields?.['membership-type'];
-    const limit = getProjectLimit(membershipType);
-    const remaining = limit - projects.length;
-    const atLimit = remaining <= 0;
-
-    let html = `
+      `,r.querySelector("#mp-add-first").addEventListener("click",()=>F(r));return}const e=(c=y==null?void 0:y.customFields)==null?void 0:c["membership-type"],o=C(e),i=o-f.length<=0;let n=`
       <div class="mp-header">
         <h2>My Projects</h2>
         <div class="mp-header-right">
-          <span class="mp-project-count">${projects.length} of ${limit} projects</span>
-          <button class="mp-btn ${atLimit ? 'mp-btn-disabled' : ''}" id="mp-add-project" ${atLimit ? 'disabled' : ''}>
-            ${atLimit ? 'Limit Reached' : 'Add Another Project'}
+          <span class="mp-project-count">${f.length} of ${o} projects</span>
+          <button class="mp-btn ${i?"mp-btn-disabled":""}" id="mp-add-project" ${i?"disabled":""}>
+            ${i?"Limit Reached":"Add Another Project"}
           </button>
         </div>
       </div>
       <div class="mp-projects-list">
-    `;
-
-    projects.forEach((project, index) => {
-      html += renderProjectCard(project, index);
-    });
-
-    html += '</div>';
-    wrapper.innerHTML = html;
-
-    wrapper.querySelector('#mp-add-project').addEventListener('click', () => {
-      const membershipType = currentMember?.customFields?.['membership-type'];
-      const limit = getProjectLimit(membershipType);
-
-      if (projects.length >= limit) {
-        showLimitReachedModal(limit, membershipType);
-        return;
-      }
-
-      openAddModal(wrapper);
-    });
-
-    wrapper.querySelectorAll('.mp-project-card').forEach((card, index) => {
-      const project = projects[index];
-      setupProjectCard(card, project, wrapper);
-    });
-  }
-
-  function renderProjectCard(project, index) {
-    let fieldsHtml = '';
-
-    // Description
-    const desc = project.description || '';
-    fieldsHtml += `
+    `;f.forEach((l,a)=>{n+=oe(l)}),n+="</div>",r.innerHTML=n,r.querySelector("#mp-add-project").addEventListener("click",()=>{var d;const l=(d=y==null?void 0:y.customFields)==null?void 0:d["membership-type"],a=C(l);if(f.length>=a){se(a,l);return}F(r)}),r.querySelectorAll(".mp-project-card").forEach((l,a)=>{const d=f[a];ie(l,d,r)})}function oe(r,e){let o="";const t=r.description||"";o+=`
       <div class="mp-field">
         <div class="mp-field-label">Description</div>
-        <div class="mp-field-value ${!desc ? 'empty' : ''}">
-          ${desc || 'No description'}
+        <div class="mp-field-value ${t?"":"empty"}">
+          ${t||"No description"}
         </div>
       </div>
-    `;
-
-    // Categories display
-    const projectCategories = project.categories || [];
-    fieldsHtml += `
+    `;const i=r.categories||[];o+=`
       <div class="mp-field">
         <div class="mp-field-label">Categories</div>
         <div class="mp-categories-display">
-          ${projectCategories.length > 0
-            ? projectCategories.map(id => `<span class="mp-category-tag">${getCategoryName(id)}</span>`).join('')
-            : '<span class="mp-field-value empty">No categories selected</span>'
-          }
+          ${i.length>0?i.map(a=>`<span class="mp-category-tag">${I(a)}</span>`).join(""):'<span class="mp-field-value empty">No categories selected</span>'}
         </div>
       </div>
-    `;
-
-    // Images display
-    const hasFeature = project.feature_image_url;
-    const galleryImages = project.gallery_images || [];
-    const hasImages = hasFeature || galleryImages.length > 0;
-
-    if (hasImages) {
-      fieldsHtml += `
+    `;const n=r.feature_image_url,c=r.gallery_images||[];return(n||c.length>0)&&(o+=`
         <div class="mp-field">
           <div class="mp-field-label">Images</div>
           <div class="mp-images-display">
-            ${hasFeature ? `<img src="${project.feature_image_url}" class="mp-feature-thumb" alt="Feature">` : ''}
-            ${galleryImages.map((url, i) => `<img src="${url}" alt="Gallery ${i + 1}">`).join('')}
+            ${n?`<img src="${r.feature_image_url}" class="mp-feature-thumb" alt="Feature">`:""}
+            ${c.map((a,d)=>`<img src="${a}" alt="Gallery ${d+1}">`).join("")}
           </div>
         </div>
-      `;
-    }
-
-    // Links
-    if (project.external_link) {
-      fieldsHtml += `
+      `),r.external_link&&(o+=`
         <div class="mp-field">
           <div class="mp-field-label">External Link</div>
           <div class="mp-field-value">
-            <a href="${project.external_link}" target="_blank">${project.external_link}</a>
+            <a href="${r.external_link}" target="_blank">${r.external_link}</a>
           </div>
         </div>
-      `;
-    }
-
-    if (project.showreel_link) {
-      fieldsHtml += `
+      `),r.showreel_link&&(o+=`
         <div class="mp-field">
           <div class="mp-field-label">Showreel</div>
           <div class="mp-field-value">
-            <a href="${project.showreel_link}" target="_blank">${project.showreel_link}</a>
+            <a href="${r.showreel_link}" target="_blank">${r.showreel_link}</a>
           </div>
         </div>
-      `;
-    }
-
-    return `
-      <div class="mp-project-card" data-project-id="${project.id}">
+      `),`
+      <div class="mp-project-card" data-project-id="${r.id}">
         <div class="mp-project-header">
           <div class="mp-project-header-left mp-toggle-details">
             <span class="mp-toggle-icon">&#9654;</span>
-            <h3 class="mp-project-title">${project.name || 'Untitled Project'}</h3>
+            <h3 class="mp-project-title">${r.name||"Untitled Project"}</h3>
           </div>
           <div class="mp-project-header-actions">
             <button class="mp-btn mp-btn-secondary mp-btn-small mp-edit-btn">Edit</button>
@@ -1370,169 +732,27 @@
         </div>
         <div class="mp-project-content">
           <div class="mp-project-fields">
-            ${fieldsHtml}
+            ${o}
           </div>
         </div>
       </div>
-    `;
-  }
-
-  function setupProjectCard(card, project, wrapper) {
-    const content = card.querySelector('.mp-project-content');
-    const toggleArea = card.querySelector('.mp-toggle-details');
-    const toggleIcon = card.querySelector('.mp-toggle-icon');
-    const editBtn = card.querySelector('.mp-edit-btn');
-    const deleteBtn = card.querySelector('.mp-delete-btn');
-
-    toggleArea.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = content.classList.toggle('open');
-      toggleIcon.classList.toggle('open', isOpen);
-    });
-
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openEditModal(project, wrapper);
-    });
-
-    deleteBtn.addEventListener('click', async () => {
-      if (confirm('Are you sure you want to delete this project?')) {
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = 'Deleting...';
-
-        try {
-          const projectName = project.name;
-          const projectId = project.id;
-          await deleteProject(projectId);
-          await logActivity('project_delete', { id: projectId, name: projectName });
-          projects = projects.filter(p => p.id !== projectId);
-          renderProjects(wrapper);
-        } catch (error) {
-          console.error('Error deleting project:', error);
-          alert('Error deleting project. Please try again.');
-          deleteBtn.disabled = false;
-          deleteBtn.textContent = 'Delete';
-        }
-      }
-    });
-  }
-
-  // ============================================
-  // CATEGORY SELECTOR
-  // ============================================
-
-  function createCategorySelector(selectedCategories = []) {
-    let html = `
+    `}function ie(r,e,o){const t=r.querySelector(".mp-project-content"),i=r.querySelector(".mp-toggle-details"),n=r.querySelector(".mp-toggle-icon"),c=r.querySelector(".mp-edit-btn"),l=r.querySelector(".mp-delete-btn");i.addEventListener("click",a=>{a.stopPropagation();const d=t.classList.toggle("open");n.classList.toggle("open",d)}),c.addEventListener("click",a=>{a.stopPropagation(),le(e,o)}),l.addEventListener("click",async()=>{if(confirm("Are you sure you want to delete this project?")){l.disabled=!0,l.textContent="Deleting...";try{const a=e.name,d=e.id;await Q(d),await q("project_delete",{id:d,name:a}),f=f.filter(u=>u.id!==d),S(o)}catch(a){console.error("Error deleting project:",a),alert("Error deleting project. Please try again."),l.disabled=!1,l.textContent="Delete"}}})}function N(r=[]){let e=`
       <div class="mp-category-section">
         <h4>Choose Project Categories</h4>
         <p style="font-size: 12px; color: #666; margin: 0 0 12px 0;">Select a category to see subcategories. You can choose from multiple categories.</p>
         <div class="mp-parent-categories">
-    `;
-
-    categories.directories.forEach(parent => {
-      html += `<button type="button" class="mp-parent-btn" data-parent="${parent.slug}">${parent.name}</button>`;
-    });
-
-    html += `</div>`;
-
-    // Child category containers
-    categories.directories.forEach(parent => {
-      const children = getSubDirectoriesByParent(parent.slug);
-      html += `<div class="mp-child-categories" data-parent="${parent.slug}">`;
-      children.forEach(child => {
-        const isSelected = selectedCategories.includes(child.id);
-        html += `<button type="button" class="mp-child-btn ${isSelected ? 'selected' : ''}" data-id="${child.id}">${child.name}</button>`;
-      });
-      html += `</div>`;
-    });
-
-    html += `
-        <div class="mp-selected-categories" style="${selectedCategories.length ? '' : 'display: none;'}">
+    `;return x.directories.forEach(o=>{e+=`<button type="button" class="mp-parent-btn" data-parent="${o.slug}">${o.name}</button>`}),e+="</div>",x.directories.forEach(o=>{const t=Z(o.slug);e+=`<div class="mp-child-categories" data-parent="${o.slug}">`,t.forEach(i=>{const n=r.includes(i.id);e+=`<button type="button" class="mp-child-btn ${n?"selected":""}" data-id="${i.id}">${i.name}</button>`}),e+="</div>"}),e+=`
+        <div class="mp-selected-categories" style="${r.length?"":"display: none;"}">
           <h5>Selected Categories</h5>
           <div class="mp-selected-list"></div>
         </div>
       </div>
-    `;
-
-    return html;
-  }
-
-  function setupCategorySelector(container, selectedCategories, onChange) {
-    const parentBtns = container.querySelectorAll('.mp-parent-btn');
-    const childContainers = container.querySelectorAll('.mp-child-categories');
-    const selectedList = container.querySelector('.mp-selected-list');
-    const selectedSection = container.querySelector('.mp-selected-categories');
-
-    function updateSelectedDisplay() {
-      selectedList.innerHTML = selectedCategories.map(id => {
-        const name = getCategoryName(id);
-        return `<span class="mp-selected-tag">${name}<button type="button" data-id="${id}">&times;</button></span>`;
-      }).join('');
-
-      selectedSection.style.display = selectedCategories.length ? '' : 'none';
-
-      container.querySelectorAll('.mp-child-btn').forEach(btn => {
-        btn.classList.toggle('selected', selectedCategories.includes(btn.dataset.id));
-      });
-
-      if (onChange) onChange(selectedCategories);
-    }
-
-    parentBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const parentSlug = btn.dataset.parent;
-        const isActive = btn.classList.contains('active');
-
-        parentBtns.forEach(b => b.classList.remove('active'));
-        childContainers.forEach(c => c.classList.remove('visible'));
-
-        if (!isActive) {
-          btn.classList.add('active');
-          container.querySelector(`.mp-child-categories[data-parent="${parentSlug}"]`).classList.add('visible');
-        }
-      });
-    });
-
-    container.querySelectorAll('.mp-child-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const index = selectedCategories.indexOf(id);
-        if (index > -1) {
-          selectedCategories.splice(index, 1);
-        } else {
-          selectedCategories.push(id);
-        }
-        updateSelectedDisplay();
-      });
-    });
-
-    selectedList.addEventListener('click', (e) => {
-      if (e.target.tagName === 'BUTTON') {
-        const id = e.target.dataset.id;
-        const index = selectedCategories.indexOf(id);
-        if (index > -1) {
-          selectedCategories.splice(index, 1);
-          updateSelectedDisplay();
-        }
-      }
-    });
-
-    updateSelectedDisplay();
-  }
-
-  // ============================================
-  // IMAGE UPLOADER
-  // ============================================
-
-  function createImageUploader(projectData = {}) {
-    const galleryCount = (projectData.gallery_images || []).length;
-
-    return `
+    `,e}function R(r,e,o){const t=r.querySelectorAll(".mp-parent-btn"),i=r.querySelectorAll(".mp-child-categories"),n=r.querySelector(".mp-selected-list"),c=r.querySelector(".mp-selected-categories");function l(){n.innerHTML=e.map(a=>`<span class="mp-selected-tag">${I(a)}<button type="button" data-id="${a}">&times;</button></span>`).join(""),c.style.display=e.length?"":"none",r.querySelectorAll(".mp-child-btn").forEach(a=>{a.classList.toggle("selected",e.includes(a.dataset.id))})}t.forEach(a=>{a.addEventListener("click",()=>{const d=a.dataset.parent,u=a.classList.contains("active");t.forEach(m=>m.classList.remove("active")),i.forEach(m=>m.classList.remove("visible")),u||(a.classList.add("active"),r.querySelector(`.mp-child-categories[data-parent="${d}"]`).classList.add("visible"))})}),r.querySelectorAll(".mp-child-btn").forEach(a=>{a.addEventListener("click",()=>{const d=a.dataset.id,u=e.indexOf(d);u>-1?e.splice(u,1):e.push(d),l()})}),n.addEventListener("click",a=>{if(a.target.tagName==="BUTTON"){const d=a.target.dataset.id,u=e.indexOf(d);u>-1&&(e.splice(u,1),l())}}),l()}function O(r={}){const e=(r.gallery_images||[]).length;return`
       <div class="mp-image-section">
         <div class="mp-feature-upload">
           <h4>Feature Image</h4>
-          <div class="mp-feature-upload-area ${projectData.feature_image_url ? 'has-image' : ''}" id="mp-feature-upload">
-            ${projectData.feature_image_url ? `<img src="${projectData.feature_image_url}" alt="Feature">` : ''}
+          <div class="mp-feature-upload-area ${r.feature_image_url?"has-image":""}" id="mp-feature-upload">
+            ${r.feature_image_url?`<img src="${r.feature_image_url}" alt="Feature">`:""}
             <div class="mp-upload-placeholder"><span>+</span>Click to upload feature image</div>
             <button type="button" class="mp-remove-image">&times;</button>
             <input type="file" accept="image/*" style="display: none;" id="mp-feature-input">
@@ -1542,243 +762,40 @@
         <div class="mp-gallery-section">
           <div class="mp-gallery-header">
             <h4>Gallery Images</h4>
-            <span class="mp-gallery-count"><span id="mp-gallery-count-num">${galleryCount}</span> / ${MAX_GALLERY_IMAGES}</span>
+            <span class="mp-gallery-count"><span id="mp-gallery-count-num">${e}</span> / ${_}</span>
           </div>
           <div class="mp-gallery-grid" id="mp-gallery-grid">
-            ${(projectData.gallery_images || []).map((url, i) => `
-              <div class="mp-gallery-item has-image" data-index="${i}" draggable="true">
-                <img src="${url}" alt="Gallery ${i + 1}">
+            ${(r.gallery_images||[]).map((o,t)=>`
+              <div class="mp-gallery-item has-image" data-index="${t}" draggable="true">
+                <img src="${o}" alt="Gallery ${t+1}">
                 <button type="button" class="mp-remove-image">&times;</button>
                 <span class="mp-drag-handle">Drag</span>
               </div>
-            `).join('')}
-            ${galleryCount < MAX_GALLERY_IMAGES ? `
+            `).join("")}
+            ${e<_?`
               <div class="mp-gallery-item mp-gallery-add" id="mp-gallery-add">
                 <div class="mp-upload-placeholder"><span>+</span>Add</div>
                 <input type="file" accept="image/*" multiple style="display: none;" id="mp-gallery-input">
               </div>
-            ` : ''}
+            `:""}
           </div>
         </div>
       </div>
-    `;
-  }
-
-  function setupImageUploader(container, projectData, onChange) {
-    // Feature image upload
-    const featureArea = container.querySelector('#mp-feature-upload');
-    const featureInput = container.querySelector('#mp-feature-input');
-
-    featureArea.addEventListener('click', (e) => {
-      if (e.target.classList.contains('mp-remove-image')) {
-        e.stopPropagation();
-        projectData.feature_image_url = '';
-        featureArea.classList.remove('has-image');
-        const img = featureArea.querySelector('img');
-        if (img) img.remove();
-        if (onChange) onChange();
-        return;
-      }
-
-      if (!featureArea.classList.contains('has-image')) {
-        featureInput.click();
-      }
-    });
-
-    featureInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      try {
-        featureArea.style.opacity = '0.5';
-        const url = await uploadImage(file, projectData.id);
-        projectData.feature_image_url = url;
-        featureArea.classList.add('has-image');
-
-        let img = featureArea.querySelector('img');
-        if (!img) {
-          img = document.createElement('img');
-          featureArea.insertBefore(img, featureArea.firstChild);
-        }
-        img.src = url;
-        img.alt = 'Feature';
-        featureArea.style.opacity = '1';
-
-        if (onChange) onChange();
-      } catch (error) {
-        console.error('Error uploading feature image:', error);
-        alert('Error uploading image. Please try again.');
-        featureArea.style.opacity = '1';
-      }
-
-      featureInput.value = '';
-    });
-
-    // Gallery image upload
-    setupGalleryUploader(container, projectData, onChange);
-  }
-
-  function setupGalleryUploader(container, projectData, onChange) {
-    const galleryGrid = container.querySelector('#mp-gallery-grid');
-    const galleryInput = container.querySelector('#mp-gallery-input');
-    const galleryAdd = container.querySelector('#mp-gallery-add');
-    const countNum = container.querySelector('#mp-gallery-count-num');
-
-    if (!projectData.gallery_images) {
-      projectData.gallery_images = [];
-    }
-
-    function updateGalleryDisplay() {
-      galleryGrid.innerHTML = '';
-
-      projectData.gallery_images.forEach((url, i) => {
-        const item = document.createElement('div');
-        item.className = 'mp-gallery-item has-image';
-        item.dataset.index = i;
-        item.draggable = true;
-        item.innerHTML = `
-          <img src="${url}" alt="Gallery ${i + 1}">
+    `}function B(r,e,o){const t=r.querySelector("#mp-feature-upload"),i=r.querySelector("#mp-feature-input");t.addEventListener("click",n=>{if(n.target.classList.contains("mp-remove-image")){n.stopPropagation(),e.feature_image_url="",t.classList.remove("has-image");const c=t.querySelector("img");c&&c.remove();return}t.classList.contains("has-image")||i.click()}),i.addEventListener("change",async n=>{const c=n.target.files[0];if(c){try{t.style.opacity="0.5";const l=await z(c,e.id);e.feature_image_url=l,t.classList.add("has-image");let a=t.querySelector("img");a||(a=document.createElement("img"),t.insertBefore(a,t.firstChild)),a.src=l,a.alt="Feature",t.style.opacity="1"}catch(l){console.error("Error uploading feature image:",l),alert("Error uploading image. Please try again."),t.style.opacity="1"}i.value=""}}),ae(r,e,o)}function ae(r,e,o){const t=r.querySelector("#mp-gallery-grid"),i=r.querySelector("#mp-gallery-input"),n=r.querySelector("#mp-gallery-add"),c=r.querySelector("#mp-gallery-count-num");e.gallery_images||(e.gallery_images=[]);function l(){if(t.innerHTML="",e.gallery_images.forEach((m,g)=>{const s=document.createElement("div");s.className="mp-gallery-item has-image",s.dataset.index=g,s.draggable=!0,s.innerHTML=`
+          <img src="${m}" alt="Gallery ${g+1}">
           <button type="button" class="mp-remove-image">&times;</button>
           <span class="mp-drag-handle">Drag</span>
-        `;
-        galleryGrid.appendChild(item);
-      });
-
-      if (projectData.gallery_images.length < MAX_GALLERY_IMAGES) {
-        const addBtn = document.createElement('div');
-        addBtn.className = 'mp-gallery-item mp-gallery-add';
-        addBtn.id = 'mp-gallery-add';
-        addBtn.innerHTML = `
+        `,t.appendChild(s)}),e.gallery_images.length<_){const m=document.createElement("div");m.className="mp-gallery-item mp-gallery-add",m.id="mp-gallery-add",m.innerHTML=`
           <div class="mp-upload-placeholder"><span>+</span>Add</div>
           <input type="file" accept="image/*" multiple style="display: none;" id="mp-gallery-input">
-        `;
-        galleryGrid.appendChild(addBtn);
-
-        // Re-setup add button listener
-        const newInput = addBtn.querySelector('#mp-gallery-input');
-        addBtn.addEventListener('click', () => newInput.click());
-        newInput.addEventListener('change', handleGalleryFiles);
-      }
-
-      countNum.textContent = projectData.gallery_images.length;
-
-      // Setup drag and drop
-      setupDragAndDrop();
-      // Setup remove buttons
-      setupRemoveButtons();
-    }
-
-    function setupDragAndDrop() {
-      const items = galleryGrid.querySelectorAll('.mp-gallery-item.has-image');
-      let draggedItem = null;
-
-      items.forEach(item => {
-        item.addEventListener('dragstart', (e) => {
-          draggedItem = item;
-          item.classList.add('dragging');
-        });
-
-        item.addEventListener('dragend', () => {
-          item.classList.remove('dragging');
-          galleryGrid.querySelectorAll('.mp-gallery-item').forEach(i => i.classList.remove('drag-over'));
-        });
-
-        item.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          if (item !== draggedItem && item.classList.contains('has-image')) {
-            item.classList.add('drag-over');
-          }
-        });
-
-        item.addEventListener('dragleave', () => {
-          item.classList.remove('drag-over');
-        });
-
-        item.addEventListener('drop', (e) => {
-          e.preventDefault();
-          item.classList.remove('drag-over');
-
-          if (draggedItem && item !== draggedItem) {
-            const fromIndex = parseInt(draggedItem.dataset.index);
-            const toIndex = parseInt(item.dataset.index);
-
-            // Swap in array
-            const temp = projectData.gallery_images[fromIndex];
-            projectData.gallery_images[fromIndex] = projectData.gallery_images[toIndex];
-            projectData.gallery_images[toIndex] = temp;
-
-            updateGalleryDisplay();
-            if (onChange) onChange();
-          }
-        });
-      });
-    }
-
-    function setupRemoveButtons() {
-      galleryGrid.querySelectorAll('.mp-gallery-item.has-image .mp-remove-image').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const item = btn.closest('.mp-gallery-item');
-          const index = parseInt(item.dataset.index);
-          projectData.gallery_images.splice(index, 1);
-          updateGalleryDisplay();
-          if (onChange) onChange();
-        });
-      });
-    }
-
-    async function handleGalleryFiles(e) {
-      const files = Array.from(e.target.files);
-      if (!files.length) return;
-
-      const remaining = MAX_GALLERY_IMAGES - projectData.gallery_images.length;
-      const toUpload = files.slice(0, remaining);
-
-      for (const file of toUpload) {
-        try {
-          const url = await uploadImage(file, projectData.id);
-          projectData.gallery_images.push(url);
-          updateGalleryDisplay();
-          if (onChange) onChange();
-        } catch (error) {
-          console.error('Error uploading gallery image:', error);
-          alert('Error uploading image: ' + file.name);
-        }
-      }
-
-      e.target.value = '';
-    }
-
-    if (galleryAdd) {
-      galleryAdd.addEventListener('click', () => galleryInput?.click());
-    }
-
-    if (galleryInput) {
-      galleryInput.addEventListener('change', handleGalleryFiles);
-    }
-
-    // Initial setup
-    setupDragAndDrop();
-    setupRemoveButtons();
-  }
-
-  // ============================================
-  // MODALS
-  // ============================================
-
-  function showLimitReachedModal(limit, membershipType) {
-    const membershipName = membershipType ? membershipType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'your membership';
-
-    const modal = document.createElement('div');
-    modal.className = 'mp-modal-overlay';
-    modal.innerHTML = `
+        `,t.appendChild(m);const g=m.querySelector("#mp-gallery-input");m.addEventListener("click",()=>g.click()),g.addEventListener("change",u)}c.textContent=e.gallery_images.length,a(),d()}function a(){const m=t.querySelectorAll(".mp-gallery-item.has-image");let g=null;m.forEach(s=>{s.addEventListener("dragstart",p=>{g=s,s.classList.add("dragging")}),s.addEventListener("dragend",()=>{s.classList.remove("dragging"),t.querySelectorAll(".mp-gallery-item").forEach(p=>p.classList.remove("drag-over"))}),s.addEventListener("dragover",p=>{p.preventDefault(),s!==g&&s.classList.contains("has-image")&&s.classList.add("drag-over")}),s.addEventListener("dragleave",()=>{s.classList.remove("drag-over")}),s.addEventListener("drop",p=>{if(p.preventDefault(),s.classList.remove("drag-over"),g&&s!==g){const b=parseInt(g.dataset.index),h=parseInt(s.dataset.index),j=e.gallery_images[b];e.gallery_images[b]=e.gallery_images[h],e.gallery_images[h]=j,l()}})})}function d(){t.querySelectorAll(".mp-gallery-item.has-image .mp-remove-image").forEach(m=>{m.addEventListener("click",g=>{g.stopPropagation();const s=m.closest(".mp-gallery-item"),p=parseInt(s.dataset.index);e.gallery_images.splice(p,1),l()})})}async function u(m){const g=Array.from(m.target.files);if(!g.length)return;const s=_-e.gallery_images.length,p=g.slice(0,s);for(const b of p)try{const h=await z(b,e.id);e.gallery_images.push(h),l()}catch(h){console.error("Error uploading gallery image:",h),alert("Error uploading image: "+b.name)}m.target.value=""}n&&n.addEventListener("click",()=>i==null?void 0:i.click()),i&&i.addEventListener("change",u),a(),d()}function se(r,e){const o=e?e.replace(/-/g," ").replace(/\b\w/g,i=>i.toUpperCase()):"your membership",t=document.createElement("div");t.className="mp-modal-overlay",t.innerHTML=`
       <div class="mp-modal" style="max-width: 450px;">
         <div class="mp-modal-header">
           <h3>Project Limit Reached</h3>
         </div>
         <div class="mp-modal-body" style="text-align: center; padding: 30px;">
           <p style="margin-bottom: 16px; font-size: 16px;">
-            You've reached the maximum of <strong>${limit} projects</strong> for ${membershipName} members.
+            You've reached the maximum of <strong>${r} projects</strong> for ${o} members.
           </p>
           <p style="margin-bottom: 0; color: #666;">
             To add a new project, please delete an existing one or consider upgrading your membership.
@@ -1788,26 +805,7 @@
           <button class="mp-btn" id="mp-modal-close">Got it</button>
         </div>
       </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    modal.querySelector('#mp-modal-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-  }
-
-  function openAddModal(wrapper) {
-    const selectedCategories = [];
-    const projectData = {
-      feature_image_url: '',
-      gallery_images: []
-    };
-
-    const modal = document.createElement('div');
-    modal.className = 'mp-modal-overlay';
-    modal.innerHTML = `
+    `,document.body.appendChild(t),t.querySelector("#mp-modal-close").addEventListener("click",()=>t.remove()),t.addEventListener("click",i=>{i.target===t&&t.remove()})}function F(r){const e=[],o={feature_image_url:"",gallery_images:[]},t=document.createElement("div");t.className="mp-modal-overlay",t.innerHTML=`
       <div class="mp-modal">
         <div class="mp-modal-header">
           <h3>Add New Project</h3>
@@ -1824,8 +822,8 @@
             <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
           </div>
 
-          ${createCategorySelector(selectedCategories)}
-          ${createImageUploader(projectData)}
+          ${N(e)}
+          ${O(o)}
 
           <div class="mp-form-field">
             <label>Showreel Link</label>
@@ -1849,118 +847,7 @@
           <button class="mp-btn" id="mp-modal-save">Create Project</button>
         </div>
       </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    setupCategorySelector(modal, selectedCategories, null);
-    setupImageUploader(modal, projectData, null);
-    setupUrlValidation(modal);
-    setupShowreelValidation(modal);
-
-    // Word count
-    const descriptionInput = modal.querySelector('#mp-form-description');
-    const wordCountEl = modal.querySelector('#mp-word-count');
-    const updateWordCount = () => {
-      const text = descriptionInput.value.trim();
-      const count = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
-      wordCountEl.textContent = count;
-      wordCountEl.style.color = count >= 50 ? '#28a745' : '#666';
-      modal.querySelector('#mp-description-error').style.display = 'none';
-    };
-    descriptionInput.addEventListener('input', updateWordCount);
-    updateWordCount();
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-
-    modal.querySelector('#mp-modal-cancel').addEventListener('click', () => modal.remove());
-
-    const saveBtn = modal.querySelector('#mp-modal-save');
-    saveBtn.addEventListener('click', async () => {
-      const projectName = modal.querySelector('#mp-form-name').value.trim();
-      const projectDescription = modal.querySelector('#mp-form-description').value.trim();
-      const wordCount = projectDescription ? projectDescription.split(/\s+/).filter(w => w.length > 0).length : 0;
-
-      if (!projectName) {
-        alert('Project name is required');
-        return;
-      }
-
-      if (wordCount < 50) {
-        const errorEl = modal.querySelector('#mp-description-error');
-        if (errorEl) errorEl.style.display = 'block';
-        modal.querySelector('#mp-form-description').focus();
-        return;
-      }
-
-      const showreelLink = modal.querySelector('#mp-form-showreel_link').value.trim();
-      if (showreelLink && !isValidShowreelUrl(showreelLink)) {
-        const errorEl = modal.querySelector('#mp-showreel-error');
-        if (errorEl) errorEl.classList.add('visible');
-        modal.querySelector('#mp-form-showreel_link').classList.add('error');
-        modal.querySelector('#mp-form-showreel_link').focus();
-        return;
-      }
-
-      const externalLink = modal.querySelector('#mp-form-external_link').value.trim();
-      if (externalLink && !isValidUrl(externalLink)) {
-        const errorEl = modal.querySelector('#mp-url-error');
-        if (errorEl) errorEl.classList.add('visible');
-        modal.querySelector('#mp-form-external_link').classList.add('error');
-        modal.querySelector('#mp-form-external_link').focus();
-        return;
-      }
-
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Creating...';
-
-      // Hide the modal and show progress overlay
-      modal.style.display = 'none';
-
-      try {
-        const newProject = await runWithProgress(async () => {
-          return await createProject({
-            name: projectName,
-            description: projectDescription,
-            external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
-            showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
-            display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
-            categories: [...selectedCategories],
-            feature_image_url: projectData.feature_image_url || '',
-            gallery_images: projectData.gallery_images || []
-          });
-        }, 'Creating Project');
-
-        await logActivity('project_create', { id: newProject.id, name: newProject.name });
-        projects.push(newProject);
-        projects.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-        modal.remove();
-        renderProjects(wrapper);
-      } catch (error) {
-        console.error('Error creating project:', error);
-        modal.style.display = '';
-        alert('Error creating project. Please try again.');
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Create Project';
-      }
-    });
-
-    modal.querySelector('#mp-form-name').focus();
-  }
-
-  function openEditModal(project, wrapper) {
-    const selectedCategories = [...(project.categories || [])];
-    const projectData = {
-      id: project.id,
-      feature_image_url: project.feature_image_url || '',
-      gallery_images: [...(project.gallery_images || [])]
-    };
-
-    const modal = document.createElement('div');
-    modal.className = 'mp-modal-overlay';
-    modal.innerHTML = `
+    `,document.body.appendChild(t),R(t,e),B(t,o,null),A(t),U(t);const i=t.querySelector("#mp-form-description"),n=t.querySelector("#mp-word-count"),c=()=>{const a=i.value.trim(),d=a?a.split(/\s+/).filter(u=>u.length>0).length:0;n.textContent=d,n.style.color=d>=50?"#28a745":"#666",t.querySelector("#mp-description-error").style.display="none"};i.addEventListener("input",c),c(),t.addEventListener("click",a=>{a.target===t&&t.remove()}),t.querySelector("#mp-modal-cancel").addEventListener("click",()=>t.remove());const l=t.querySelector("#mp-modal-save");l.addEventListener("click",async()=>{const a=t.querySelector("#mp-form-name").value.trim(),d=t.querySelector("#mp-form-description").value.trim(),u=d?d.split(/\s+/).filter(s=>s.length>0).length:0;if(!a){alert("Project name is required");return}if(u<50){const s=t.querySelector("#mp-description-error");s&&(s.style.display="block"),t.querySelector("#mp-form-description").focus();return}const m=t.querySelector("#mp-form-showreel_link").value.trim();if(m&&!L(m)){const s=t.querySelector("#mp-showreel-error");s&&s.classList.add("visible"),t.querySelector("#mp-form-showreel_link").classList.add("error"),t.querySelector("#mp-form-showreel_link").focus();return}const g=t.querySelector("#mp-form-external_link").value.trim();if(g&&!k(g)){const s=t.querySelector("#mp-url-error");s&&s.classList.add("visible"),t.querySelector("#mp-form-external_link").classList.add("error"),t.querySelector("#mp-form-external_link").focus();return}l.disabled=!0,l.textContent="Creating...",t.style.display="none";try{const s=await M(async()=>await K({name:a,description:d,external_link:w(t.querySelector("#mp-form-external_link").value),showreel_link:w(t.querySelector("#mp-form-showreel_link").value),display_order:parseInt(t.querySelector("#mp-form-display_order").value)||0,categories:[...e],feature_image_url:o.feature_image_url||"",gallery_images:o.gallery_images||[]}),"Creating Project");await q("project_create",{id:s.id,name:s.name}),f.push(s),f.sort((p,b)=>(p.display_order||0)-(b.display_order||0)),t.remove(),S(r)}catch(s){console.error("Error creating project:",s),t.style.display="",alert("Error creating project. Please try again."),l.disabled=!1,l.textContent="Create Project"}}),t.querySelector("#mp-form-name").focus()}function le(r,e){const o=[...r.categories||[]],t={id:r.id,feature_image_url:r.feature_image_url||"",gallery_images:[...r.gallery_images||[]]},i=document.createElement("div");i.className="mp-modal-overlay",i.innerHTML=`
       <div class="mp-modal">
         <div class="mp-modal-header">
           <h3>Edit Project</h3>
@@ -1968,33 +855,33 @@
         <div class="mp-modal-body">
           <div class="mp-form-field">
             <label>Project Name <span>*</span></label>
-            <input type="text" class="mp-form-input" id="mp-form-name" value="${project.name || ''}" required>
+            <input type="text" class="mp-form-input" id="mp-form-name" value="${r.name||""}" required>
           </div>
           <div class="mp-form-field">
             <label>Project Description <span>*</span></label>
-            <textarea class="mp-form-input" id="mp-form-description">${project.description || ''}</textarea>
+            <textarea class="mp-form-input" id="mp-form-description">${r.description||""}</textarea>
             <div class="mp-input-hint">Minimum 50 words required (<span id="mp-word-count">0</span> words)</div>
             <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
           </div>
 
-          ${createCategorySelector(selectedCategories)}
-          ${createImageUploader(projectData)}
+          ${N(o)}
+          ${O(t)}
 
           <div class="mp-form-field">
             <label>Showreel Link</label>
-            <input type="text" class="mp-form-input" id="mp-form-showreel_link" value="${project.showreel_link || ''}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
+            <input type="text" class="mp-form-input" id="mp-form-showreel_link" value="${r.showreel_link||""}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
             <div class="mp-input-hint">YouTube or Vimeo URL only</div>
             <div class="mp-input-error" id="mp-showreel-error">Please enter a valid YouTube or Vimeo URL</div>
           </div>
           <div class="mp-form-field">
             <label>Project External Link</label>
-            <input type="text" class="mp-form-input" id="mp-form-external_link" value="${project.external_link || ''}" placeholder="https://example.com">
+            <input type="text" class="mp-form-input" id="mp-form-external_link" value="${r.external_link||""}" placeholder="https://example.com">
             <div class="mp-input-hint">Enter a complete URL including https://</div>
             <div class="mp-input-error" id="mp-url-error">Please enter a valid URL (e.g., https://example.com)</div>
           </div>
           <div class="mp-form-field">
             <label>Display Order</label>
-            <input type="number" class="mp-form-input" id="mp-form-display_order" value="${project.display_order || 0}">
+            <input type="number" class="mp-form-input" id="mp-form-display_order" value="${r.display_order||0}">
           </div>
         </div>
         <div class="mp-modal-footer">
@@ -2002,210 +889,4 @@
           <button class="mp-btn" id="mp-modal-save">Save Changes</button>
         </div>
       </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    setupCategorySelector(modal, selectedCategories, null);
-    setupImageUploader(modal, projectData, null);
-    setupUrlValidation(modal);
-    setupShowreelValidation(modal);
-
-    // Word count
-    const descriptionInput = modal.querySelector('#mp-form-description');
-    const wordCountEl = modal.querySelector('#mp-word-count');
-    const updateWordCount = () => {
-      const text = descriptionInput.value.trim();
-      const count = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
-      wordCountEl.textContent = count;
-      wordCountEl.style.color = count >= 50 ? '#28a745' : '#666';
-      modal.querySelector('#mp-description-error').style.display = 'none';
-    };
-    descriptionInput.addEventListener('input', updateWordCount);
-    updateWordCount();
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-
-    modal.querySelector('#mp-modal-cancel').addEventListener('click', () => modal.remove());
-
-    const saveBtn = modal.querySelector('#mp-modal-save');
-    saveBtn.addEventListener('click', async () => {
-      const projectName = modal.querySelector('#mp-form-name').value.trim();
-      const projectDescription = modal.querySelector('#mp-form-description').value.trim();
-      const wordCount = projectDescription ? projectDescription.split(/\s+/).filter(w => w.length > 0).length : 0;
-
-      if (!projectName) {
-        alert('Project name is required');
-        return;
-      }
-
-      if (wordCount < 50) {
-        const errorEl = modal.querySelector('#mp-description-error');
-        if (errorEl) errorEl.style.display = 'block';
-        modal.querySelector('#mp-form-description').focus();
-        return;
-      }
-
-      const showreelLink = modal.querySelector('#mp-form-showreel_link').value.trim();
-      if (showreelLink && !isValidShowreelUrl(showreelLink)) {
-        const errorEl = modal.querySelector('#mp-showreel-error');
-        if (errorEl) errorEl.classList.add('visible');
-        modal.querySelector('#mp-form-showreel_link').classList.add('error');
-        modal.querySelector('#mp-form-showreel_link').focus();
-        return;
-      }
-
-      const externalLink = modal.querySelector('#mp-form-external_link').value.trim();
-      if (externalLink && !isValidUrl(externalLink)) {
-        const errorEl = modal.querySelector('#mp-url-error');
-        if (errorEl) errorEl.classList.add('visible');
-        modal.querySelector('#mp-form-external_link').classList.add('error');
-        modal.querySelector('#mp-form-external_link').focus();
-        return;
-      }
-
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
-
-      // Hide the modal and show progress overlay
-      modal.style.display = 'none';
-
-      try {
-        const updated = await runWithProgress(async () => {
-          return await updateProject(project.id, {
-            name: projectName,
-            description: projectDescription,
-            external_link: formatUrl(modal.querySelector('#mp-form-external_link').value),
-            showreel_link: formatUrl(modal.querySelector('#mp-form-showreel_link').value),
-            display_order: parseInt(modal.querySelector('#mp-form-display_order').value) || 0,
-            categories: [...selectedCategories],
-            feature_image_url: projectData.feature_image_url || '',
-            gallery_images: projectData.gallery_images || []
-          });
-        }, 'Saving Changes');
-
-        await logActivity('project_update', { id: updated.id, name: updated.name });
-
-        // Update in local array
-        const index = projects.findIndex(p => p.id === project.id);
-        if (index > -1) {
-          projects[index] = updated;
-        }
-        projects.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-
-        modal.remove();
-        renderProjects(wrapper);
-      } catch (error) {
-        console.error('Error updating project:', error);
-        modal.style.display = '';
-        alert('Error updating project. Please try again.');
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Changes';
-      }
-    });
-  }
-
-  // ============================================
-  // INITIALIZATION
-  // ============================================
-
-  function waitForMemberstack() {
-    return new Promise((resolve) => {
-      if (window.$memberstackDom) {
-        resolve();
-      } else {
-        const check = setInterval(() => {
-          if (window.$memberstackDom) {
-            clearInterval(check);
-            resolve();
-          }
-        }, 100);
-      }
-    });
-  }
-
-  function waitForSupabase() {
-    return new Promise((resolve, reject) => {
-      if (window.supabase) {
-        resolve();
-        return;
-      }
-
-      let attempts = 0;
-      const maxAttempts = 50; // 5 seconds
-
-      const check = setInterval(() => {
-        attempts++;
-        if (window.supabase) {
-          clearInterval(check);
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(check);
-          reject(new Error('Supabase library not loaded'));
-        }
-      }, 100);
-    });
-  }
-
-  async function init() {
-    const container = document.querySelector('.supabase-project-container');
-    if (!container) {
-      console.warn('Could not find .supabase-project-container');
-      return;
-    }
-
-    // Add styles
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    document.head.appendChild(styleEl);
-
-    // Create main container
-    const wrapper = document.createElement('div');
-    wrapper.className = 'mp-container';
-    wrapper.innerHTML = '<div class="mp-loading">Loading projects...</div>';
-    container.appendChild(wrapper);
-
-    try {
-      // Wait for dependencies
-      await waitForSupabase();
-      await waitForMemberstack();
-
-      // Initialize Supabase
-      if (!initSupabase()) {
-        wrapper.innerHTML = '<div class="mp-loading">Error: Could not initialize Supabase</div>';
-        return;
-      }
-
-      // Get current member
-      const { data: member } = await window.$memberstackDom.getCurrentMember();
-      if (!member) {
-        wrapper.innerHTML = '<div class="mp-loading">Please log in to view your projects.</div>';
-        return;
-      }
-      currentMember = member;
-      console.log('Current member:', currentMember.id);
-
-      // Load categories from Supabase
-      categories = await loadCategories();
-      console.log(`Categories loaded: ${categories.directories.length} directories, ${categories.subDirectories.length} sub-directories`);
-
-      // Load projects from Supabase
-      projects = await loadProjects(member.id);
-
-      // Render
-      renderProjects(wrapper);
-    } catch (error) {
-      console.error('Error initializing member projects:', error);
-      wrapper.innerHTML = '<div class="mp-loading">Error loading projects. Please refresh the page.</div>';
-    }
-  }
-
-  // Run when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+    `,document.body.appendChild(i),R(i,o),B(i,t,null),A(i),U(i);const n=i.querySelector("#mp-form-description"),c=i.querySelector("#mp-word-count"),l=()=>{const d=n.value.trim(),u=d?d.split(/\s+/).filter(m=>m.length>0).length:0;c.textContent=u,c.style.color=u>=50?"#28a745":"#666",i.querySelector("#mp-description-error").style.display="none"};n.addEventListener("input",l),l(),i.addEventListener("click",d=>{d.target===i&&i.remove()}),i.querySelector("#mp-modal-cancel").addEventListener("click",()=>i.remove());const a=i.querySelector("#mp-modal-save");a.addEventListener("click",async()=>{const d=i.querySelector("#mp-form-name").value.trim(),u=i.querySelector("#mp-form-description").value.trim(),m=u?u.split(/\s+/).filter(p=>p.length>0).length:0;if(!d){alert("Project name is required");return}if(m<50){const p=i.querySelector("#mp-description-error");p&&(p.style.display="block"),i.querySelector("#mp-form-description").focus();return}const g=i.querySelector("#mp-form-showreel_link").value.trim();if(g&&!L(g)){const p=i.querySelector("#mp-showreel-error");p&&p.classList.add("visible"),i.querySelector("#mp-form-showreel_link").classList.add("error"),i.querySelector("#mp-form-showreel_link").focus();return}const s=i.querySelector("#mp-form-external_link").value.trim();if(s&&!k(s)){const p=i.querySelector("#mp-url-error");p&&p.classList.add("visible"),i.querySelector("#mp-form-external_link").classList.add("error"),i.querySelector("#mp-form-external_link").focus();return}a.disabled=!0,a.textContent="Saving...",i.style.display="none";try{const p=await M(async()=>await X(r.id,{name:d,description:u,external_link:w(i.querySelector("#mp-form-external_link").value),showreel_link:w(i.querySelector("#mp-form-showreel_link").value),display_order:parseInt(i.querySelector("#mp-form-display_order").value)||0,categories:[...o],feature_image_url:t.feature_image_url||"",gallery_images:t.gallery_images||[]}),"Saving Changes");await q("project_update",{id:p.id,name:p.name});const b=f.findIndex(h=>h.id===r.id);b>-1&&(f[b]=p),f.sort((h,j)=>(h.display_order||0)-(j.display_order||0)),i.remove(),S(e)}catch(p){console.error("Error updating project:",p),i.style.display="",alert("Error updating project. Please try again."),a.disabled=!1,a.textContent="Save Changes"}})}function ne(){return new Promise(r=>{if(window.$memberstackDom)r();else{const e=setInterval(()=>{window.$memberstackDom&&(clearInterval(e),r())},100)}})}function de(){return new Promise((r,e)=>{if(window.supabase){r();return}let o=0;const t=50,i=setInterval(()=>{o++,window.supabase?(clearInterval(i),r()):o>=t&&(clearInterval(i),e(new Error("Supabase library not loaded")))},100)})}async function D(){const r=document.querySelector(".supabase-project-container");if(!r){console.warn("Could not find .supabase-project-container");return}const e=document.createElement("style");e.textContent=G,document.head.appendChild(e);const o=document.createElement("div");o.className="mp-container",o.innerHTML='<div class="mp-loading">Loading projects...</div>',r.appendChild(o);try{if(await de(),await ne(),!Y()){o.innerHTML='<div class="mp-loading">Error: Could not initialize Supabase</div>';return}const{data:t}=await window.$memberstackDom.getCurrentMember();if(!t){o.innerHTML='<div class="mp-loading">Please log in to view your projects.</div>';return}y=t,console.log("Current member:",y.id),x=await W(),console.log(`Categories loaded: ${x.directories.length} directories, ${x.subDirectories.length} sub-directories`),f=await J(t.id),S(o)}catch(t){console.error("Error initializing member projects:",t),o.innerHTML='<div class="mp-loading">Error loading projects. Please refresh the page.</div>'}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",D):D()})();

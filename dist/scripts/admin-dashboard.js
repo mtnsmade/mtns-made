@@ -1,24 +1,4 @@
-// Admin Dashboard Script v2
-// Monotonal design with contact functionality
-// Container: .dashboard-feed
-
-(function() {
-  console.log('Admin dashboard v2 loaded');
-
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
-  const SITE_URL = 'https://www.mtnsmade.com.au';
-
-  let supabase = null;
-  let dashboardData = null;
-
-  // ============================================
-  // STYLES - Light Monotonal Theme
-  // ============================================
-  const styles = `
+(function(){console.log("Admin dashboard v2 loaded");const m="https://epszwomtxkpjegbjbixr.supabase.co",_="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",c="https://www.mtnsmade.com.au";let d=null,p=null;const w=`
     .admin-dashboard {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
@@ -691,305 +671,40 @@
         overflow-x: auto;
       }
     }
-  `;
+  `;function l(e){if(!e)return"--";const t=new Date(e),a=Math.floor((new Date-t)/1e3);return a<60?"now":a<3600?`${Math.floor(a/60)}m`:a<86400?`${Math.floor(a/3600)}h`:a<604800?`${Math.floor(a/86400)}d`:t.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function $(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function b(e){const t=[];return e.profile_image_url||t.push("Profile Image"),e.header_image_url||t.push("Header Image"),(!e.bio||e.bio.length<50)&&t.push("Bio"),e.suburb_id||t.push("Location"),t}function S(e,t){const i=e.first_name||e.name||"there",a=t.length>0?`
 
-  // ============================================
-  // HELPER FUNCTIONS
-  // ============================================
-
-  function timeAgo(dateString) {
-    if (!dateString) return '--';
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-
-    if (seconds < 60) return 'now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-    return date.toLocaleDateString('en-AU', { day: '2-digit', month: 'short' });
-  }
-
-  function formatTimestamp() {
-    return new Date().toLocaleString('en-AU', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).toUpperCase();
-  }
-
-  function getMissingFields(member) {
-    const missing = [];
-    if (!member.profile_image_url) missing.push('Profile Image');
-    if (!member.header_image_url) missing.push('Header Image');
-    if (!member.bio || member.bio.length < 50) missing.push('Bio');
-    if (!member.suburb_id) missing.push('Location');
-    // Categories would need a separate query
-    return missing;
-  }
-
-  function generateEmailTemplate(member, missingFields) {
-    const name = member.first_name || member.name || 'there';
-    const fieldsText = missingFields.length > 0
-      ? `\n\nTo complete your profile, you'll need:\n${missingFields.map(f => `- ${f}`).join('\n')}`
-      : '';
-
-    return `Hi ${name},
+To complete your profile, you'll need:
+${t.map(n=>`- ${n}`).join(`
+`)}`:"";return`Hi ${i},
 
 Thanks for being part of MTNS MADE! We noticed your profile isn't quite complete yet.
 
-A complete profile helps other creatives find you in the directory and shows off your amazing work.${fieldsText}
+A complete profile helps other creatives find you in the directory and shows off your amazing work.${a}
 
-Complete your profile here: ${SITE_URL}/profile/start
+Complete your profile here: ${c}/profile/start
 
 Let us know if you need any help!
 
-MTNS MADE Team`;
-  }
-
-  // ============================================
-  // DATA LOADING
-  // ============================================
-
-  async function loadDashboardData() {
-    const [
-      recentMembers,
-      memberStats,
-      incompleteProfiles,
-      failedSignups,
-      recentEvents,
-      eventStats,
-      recentProjects,
-      messageStats,
-      recentActivity
-    ] = await Promise.all([
-      loadRecentMembers(),
-      loadMemberStats(),
-      loadIncompleteProfiles(),
-      loadFailedSignups(),
-      loadRecentEvents(),
-      loadEventStats(),
-      loadRecentProjects(),
-      loadMessageStats(),
-      loadRecentActivity()
-    ]);
-
-    return {
-      recentMembers,
-      memberStats,
-      incompleteProfiles,
-      failedSignups,
-      recentEvents,
-      eventStats,
-      recentProjects,
-      messageStats,
-      recentActivity,
-      loadedAt: new Date()
-    };
-  }
-
-  async function loadRecentMembers() {
-    const { data, error } = await supabase
-      .from('members')
-      .select(`
+MTNS MADE Team`}async function u(){const[e,t,i,a,n,o,r,s,f]=await Promise.all([k(),E(),A(),z(),j(),T(),L(),M(),C()]);return{recentMembers:e,memberStats:t,incompleteProfiles:i,failedSignups:a,recentEvents:n,eventStats:o,recentProjects:r,messageStats:s,recentActivity:f,loadedAt:new Date}}async function k(){const{data:e,error:t}=await d.from("members").select(`
         id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
         created_at, updated_at
-      `)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error('Error loading recent members:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  async function loadMemberStats() {
-    const { data: all } = await supabase
-      .from('members')
-      .select('id, subscription_status, profile_complete, webflow_id');
-
-    const total = all?.length || 0;
-    const active = all?.filter(m => m.subscription_status === 'active').length || 0;
-    const lapsed = all?.filter(m => m.subscription_status === 'lapsed').length || 0;
-    const complete = all?.filter(m => m.profile_complete).length || 0;
-    const synced = all?.filter(m => m.webflow_id).length || 0;
-    const pendingSync = all?.filter(m => m.profile_complete && !m.webflow_id && m.subscription_status === 'active').length || 0;
-
-    return { total, active, lapsed, complete, synced, pendingSync };
-  }
-
-  async function loadMessageStats() {
-    try {
-      // Get current month start
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-      // Total messages
-      const { data: allMessages } = await supabase
-        .from('messages')
-        .select('id, is_read, created_at');
-
-      // This month's messages
-      const { data: monthMessages } = await supabase
-        .from('messages')
-        .select('id')
-        .gte('created_at', monthStart);
-
-      const total = allMessages?.length || 0;
-      const unread = allMessages?.filter(m => !m.is_read).length || 0;
-      const thisMonth = monthMessages?.length || 0;
-
-      return { total, unread, thisMonth };
-    } catch (error) {
-      console.error('Error loading message stats:', error);
-      return { total: 0, unread: 0, thisMonth: 0 };
-    }
-  }
-
-  async function loadIncompleteProfiles() {
-    const { data, error } = await supabase
-      .from('members')
-      .select(`
+      `).order("created_at",{ascending:!1}).limit(20);return t?(console.error("Error loading recent members:",t),[]):e||[]}async function E(){const{data:e}=await d.from("members").select("id, subscription_status, profile_complete, webflow_id"),t=(e==null?void 0:e.length)||0,i=(e==null?void 0:e.filter(s=>s.subscription_status==="active").length)||0,a=(e==null?void 0:e.filter(s=>s.subscription_status==="lapsed").length)||0,n=(e==null?void 0:e.filter(s=>s.profile_complete).length)||0,o=(e==null?void 0:e.filter(s=>s.webflow_id).length)||0,r=(e==null?void 0:e.filter(s=>s.profile_complete&&!s.webflow_id&&s.subscription_status==="active").length)||0;return{total:t,active:i,lapsed:a,complete:n,synced:o,pendingSync:r}}async function M(){try{const e=new Date,t=new Date(e.getFullYear(),e.getMonth(),1).toISOString(),{data:i}=await d.from("messages").select("id, is_read, created_at"),{data:a}=await d.from("messages").select("id").gte("created_at",t),n=(i==null?void 0:i.length)||0,o=(i==null?void 0:i.filter(s=>!s.is_read).length)||0,r=(a==null?void 0:a.length)||0;return{total:n,unread:o,thisMonth:r}}catch(e){return console.error("Error loading message stats:",e),{total:0,unread:0,thisMonth:0}}}async function A(){const{data:e,error:t}=await d.from("members").select(`
         id, memberstack_id, name, email, first_name, slug, subscription_status,
         profile_complete, profile_reminder_sent_at, created_at,
         profile_image_url, header_image_url, bio, suburb_id
-      `)
-      .eq('profile_complete', false)
-      .eq('subscription_status', 'active')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error loading incomplete profiles:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  async function loadFailedSignups() {
-    // Failed signups: members who don't have 'active' or 'lapsed' status
-    // This catches: null, empty string, 'trialing', 'canceled', etc.
-    const { data, error } = await supabase
-      .from('members')
-      .select(`
+      `).eq("profile_complete",!1).eq("subscription_status","active").order("created_at",{ascending:!0});return t?(console.error("Error loading incomplete profiles:",t),[]):e||[]}async function z(){const{data:e,error:t}=await d.from("members").select(`
         id, memberstack_id, name, email, first_name, slug,
         subscription_status, profile_complete, profile_reminder_sent_at, created_at
-      `)
-      .not('subscription_status', 'in', '("active","lapsed")')
-      .order('created_at', { ascending: false })
-      .limit(30);
-
-    if (error) {
-      console.error('Error loading failed signups:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  async function loadRecentEvents() {
-    const { data, error } = await supabase
-      .from('events')
-      .select('id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at')
-      .order('created_at', { ascending: false })
-      .limit(15);
-
-    if (error) {
-      console.error('Error loading recent events:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  async function loadEventStats() {
-    const { data: all } = await supabase
-      .from('events')
-      .select('id, is_draft, is_archived, webflow_id');
-
-    const total = all?.length || 0;
-    const pending = all?.filter(e => e.is_draft && !e.is_archived).length || 0;
-    const published = all?.filter(e => !e.is_draft && !e.is_archived).length || 0;
-
-    return { total, pending, published };
-  }
-
-  async function loadRecentProjects() {
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
+      `).not("subscription_status","in",'("active","lapsed")').order("created_at",{ascending:!1}).limit(30);return t?(console.error("Error loading failed signups:",t),[]):e||[]}async function j(){const{data:e,error:t}=await d.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("created_at",{ascending:!1}).limit(15);return t?(console.error("Error loading recent events:",t),[]):e||[]}async function T(){const{data:e}=await d.from("events").select("id, is_draft, is_archived, webflow_id"),t=(e==null?void 0:e.length)||0,i=(e==null?void 0:e.filter(n=>n.is_draft&&!n.is_archived).length)||0,a=(e==null?void 0:e.filter(n=>!n.is_draft&&!n.is_archived).length)||0;return{total:t,pending:i,published:a}}async function L(){const{data:e,error:t}=await d.from("projects").select(`
         id, name, slug, member_id, webflow_id, is_draft, is_deleted,
         created_at, updated_at
-      `)
-      .eq('is_deleted', false)
-      .order('updated_at', { ascending: false })
-      .limit(15);
-
-    if (error) {
-      console.error('Error loading recent projects:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  async function loadRecentActivity() {
-    const { data, error } = await supabase
-      .from('activity_log')
-      .select(`
+      `).eq("is_deleted",!1).order("updated_at",{ascending:!1}).limit(15);return t?(console.error("Error loading recent projects:",t),[]):e||[]}async function C(){const{data:e,error:t}=await d.from("activity_log").select(`
         id, member_id, memberstack_id, activity_type, description,
         entity_type, entity_id, entity_name,
         member_webflow_url, entity_webflow_url, created_at
-      `)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error('Error loading recent activity:', error);
-      return [];
-    }
-
-    // Enrich with member names and profile images
-    const memberIds = [...new Set(data.filter(a => a.member_id).map(a => a.member_id))];
-    let memberData = {};
-
-    if (memberIds.length > 0) {
-      const { data: members } = await supabase
-        .from('members')
-        .select('id, name, first_name, last_name, profile_image_url')
-        .in('id', memberIds);
-
-      if (members) {
-        members.forEach(m => {
-          memberData[m.id] = {
-            name: m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Unknown Member',
-            profile_image_url: m.profile_image_url || null
-          };
-        });
-      }
-    }
-
-    return data.map(activity => ({
-      ...activity,
-      member_name: activity.member_id ? (memberData[activity.member_id]?.name || 'Unknown Member') : 'Unknown Member',
-      member_profile_image: activity.member_id ? (memberData[activity.member_id]?.profile_image_url || null) : null
-    }));
-  }
-
-  // ============================================
-  // MODAL FUNCTIONS
-  // ============================================
-
-  function showContactModal(member) {
-    const missingFields = getMissingFields(member);
-    const emailBody = generateEmailTemplate(member, missingFields);
-
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
+      `).order("created_at",{ascending:!1}).limit(50);if(t)return console.error("Error loading recent activity:",t),[];const i=[...new Set(e.filter(n=>n.member_id).map(n=>n.member_id))];let a={};if(i.length>0){const{data:n}=await d.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",i);n&&n.forEach(o=>{a[o.id]={name:o.name||`${o.first_name||""} ${o.last_name||""}`.trim()||"Unknown Member",profile_image_url:o.profile_image_url||null}})}return e.map(n=>{var o,r;return{...n,member_name:n.member_id&&((o=a[n.member_id])==null?void 0:o.name)||"Unknown Member",member_profile_image:n.member_id&&((r=a[n.member_id])==null?void 0:r.profile_image_url)||null}})}function P(e){const t=b(e),i=S(e,t),a=document.createElement("div");a.className="modal-overlay",a.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Contact Member</h3>
@@ -998,7 +713,7 @@ MTNS MADE Team`;
         <div class="modal-body">
           <div class="form-field">
             <label class="form-label">To</label>
-            <input type="text" class="form-input" id="modal-to" value="${member.email || ''}" readonly>
+            <input type="text" class="form-input" id="modal-to" value="${e.email||""}" readonly>
           </div>
           <div class="form-field">
             <label class="form-label">Subject</label>
@@ -1006,106 +721,29 @@ MTNS MADE Team`;
           </div>
           <div class="form-field">
             <label class="form-label">Message</label>
-            <textarea class="form-input" id="modal-body">${emailBody}</textarea>
+            <textarea class="form-input" id="modal-body">${i}</textarea>
             <div class="form-hint">Edit the message above as needed</div>
           </div>
-          ${missingFields.length > 0 ? `
+          ${t.length>0?`
             <div class="form-field">
               <label class="form-label">Missing Fields Detected</label>
               <div class="missing-fields">
-                ${missingFields.map(f => `<span class="missing-field">${f}</span>`).join('')}
+                ${t.map(n=>`<span class="missing-field">${n}</span>`).join("")}
               </div>
             </div>
-          ` : ''}
+          `:""}
         </div>
         <div class="modal-footer">
           <button class="admin-btn" id="modal-cancel">Cancel</button>
           <button class="admin-btn primary" id="modal-send">Send Email</button>
         </div>
       </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Event listeners
-    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
-    modal.querySelector('#modal-cancel').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-
-    modal.querySelector('#modal-send').addEventListener('click', async () => {
-      const to = modal.querySelector('#modal-to').value;
-      const subject = modal.querySelector('#modal-subject').value;
-      const body = modal.querySelector('#modal-body').value;
-
-      if (!to) {
-        alert('No email address available for this member');
-        return;
-      }
-
-      const sendBtn = modal.querySelector('#modal-send');
-      sendBtn.disabled = true;
-      sendBtn.textContent = 'Sending...';
-
-      try {
-        // Call the send-email Edge Function (no auth required - deployed with --no-verify-jwt)
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            to: to,
-            subject: subject,
-            text: body,
-            html: body.replace(/\n/g, '<br>')
-          })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // Update profile_reminder_sent_at in Supabase
-          await supabase
-            .from('members')
-            .update({ profile_reminder_sent_at: new Date().toISOString() })
-            .eq('id', member.id);
-
-          alert('Email sent successfully!');
-          modal.remove();
-
-          // Refresh the dashboard to show updated "Contacted" state
-          const container = document.querySelector('.dashboard-feed');
-          if (container) refreshDashboard(container);
-        } else {
-          alert('Failed to send email: ' + (result.error || 'Unknown error'));
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'Send Email';
-        }
-      } catch (error) {
-        console.error('Error sending email:', error);
-        alert('Error sending email. Check console for details.');
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send Email';
-      }
-    });
-  }
-
-  // ============================================
-  // RENDER FUNCTIONS
-  // ============================================
-
-  function renderDashboard(container, data) {
-    const incompleteCount = data.incompleteProfiles.length;
-    const pendingEvents = data.eventStats.pending;
-
-    container.innerHTML = `
+    `,document.body.appendChild(a),a.querySelector(".modal-close").addEventListener("click",()=>a.remove()),a.querySelector("#modal-cancel").addEventListener("click",()=>a.remove()),a.addEventListener("click",n=>{n.target===a&&a.remove()}),a.querySelector("#modal-send").addEventListener("click",async()=>{const n=a.querySelector("#modal-to").value,o=a.querySelector("#modal-subject").value,r=a.querySelector("#modal-body").value;if(!n){alert("No email address available for this member");return}const s=a.querySelector("#modal-send");s.disabled=!0,s.textContent="Sending...";try{const x=await(await fetch(`${m}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:n,subject:o,text:r,html:r.replace(/\n/g,"<br>")})})).json();if(x.success){await d.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",e.id),alert("Email sent successfully!"),a.remove();const y=document.querySelector(".dashboard-feed");y&&v(y)}else alert("Failed to send email: "+(x.error||"Unknown error")),s.disabled=!1,s.textContent="Send Email"}catch(f){console.error("Error sending email:",f),alert("Error sending email. Check console for details."),s.disabled=!1,s.textContent="Send Email"}})}function g(e,t){const i=t.incompleteProfiles.length;t.eventStats.pending,e.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-header">
           <h1>MTNS MADE // System Dashboard</h1>
           <div style="display: flex; align-items: center; gap: 16px;">
-            <span class="admin-timestamp">Updated: ${formatTimestamp()}</span>
+            <span class="admin-timestamp">Updated: ${$()}</span>
             <button class="admin-btn" id="refresh-btn">Refresh</button>
           </div>
         </div>
@@ -1113,133 +751,63 @@ MTNS MADE Team`;
         <!-- Stats Grid -->
         <div class="stats-grid">
           <div class="stat-cell">
-            <div class="stat-value">${data.memberStats.total}</div>
+            <div class="stat-value">${t.memberStats.total}</div>
             <div class="stat-label">Total Members</div>
           </div>
           <div class="stat-cell success">
-            <div class="stat-value">${data.memberStats.active}</div>
+            <div class="stat-value">${t.memberStats.active}</div>
             <div class="stat-label">Active</div>
           </div>
-          <div class="stat-cell ${incompleteCount > 5 ? 'alert' : ''}">
-            <div class="stat-value">${data.memberStats.complete}/${data.memberStats.total}</div>
+          <div class="stat-cell ${i>5?"alert":""}">
+            <div class="stat-value">${t.memberStats.complete}/${t.memberStats.total}</div>
             <div class="stat-label">Profiles Complete</div>
           </div>
           <div class="stat-cell">
-            <div class="stat-value">${data.messageStats.thisMonth}</div>
+            <div class="stat-value">${t.messageStats.thisMonth}</div>
             <div class="stat-label">Messages This Month</div>
           </div>
         </div>
 
         <!-- Issues Section -->
-        ${renderIssuesSection(data)}
+        ${q(t)}
 
         <!-- Activity Tabs -->
         <div class="admin-section">
           <div class="tabs-container">
             <button class="tab-btn active" data-tab="members">Recent Members</button>
-            <button class="tab-btn" data-tab="incomplete">Incomplete (${incompleteCount})</button>
-            <button class="tab-btn" data-tab="failed">Failed Signups (${data.failedSignups.length})</button>
+            <button class="tab-btn" data-tab="incomplete">Incomplete (${i})</button>
+            <button class="tab-btn" data-tab="failed">Failed Signups (${t.failedSignups.length})</button>
             <button class="tab-btn" data-tab="events">Events</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
             <button class="tab-btn" data-tab="activity">Activity</button>
           </div>
 
           <div class="tab-content active" id="tab-members">
-            ${renderMembersTable(data.recentMembers)}
+            ${D(t.recentMembers)}
           </div>
 
           <div class="tab-content" id="tab-incomplete">
-            ${renderIncompleteTable(data.incompleteProfiles)}
+            ${I(t.incompleteProfiles)}
           </div>
 
           <div class="tab-content" id="tab-failed">
-            ${renderFailedSignupsTable(data.failedSignups)}
+            ${N(t.failedSignups)}
           </div>
 
           <div class="tab-content" id="tab-events">
-            ${renderEventsTable(data.recentEvents, data.eventStats)}
+            ${U(t.recentEvents,t.eventStats)}
           </div>
 
           <div class="tab-content" id="tab-projects">
-            ${renderProjectsTable(data.recentProjects)}
+            ${R(t.recentProjects)}
           </div>
 
           <div class="tab-content" id="tab-activity">
-            ${renderActivityFeed(data.recentActivity)}
+            ${F(t.recentActivity)}
           </div>
         </div>
       </div>
-    `;
-
-    // Setup tab switching
-    container.querySelectorAll('.tab-btn').forEach(tab => {
-      tab.addEventListener('click', () => {
-        container.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-        container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        tab.classList.add('active');
-        container.querySelector(`#tab-${tab.dataset.tab}`).classList.add('active');
-      });
-    });
-
-    // Setup refresh button
-    container.querySelector('#refresh-btn').addEventListener('click', () => refreshDashboard(container));
-
-    // Setup contact buttons
-    container.querySelectorAll('.contact-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const memberId = btn.dataset.memberId;
-        const member = data.incompleteProfiles.find(m => m.id === memberId) ||
-                       data.recentMembers.find(m => m.id === memberId) ||
-                       data.failedSignups.find(m => m.id === memberId);
-        if (member) {
-          showContactModal(member);
-        }
-      });
-    });
-  }
-
-  function renderIssuesSection(data) {
-    const issues = [];
-
-    if (data.memberStats.pendingSync > 0) {
-      issues.push({
-        type: 'warning',
-        text: 'Members pending Webflow sync',
-        count: data.memberStats.pendingSync
-      });
-    }
-
-    const oldIncomplete = data.incompleteProfiles.filter(m => {
-      const days = (Date.now() - new Date(m.created_at)) / (1000 * 60 * 60 * 24);
-      return days > 7 && !m.profile_reminder_sent_at;
-    });
-
-    if (oldIncomplete.length > 0) {
-      issues.push({
-        type: 'info',
-        text: 'Incomplete profiles (7+ days, no reminder sent)',
-        count: oldIncomplete.length
-      });
-    }
-
-    if (data.eventStats.pending > 0) {
-      issues.push({
-        type: 'info',
-        text: 'Events pending review',
-        count: data.eventStats.pending
-      });
-    }
-
-    if (data.memberStats.lapsed > 0) {
-      issues.push({
-        type: 'error',
-        text: 'Lapsed subscriptions',
-        count: data.memberStats.lapsed
-      });
-    }
-
-    if (issues.length === 0) {
-      return `
+    `,e.querySelectorAll(".tab-btn").forEach(a=>{a.addEventListener("click",()=>{e.querySelectorAll(".tab-btn").forEach(n=>n.classList.remove("active")),e.querySelectorAll(".tab-content").forEach(n=>n.classList.remove("active")),a.classList.add("active"),e.querySelector(`#tab-${a.dataset.tab}`).classList.add("active")})}),e.querySelector("#refresh-btn").addEventListener("click",()=>v(e)),e.querySelectorAll(".contact-btn").forEach(a=>{a.addEventListener("click",()=>{const n=a.dataset.memberId,o=t.incompleteProfiles.find(r=>r.id===n)||t.recentMembers.find(r=>r.id===n)||t.failedSignups.find(r=>r.id===n);o&&P(o)})})}function q(e){const t=[];e.memberStats.pendingSync>0&&t.push({type:"warning",text:"Members pending Webflow sync",count:e.memberStats.pendingSync});const i=e.incompleteProfiles.filter(a=>(Date.now()-new Date(a.created_at))/864e5>7&&!a.profile_reminder_sent_at);return i.length>0&&t.push({type:"info",text:"Incomplete profiles (7+ days, no reminder sent)",count:i.length}),e.eventStats.pending>0&&t.push({type:"info",text:"Events pending review",count:e.eventStats.pending}),e.memberStats.lapsed>0&&t.push({type:"error",text:"Lapsed subscriptions",count:e.memberStats.lapsed}),t.length===0?`
         <div class="admin-section">
           <div class="section-header">
             <h2 class="section-title">System Status</h2>
@@ -1247,34 +815,23 @@ MTNS MADE Team`;
           </div>
           <div class="empty-state">No issues detected</div>
         </div>
-      `;
-    }
-
-    return `
+      `:`
       <div class="admin-section">
         <div class="section-header">
           <h2 class="section-title">Attention Required</h2>
-          <span class="section-badge alert">${issues.length} Issue${issues.length > 1 ? 's' : ''}</span>
+          <span class="section-badge alert">${t.length} Issue${t.length>1?"s":""}</span>
         </div>
         <div class="issues-list">
-          ${issues.map(issue => `
+          ${t.map(a=>`
             <div class="issue-item">
-              <div class="issue-icon ${issue.type}"></div>
-              <div class="issue-text">${issue.text}</div>
-              <div class="issue-count">${issue.count}</div>
+              <div class="issue-icon ${a.type}"></div>
+              <div class="issue-text">${a.text}</div>
+              <div class="issue-count">${a.count}</div>
             </div>
-          `).join('')}
+          `).join("")}
         </div>
       </div>
-    `;
-  }
-
-  function renderMembersTable(members) {
-    if (members.length === 0) {
-      return '<div class="empty-state">No members found</div>';
-    }
-
-    return `
+    `}function D(e){return e.length===0?'<div class="empty-state">No members found</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1287,46 +844,38 @@ MTNS MADE Team`;
           </tr>
         </thead>
         <tbody>
-          ${members.map(member => `
+          ${e.map(t=>`
             <tr>
               <td>
-                <div class="name-cell">${member.name || member.first_name || 'No name'}</div>
-                <div class="email-cell">${member.email || '--'}</div>
+                <div class="name-cell">${t.name||t.first_name||"No name"}</div>
+                <div class="email-cell">${t.email||"--"}</div>
               </td>
               <td>
-                <span class="status ${member.subscription_status || 'active'}">
-                  ${member.subscription_status || 'active'}
+                <span class="status ${t.subscription_status||"active"}">
+                  ${t.subscription_status||"active"}
                 </span>
               </td>
               <td>
-                <span class="status ${member.profile_complete ? 'complete' : 'incomplete'}">
-                  ${member.profile_complete ? 'Complete' : 'Incomplete'}
+                <span class="status ${t.profile_complete?"complete":"incomplete"}">
+                  ${t.profile_complete?"Complete":"Incomplete"}
                 </span>
               </td>
               <td>
-                <span class="status ${member.webflow_id ? 'synced' : 'pending'}">
-                  ${member.webflow_id ? 'Synced' : 'Pending'}
+                <span class="status ${t.webflow_id?"synced":"pending"}">
+                  ${t.webflow_id?"Synced":"Pending"}
                 </span>
               </td>
-              <td class="time-cell">${timeAgo(member.created_at)}</td>
+              <td class="time-cell">${l(t.created_at)}</td>
               <td>
-                ${member.webflow_id && member.slug ? `
-                  <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
-                ` : '--'}
+                ${t.webflow_id&&t.slug?`
+                  <a href="${c}/members/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
+                `:"--"}
               </td>
             </tr>
-          `).join('')}
+          `).join("")}
         </tbody>
       </table>
-    `;
-  }
-
-  function renderIncompleteTable(members) {
-    if (members.length === 0) {
-      return '<div class="empty-state">All active members have complete profiles</div>';
-    }
-
-    return `
+    `}function I(e){return e.length===0?'<div class="empty-state">All active members have complete profiles</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1338,50 +887,39 @@ MTNS MADE Team`;
           </tr>
         </thead>
         <tbody>
-          ${members.map(member => {
-            const missing = getMissingFields(member);
-            return `
+          ${e.map(t=>{const i=b(t);return`
               <tr>
                 <td>
-                  <div class="name-cell">${member.name || member.first_name || 'No name'}</div>
-                  <div class="email-cell">${member.email || '--'}</div>
+                  <div class="name-cell">${t.name||t.first_name||"No name"}</div>
+                  <div class="email-cell">${t.email||"--"}</div>
                 </td>
                 <td>
                   <div class="missing-fields">
-                    ${missing.slice(0, 3).map(f => `<span class="missing-field">${f}</span>`).join('')}
-                    ${missing.length > 3 ? `<span class="missing-field">+${missing.length - 3}</span>` : ''}
+                    ${i.slice(0,3).map(a=>`<span class="missing-field">${a}</span>`).join("")}
+                    ${i.length>3?`<span class="missing-field">+${i.length-3}</span>`:""}
                   </div>
                 </td>
                 <td class="time-cell">
-                  ${member.profile_reminder_sent_at ? timeAgo(member.profile_reminder_sent_at) : '--'}
+                  ${t.profile_reminder_sent_at?l(t.profile_reminder_sent_at):"--"}
                 </td>
-                <td class="time-cell">${timeAgo(member.created_at)}</td>
+                <td class="time-cell">${l(t.created_at)}</td>
                 <td>
                   <div class="action-btns">
-                    ${member.profile_reminder_sent_at ? `
+                    ${t.profile_reminder_sent_at?`
                       <button class="action-btn contacted" disabled>Contacted</button>
-                    ` : `
-                      <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                    `:`
+                      <button class="action-btn contact-btn" data-member-id="${t.id}">Contact</button>
                     `}
-                    ${member.webflow_id && member.slug ? `
-                      <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn">View</a>
-                    ` : ''}
+                    ${t.webflow_id&&t.slug?`
+                      <a href="${c}/members/${t.slug}" target="_blank" class="action-btn">View</a>
+                    `:""}
                   </div>
                 </td>
               </tr>
-            `;
-          }).join('')}
+            `}).join("")}
         </tbody>
       </table>
-    `;
-  }
-
-  function renderFailedSignupsTable(members) {
-    if (members.length === 0) {
-      return '<div class="empty-state">No failed signups found</div>';
-    }
-
-    return `
+    `}function N(e){return e.length===0?'<div class="empty-state">No failed signups found</div>':`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 12px; color: #666;">
         Members who started signup but never completed payment (not active, not lapsed)
       </div>
@@ -1395,39 +933,35 @@ MTNS MADE Team`;
           </tr>
         </thead>
         <tbody>
-          ${members.map(member => `
+          ${e.map(t=>`
             <tr>
               <td>
-                <div class="name-cell">${member.name || member.first_name || 'No name'}</div>
-                <div class="email-cell">${member.email || '--'}</div>
+                <div class="name-cell">${t.name||t.first_name||"No name"}</div>
+                <div class="email-cell">${t.email||"--"}</div>
               </td>
               <td>
                 <span class="status pending">
-                  ${member.subscription_status || 'no status'}
+                  ${t.subscription_status||"no status"}
                 </span>
               </td>
-              <td class="time-cell">${timeAgo(member.created_at)}</td>
+              <td class="time-cell">${l(t.created_at)}</td>
               <td>
-                ${member.profile_reminder_sent_at ? `
+                ${t.profile_reminder_sent_at?`
                   <button class="action-btn contacted" disabled>Contacted</button>
-                ` : `
-                  <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                `:`
+                  <button class="action-btn contact-btn" data-member-id="${t.id}">Contact</button>
                 `}
               </td>
             </tr>
-          `).join('')}
+          `).join("")}
         </tbody>
       </table>
-    `;
-  }
-
-  function renderEventsTable(events, stats) {
-    return `
+    `}function U(e,t){return`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
-        <span style="margin-right: 24px;"><strong style="color: #f59f00;">${stats.pending}</strong> Pending</span>
-        <span><strong style="color: #1a1a1a;">${stats.published}</strong> Published</span>
+        <span style="margin-right: 24px;"><strong style="color: #f59f00;">${t.pending}</strong> Pending</span>
+        <span><strong style="color: #1a1a1a;">${t.published}</strong> Published</span>
       </div>
-      ${events.length === 0 ? '<div class="empty-state">No events found</div>' : `
+      ${e.length===0?'<div class="empty-state">No events found</div>':`
         <table class="admin-table">
           <thead>
             <tr>
@@ -1439,49 +973,34 @@ MTNS MADE Team`;
             </tr>
           </thead>
           <tbody>
-            ${events.map(event => {
-              let status = 'draft';
-              if (event.is_archived) status = 'archived';
-              else if (!event.is_draft) status = 'published';
-              else status = 'pending';
-
-              return `
+            ${e.map(i=>{let a="draft";return i.is_archived?a="archived":i.is_draft?a="pending":a="published",`
                 <tr>
                   <td>
-                    <div class="name-cell">${event.name || 'Untitled'}</div>
-                    <div class="email-cell">${event.member_contact_email || '--'}</div>
+                    <div class="name-cell">${i.name||"Untitled"}</div>
+                    <div class="email-cell">${i.member_contact_email||"--"}</div>
                   </td>
                   <td>
-                    <span class="status ${status === 'published' ? 'complete' : status === 'pending' ? 'pending' : 'draft'}">
-                      ${status}
+                    <span class="status ${a==="published"?"complete":a==="pending"?"pending":"draft"}">
+                      ${a}
                     </span>
                   </td>
                   <td>
-                    <span class="status ${event.webflow_id ? 'synced' : 'pending'}">
-                      ${event.webflow_id ? 'Synced' : '--'}
+                    <span class="status ${i.webflow_id?"synced":"pending"}">
+                      ${i.webflow_id?"Synced":"--"}
                     </span>
                   </td>
-                  <td class="time-cell">${timeAgo(event.created_at)}</td>
+                  <td class="time-cell">${l(i.created_at)}</td>
                   <td>
-                    ${event.webflow_id && event.slug ? `
-                      <a href="${SITE_URL}/event/${event.slug}" target="_blank" class="action-btn view-btn">View</a>
-                    ` : '--'}
+                    ${i.webflow_id&&i.slug?`
+                      <a href="${c}/event/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
+                    `:"--"}
                   </td>
                 </tr>
-              `;
-            }).join('')}
+              `}).join("")}
           </tbody>
         </table>
       `}
-    `;
-  }
-
-  function renderProjectsTable(projects) {
-    if (projects.length === 0) {
-      return '<div class="empty-state">No projects found</div>';
-    }
-
-    return `
+    `}function R(e){return e.length===0?'<div class="empty-state">No projects found</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1492,175 +1011,71 @@ MTNS MADE Team`;
           </tr>
         </thead>
         <tbody>
-          ${projects.map(project => `
+          ${e.map(t=>`
             <tr>
               <td>
-                <div class="name-cell">${project.name || 'Untitled'}</div>
+                <div class="name-cell">${t.name||"Untitled"}</div>
               </td>
               <td>
-                <span class="status ${project.webflow_id ? 'synced' : 'pending'}">
-                  ${project.webflow_id ? 'Synced' : 'Pending'}
+                <span class="status ${t.webflow_id?"synced":"pending"}">
+                  ${t.webflow_id?"Synced":"Pending"}
                 </span>
               </td>
-              <td class="time-cell">${timeAgo(project.updated_at)}</td>
+              <td class="time-cell">${l(t.updated_at)}</td>
               <td>
-                ${project.webflow_id && project.slug ? `
-                  <a href="${SITE_URL}/projects/${project.slug}" target="_blank" class="action-btn view-btn">View</a>
-                ` : '--'}
+                ${t.webflow_id&&t.slug?`
+                  <a href="${c}/projects/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
+                `:"--"}
               </td>
             </tr>
-          `).join('')}
+          `).join("")}
         </tbody>
       </table>
-    `;
-  }
-
-  function renderActivityFeed(activities) {
-    if (!activities || activities.length === 0) {
-      return '<div class="empty-state">No recent activity</div>';
-    }
-
-    const getActivityIcon = (type) => {
-      if (type === 'profile_update') return { class: 'profile', icon: '👤' };
-      if (type.startsWith('project_')) return { class: 'project', icon: '📁' };
-      if (type.startsWith('event_')) return { class: 'event', icon: '📅' };
-      if (type === 'subscription_canceled') return { class: 'canceled', icon: '🚫' };
-      if (type === 'subscription_reactivated') return { class: 'reactivated', icon: '✅' };
-      return { class: '', icon: '📝' };
-    };
-
-    const getViewUrl = (activity) => {
-      if (activity.entity_webflow_url) return activity.entity_webflow_url;
-      if (activity.member_webflow_url) return activity.member_webflow_url;
-      return null;
-    };
-
-    return `
+    `}function F(e){if(!e||e.length===0)return'<div class="empty-state">No recent activity</div>';const t=a=>a==="profile_update"?{class:"profile",icon:"👤"}:a.startsWith("project_")?{class:"project",icon:"📁"}:a.startsWith("event_")?{class:"event",icon:"📅"}:a==="subscription_canceled"?{class:"canceled",icon:"🚫"}:a==="subscription_reactivated"?{class:"reactivated",icon:"✅"}:{class:"",icon:"📝"},i=a=>a.entity_webflow_url?a.entity_webflow_url:a.member_webflow_url?a.member_webflow_url:null;return`
       <div class="activity-feed">
-        ${activities.map(activity => {
-          const icon = getActivityIcon(activity.activity_type);
-          const viewUrl = getViewUrl(activity);
-          const hasProfileImage = activity.member_profile_image;
-
-          return `
+        ${e.map(a=>{const n=t(a.activity_type),o=i(a);return`
             <div class="activity-item">
-              ${hasProfileImage ? `
+              ${a.member_profile_image?`
                 <div class="activity-avatar">
-                  <img src="${activity.member_profile_image}" alt="${activity.member_name}">
+                  <img src="${a.member_profile_image}" alt="${a.member_name}">
                 </div>
-              ` : `
-                <div class="activity-icon ${icon.class}">${icon.icon}</div>
+              `:`
+                <div class="activity-icon ${n.class}">${n.icon}</div>
               `}
               <div class="activity-content">
                 <div class="activity-text">
-                  <strong>${activity.member_name}</strong> ${activity.description}
+                  <strong>${a.member_name}</strong> ${a.description}
                 </div>
                 <div class="activity-meta">
-                  <span class="activity-time">${timeAgo(activity.created_at)}</span>
+                  <span class="activity-time">${l(a.created_at)}</span>
                 </div>
               </div>
               <div class="activity-action">
-                ${viewUrl ? `
-                  <a href="${viewUrl}" target="_blank" class="action-btn">View</a>
-                ` : ''}
+                ${o?`
+                  <a href="${o}" target="_blank" class="action-btn">View</a>
+                `:""}
               </div>
             </div>
-          `;
-        }).join('')}
+          `}).join("")}
       </div>
-    `;
-  }
-
-  // ============================================
-  // REFRESH FUNCTION
-  // ============================================
-
-  async function refreshDashboard(container) {
-    const refreshBtn = container.querySelector('#refresh-btn');
-    if (refreshBtn) {
-      refreshBtn.disabled = true;
-      refreshBtn.textContent = 'Loading...';
-    }
-
-    try {
-      dashboardData = await loadDashboardData();
-      renderDashboard(container, dashboardData);
-    } catch (error) {
-      console.error('Error refreshing dashboard:', error);
-      if (refreshBtn) {
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Refresh';
-      }
-    }
-  }
-
-  // ============================================
-  // INITIALIZATION
-  // ============================================
-
-  async function init() {
-    const container = document.querySelector('.dashboard-feed');
-    if (!container) {
-      console.warn('Could not find .dashboard-feed container');
-      return;
-    }
-
-    // Check for Supabase library
-    if (typeof window.supabase === 'undefined') {
-      container.innerHTML = `
+    `}async function v(e){const t=e.querySelector("#refresh-btn");t&&(t.disabled=!0,t.textContent="Loading...");try{p=await u(),g(e,p)}catch(i){console.error("Error refreshing dashboard:",i),t&&(t.disabled=!1,t.textContent="Refresh")}}async function h(){const e=document.querySelector(".dashboard-feed");if(!e){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){e.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error: Supabase library not loaded</div>
           </div>
         </div>
-      `;
-      return;
-    }
-
-    // Initialize Supabase client
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Add styles
-    if (!document.querySelector('#admin-dashboard-styles')) {
-      const styleEl = document.createElement('style');
-      styleEl.id = 'admin-dashboard-styles';
-      styleEl.textContent = styles;
-      document.head.appendChild(styleEl);
-    }
-
-    // Show loading state
-    container.innerHTML = `
+      `;return}if(d=window.supabase.createClient(m,_),!document.querySelector("#admin-dashboard-styles")){const t=document.createElement("style");t.id="admin-dashboard-styles",t.textContent=w,document.head.appendChild(t)}e.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-loading">
           <div class="loader"></div>
           <div class="loading-text">Loading system data...</div>
         </div>
       </div>
-    `;
-
-    try {
-      dashboardData = await loadDashboardData();
-      renderDashboard(container, dashboardData);
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
-      container.innerHTML = `
+    `;try{p=await u(),g(e,p)}catch(t){console.error("Error loading dashboard:",t),e.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error loading dashboard</div>
-            <div style="color: #666; font-size: 11px; margin-top: 8px;">${error.message}</div>
+            <div style="color: #666; font-size: 11px; margin-top: 8px;">${t.message}</div>
           </div>
         </div>
-      `;
-    }
-  }
-
-  // ============================================
-  // RUN
-  // ============================================
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+      `}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",h):h()})();

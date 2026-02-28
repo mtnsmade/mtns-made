@@ -1,38 +1,4 @@
-// Member Events Supabase Script
-// Displays, creates, edits, and submits member events for review
-// Stores in Supabase, syncs to Webflow CMS via Edge Functions
-// Events require approval before publishing
-
-(function() {
-  console.log('Member events Supabase script loaded');
-
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
-
-  // Webflow collection IDs (for reference)
-  const EVENTS_COLLECTION_ID = '64aa21e9193adf43b765fcf1';
-
-  // Maximum days in future for event expiry
-  const MAX_EXPIRY_DAYS = 90;
-
-  let supabase = null;
-  let currentMember = null;
-  let events = [];
-  let suburbs = [];
-
-  // Event status types
-  const STATUS = {
-    DRAFT: 'draft',
-    PENDING_REVIEW: 'pending_review',
-    PUBLISHED: 'published',
-    CHANGES_REQUESTED: 'changes_requested'
-  };
-
-  // Styles
-  const styles = `
+(function(){console.log("Member events Supabase script loaded");const L="https://epszwomtxkpjegbjbixr.supabase.co",w="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",F=90;let g=null,l=null,m=[],$=[];const c={DRAFT:"draft",PENDING_REVIEW:"pending_review",PUBLISHED:"published",CHANGES_REQUESTED:"changes_requested"},B=`
     .me-container {
       font-family: inherit;
       width: 100%;
@@ -487,496 +453,73 @@
         width: 100%;
       }
     }
-  `;
-
-  // ============================================
-  // HELPER FUNCTIONS
-  // ============================================
-
-  function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-AU', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  }
-
-  function formatDateInput(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toISOString().slice(0, 10);
-  }
-
-  function calculateExpiryDate(eventEndDate) {
-    if (!eventEndDate) return null;
-    const endDate = new Date(eventEndDate);
-    const maxExpiry = new Date();
-    maxExpiry.setDate(maxExpiry.getDate() + MAX_EXPIRY_DAYS);
-    const expiryDate = endDate > maxExpiry ? maxExpiry : endDate;
-    return expiryDate.toISOString();
-  }
-
-  function generateSlug(name) {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .substring(0, 100);
-  }
-
-  function sanitizeText(text) {
-    if (!text || typeof text !== 'string') return '';
-    return text
-      .replace(/[\r\n]+/g, ' ')
-      .replace(/[\x00-\x1F\x7F]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function formatUrl(url) {
-    if (!url || url.trim() === '') return '';
-    let formatted = url.trim();
-    if (!/^https?:\/\//i.test(formatted)) {
-      formatted = 'https://' + formatted;
-    }
-    try {
-      new URL(formatted);
-      return formatted;
-    } catch {
-      return '';
-    }
-  }
-
-  function isValidUrl(url) {
-    if (!url || url.trim() === '') return true;
-    const testUrl = url.trim();
-    if (!/^https?:\/\//i.test(testUrl)) return false;
-    try {
-      const parsed = new URL(testUrl);
-      if (!parsed.hostname || !parsed.hostname.includes('.')) return false;
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function getStatusLabel(status) {
-    const labels = {
-      [STATUS.DRAFT]: 'Draft',
-      [STATUS.PENDING_REVIEW]: 'Pending Review',
-      [STATUS.PUBLISHED]: 'Published',
-      [STATUS.CHANGES_REQUESTED]: 'Changes Requested'
-    };
-    return labels[status] || status || 'Draft';
-  }
-
-  function getEventStatus(event) {
-    if (event.is_draft === false && event.is_archived === false) {
-      return STATUS.PUBLISHED;
-    }
-    if (event.is_draft === true) {
-      return STATUS.PENDING_REVIEW;
-    }
-    return STATUS.DRAFT;
-  }
-
-  // ============================================
-  // PROGRESS OVERLAY
-  // ============================================
-
-  function showProgressOverlay(status, detail = '') {
-    let overlay = document.querySelector('.me-progress-overlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.className = 'me-progress-overlay';
-      overlay.innerHTML = `
+  `;function H(e){return e?new Date(e).toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short",year:"numeric"}):""}function I(e){return e?new Date(e).toISOString().slice(0,10):""}function O(e){if(!e)return null;const r=new Date(e),t=new Date;return t.setDate(t.getDate()+F),(r>t?t:r).toISOString()}function j(e){return e.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").substring(0,100)}function V(e){if(!e||e.trim()==="")return"";let r=e.trim();/^https?:\/\//i.test(r)||(r="https://"+r);try{return new URL(r),r}catch{return""}}function z(e){if(!e||e.trim()==="")return!0;const r=e.trim();if(!/^https?:\/\//i.test(r))return!1;try{const t=new URL(r);return!(!t.hostname||!t.hostname.includes("."))}catch{return!1}}function W(e){return{[c.DRAFT]:"Draft",[c.PENDING_REVIEW]:"Pending Review",[c.PUBLISHED]:"Published",[c.CHANGES_REQUESTED]:"Changes Requested"}[e]||e||"Draft"}function U(e){return e.is_draft===!1&&e.is_archived===!1?c.PUBLISHED:e.is_draft===!0?c.PENDING_REVIEW:c.DRAFT}function P(e,r=""){let t=document.querySelector(".me-progress-overlay");return t||(t=document.createElement("div"),t.className="me-progress-overlay",t.innerHTML=`
         <div class="me-progress-container">
           <div class="me-progress-spinner"></div>
           <div class="me-progress-status"></div>
           <div class="me-progress-detail"></div>
         </div>
-      `;
-      document.body.appendChild(overlay);
-    }
-    overlay.querySelector('.me-progress-status').textContent = status;
-    overlay.querySelector('.me-progress-detail').textContent = detail;
-    overlay.style.display = 'flex';
-    return overlay;
-  }
-
-  function hideProgressOverlay() {
-    const overlay = document.querySelector('.me-progress-overlay');
-    if (overlay) overlay.style.display = 'none';
-  }
-
-  // ============================================
-  // SUPABASE OPERATIONS
-  // ============================================
-
-  async function loadSuburbs() {
-    const { data, error } = await supabase
-      .from('suburbs')
-      .select('id, webflow_id, name, slug')
-      .order('name');
-
-    if (error) {
-      console.error('Error loading suburbs:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  async function loadEvents() {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('memberstack_id', currentMember.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading events:', error);
-      throw error;
-    }
-    return data || [];
-  }
-
-  async function createEvent(eventData) {
-    const { data, error } = await supabase
-      .from('events')
-      .insert([eventData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating event:', error);
-      throw error;
-    }
-    return data;
-  }
-
-  async function updateEvent(eventId, eventData) {
-    const { data, error } = await supabase
-      .from('events')
-      .update(eventData)
-      .eq('id', eventId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating event:', error);
-      throw error;
-    }
-    return data;
-  }
-
-  async function deleteEvent(eventId) {
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', eventId);
-
-    if (error) {
-      console.error('Error deleting event:', error);
-      throw error;
-    }
-  }
-
-  async function uploadImage(file) {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${currentMember.id}/${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('event-images')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('Error uploading image:', uploadError);
-      throw uploadError;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('event-images')
-      .getPublicUrl(fileName);
-
-    return publicUrl;
-  }
-
-  // ============================================
-  // ACTIVITY LOGGING
-  // ============================================
-
-  async function logActivity(activityType, entity = null) {
-    try {
-      const payload = {
-        memberstack_id: currentMember.id,
-        activity_type: activityType,
-      };
-
-      if (entity) {
-        payload.entity_type = 'event';
-        payload.entity_id = entity.id || null;
-        payload.entity_name = entity.name || null;
-      }
-
-      await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      // Log error but don't fail the main operation
-      console.warn('Failed to log activity:', error);
-    }
-  }
-
-  // ============================================
-  // INITIALIZATION
-  // ============================================
-
-  async function waitForMemberstack() {
-    return new Promise((resolve) => {
-      if (window.$memberstackDom) {
-        resolve();
-      } else {
-        const check = setInterval(() => {
-          if (window.$memberstackDom) {
-            clearInterval(check);
-            resolve();
-          }
-        }, 100);
-      }
-    });
-  }
-
-  async function init() {
-    const container = document.querySelector('.member-event-submission');
-    if (!container) {
-      console.warn('Could not find .member-event-submission container');
-      return;
-    }
-
-    // Check for Supabase library
-    if (typeof window.supabase === 'undefined') {
-      console.error('Supabase library not loaded');
-      container.innerHTML = '<div class="me-loading">Error: Supabase library not loaded. Please refresh the page.</div>';
-      return;
-    }
-
-    // Initialize Supabase client
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Add styles
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    document.head.appendChild(styleEl);
-
-    // Create wrapper
-    const wrapper = document.createElement('div');
-    wrapper.className = 'me-container';
-    wrapper.innerHTML = '<div class="me-loading">Loading your events...</div>';
-    container.appendChild(wrapper);
-
-    try {
-      await waitForMemberstack();
-
-      const { data: member } = await window.$memberstackDom.getCurrentMember();
-      if (!member) {
-        wrapper.innerHTML = '<div class="me-loading">Please log in to submit events.</div>';
-        return;
-      }
-      currentMember = member;
-      console.log('Current member:', currentMember.id);
-
-      // Load data in parallel
-      const [loadedSuburbs, loadedEvents] = await Promise.all([
-        loadSuburbs(),
-        loadEvents()
-      ]);
-
-      suburbs = loadedSuburbs;
-      events = loadedEvents;
-
-      console.log('Loaded suburbs:', suburbs.length);
-      console.log('Loaded events:', events.length);
-
-      renderEvents(wrapper);
-    } catch (error) {
-      console.error('Error initializing member events:', error);
-      wrapper.innerHTML = '<div class="me-loading">Error loading events. Please refresh the page.</div>';
-    }
-  }
-
-  // ============================================
-  // RENDER FUNCTIONS
-  // ============================================
-
-  function renderEvents(wrapper) {
-    if (events.length === 0) {
-      wrapper.innerHTML = `
+      `,document.body.appendChild(t)),t.querySelector(".me-progress-status").textContent=e,t.querySelector(".me-progress-detail").textContent=r,t.style.display="flex",t}function A(){const e=document.querySelector(".me-progress-overlay");e&&(e.style.display="none")}async function Y(){const{data:e,error:r}=await g.from("suburbs").select("id, webflow_id, name, slug").order("name");return r?(console.error("Error loading suburbs:",r),[]):e||[]}async function G(){const{data:e,error:r}=await g.from("events").select("*").eq("memberstack_id",l.id).order("created_at",{ascending:!1});if(r)throw console.error("Error loading events:",r),r;return e||[]}async function J(e){const{data:r,error:t}=await g.from("events").insert([e]).select().single();if(t)throw console.error("Error creating event:",t),t;return r}async function Q(e,r){const{data:t,error:n}=await g.from("events").update(r).eq("id",e).select().single();if(n)throw console.error("Error updating event:",n),n;return t}async function X(e){const{error:r}=await g.from("events").delete().eq("id",e);if(r)throw console.error("Error deleting event:",r),r}async function K(e){const r=e.name.split(".").pop(),t=`${l.id}/${Date.now()}.${r}`,{error:n}=await g.storage.from("event-images").upload(t,e,{cacheControl:"3600",upsert:!1});if(n)throw console.error("Error uploading image:",n),n;const{data:{publicUrl:a}}=g.storage.from("event-images").getPublicUrl(t);return a}async function N(e,r=null){try{const t={memberstack_id:l.id,activity_type:e};r&&(t.entity_type="event",t.entity_id=r.id||null,t.entity_name=r.name||null),await fetch(`${L}/functions/v1/log-activity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${w}`,apikey:w},body:JSON.stringify(t)})}catch(t){console.warn("Failed to log activity:",t)}}async function Z(e,r=!1){var t,n,a;try{const o=(t=l.customFields)!=null&&t["first-name"]?`${l.customFields["first-name"]} ${l.customFields["last-name"]||""}`.trim():((n=l.auth)==null?void 0:n.email)||"Unknown Member",p=e.date_start?new Date(e.date_start).toLocaleDateString("en-AU",{weekday:"long",year:"numeric",month:"long",day:"numeric"}):null;await fetch(`${L}/functions/v1/notify-event-submission`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${w}`,apikey:w},body:JSON.stringify({eventName:e.name,eventDate:p,memberName:o,memberEmail:((a=l.auth)==null?void 0:a.email)||"",isUpdate:r})}),console.log("Admin notified of event submission")}catch(o){console.warn("Failed to notify admin of event submission:",o)}}async function ee(){return new Promise(e=>{if(window.$memberstackDom)e();else{const r=setInterval(()=>{window.$memberstackDom&&(clearInterval(r),e())},100)}})}async function T(){const e=document.querySelector(".member-event-submission");if(!e){console.warn("Could not find .member-event-submission container");return}if(typeof window.supabase>"u"){console.error("Supabase library not loaded"),e.innerHTML='<div class="me-loading">Error: Supabase library not loaded. Please refresh the page.</div>';return}g=window.supabase.createClient(L,w);const r=document.createElement("style");r.textContent=B,document.head.appendChild(r);const t=document.createElement("div");t.className="me-container",t.innerHTML='<div class="me-loading">Loading your events...</div>',e.appendChild(t);try{await ee();const{data:n}=await window.$memberstackDom.getCurrentMember();if(!n){t.innerHTML='<div class="me-loading">Please log in to submit events.</div>';return}l=n,console.log("Current member:",l.id);const[a,o]=await Promise.all([Y(),G()]);$=a,m=o,console.log("Loaded suburbs:",$.length),console.log("Loaded events:",m.length),q(t)}catch(n){console.error("Error initializing member events:",n),t.innerHTML='<div class="me-loading">Error loading events. Please refresh the page.</div>'}}function q(e){if(m.length===0){e.innerHTML=`
         <div class="me-empty">
           <p>You haven't submitted any events yet</p>
           <button class="me-btn" id="me-add-first">Submit an Event</button>
         </div>
-      `;
-      wrapper.querySelector('#me-add-first').addEventListener('click', () => openEventModal(null, wrapper));
-      return;
-    }
-
-    let html = `
+      `,e.querySelector("#me-add-first").addEventListener("click",()=>C(null,e));return}let r=`
       <div class="me-header">
         <h2>My Events</h2>
         <button class="me-btn" id="me-add-event">Submit New Event</button>
       </div>
       <div class="me-events-grid">
-    `;
-
-    events.forEach(event => {
-      html += renderEventCard(event);
-    });
-
-    html += '</div>';
-    wrapper.innerHTML = html;
-
-    wrapper.querySelector('#me-add-event').addEventListener('click', () => openEventModal(null, wrapper));
-
-    wrapper.querySelectorAll('.me-event-card').forEach((card) => {
-      const eventId = card.dataset.eventId;
-      const event = events.find(e => e.id === eventId);
-      if (event) setupEventCard(card, event, wrapper);
-    });
-  }
-
-  function renderEventCard(event) {
-    const status = getEventStatus(event);
-    const statusClass = `me-status-${status}`;
-    let dateDisplay = event.date_start ? formatDate(event.date_start) : 'Date not set';
-    if (event.time_display) {
-      dateDisplay += ` | ${event.time_display}`;
-    }
-
-    return `
-      <div class="me-event-card" data-event-id="${event.id}">
+    `;m.forEach(t=>{r+=te(t)}),r+="</div>",e.innerHTML=r,e.querySelector("#me-add-event").addEventListener("click",()=>C(null,e)),e.querySelectorAll(".me-event-card").forEach(t=>{const n=t.dataset.eventId,a=m.find(o=>o.id===n);a&&re(t,a,e)})}function te(e){const r=U(e),t=`me-status-${r}`;let n=e.date_start?H(e.date_start):"Date not set";return e.time_display&&(n+=` | ${e.time_display}`),`
+      <div class="me-event-card" data-event-id="${e.id}">
         <div class="me-event-image">
-          ${event.feature_image_url
-            ? `<img src="${event.feature_image_url}" alt="${event.name}">`
-            : '<div class="me-no-image">No image</div>'
-          }
-          <span class="me-event-status ${statusClass}">${getStatusLabel(status)}</span>
+          ${e.feature_image_url?`<img src="${e.feature_image_url}" alt="${e.name}">`:'<div class="me-no-image">No image</div>'}
+          <span class="me-event-status ${t}">${W(r)}</span>
         </div>
         <div class="me-event-body">
-          <h3 class="me-event-title">${event.name || 'Untitled Event'}</h3>
-          <div class="me-event-date">${dateDisplay}</div>
-          <div class="me-event-location">${event.location_name || 'Location not set'}</div>
-          <p class="me-event-description">${event.description || 'No description'}</p>
+          <h3 class="me-event-title">${e.name||"Untitled Event"}</h3>
+          <div class="me-event-date">${n}</div>
+          <div class="me-event-location">${e.location_name||"Location not set"}</div>
+          <p class="me-event-description">${e.description||"No description"}</p>
         </div>
         <div class="me-event-actions">
           <button class="me-btn me-btn-secondary me-btn-small me-edit-btn">Edit</button>
           <button class="me-btn me-btn-danger me-btn-small me-delete-btn">Delete</button>
         </div>
       </div>
-    `;
-  }
-
-  function setupEventCard(card, event, wrapper) {
-    const editBtn = card.querySelector('.me-edit-btn');
-    const deleteBtn = card.querySelector('.me-delete-btn');
-
-    editBtn.addEventListener('click', () => {
-      openEventModal(event, wrapper);
-    });
-
-    deleteBtn.addEventListener('click', async () => {
-      if (!confirm('Are you sure you want to delete this event?')) return;
-
-      deleteBtn.disabled = true;
-      deleteBtn.textContent = 'Deleting...';
-
-      try {
-        await deleteEvent(event.id);
-        events = events.filter(e => e.id !== event.id);
-        renderEvents(wrapper);
-      } catch (error) {
-        console.error('Error deleting event:', error);
-        alert('Error deleting event. Please try again.');
-        deleteBtn.disabled = false;
-        deleteBtn.textContent = 'Delete';
-      }
-    });
-  }
-
-  // ============================================
-  // SUBURB DROPDOWN
-  // ============================================
-
-  function createSuburbSelect(selectedId) {
-    let options = '<option value="">Select a suburb...</option>';
-    suburbs.forEach(suburb => {
-      const selected = suburb.id === selectedId ? 'selected' : '';
-      options += `<option value="${suburb.id}" ${selected}>${suburb.name}</option>`;
-    });
-    return `<select class="me-form-input" id="me-form-suburb">${options}</select>`;
-  }
-
-  // ============================================
-  // EVENT MODAL
-  // ============================================
-
-  function openEventModal(existingEvent, wrapper) {
-    const isEdit = !!existingEvent;
-    const event = existingEvent || {};
-    const eventData = {
-      feature_image_url: event.feature_image_url || ''
-    };
-
-    const status = isEdit ? getEventStatus(event) : STATUS.DRAFT;
-    const wasPublished = status === STATUS.PUBLISHED;
-    const showReviewWarning = isEdit && wasPublished;
-
-    const modal = document.createElement('div');
-    modal.className = 'me-modal-overlay';
-    modal.innerHTML = `
+    `}function re(e,r,t){const n=e.querySelector(".me-edit-btn"),a=e.querySelector(".me-delete-btn");n.addEventListener("click",()=>{C(r,t)}),a.addEventListener("click",async()=>{if(confirm("Are you sure you want to delete this event?")){a.disabled=!0,a.textContent="Deleting...";try{await X(r.id),m=m.filter(o=>o.id!==r.id),q(t)}catch(o){console.error("Error deleting event:",o),alert("Error deleting event. Please try again."),a.disabled=!1,a.textContent="Delete"}}})}function ne(e){let r='<option value="">Select a suburb...</option>';return $.forEach(t=>{const n=t.id===e?"selected":"";r+=`<option value="${t.id}" ${n}>${t.name}</option>`}),`<select class="me-form-input" id="me-form-suburb">${r}</select>`}function C(e,r){const t=!!e,n=e||{},a={feature_image_url:n.feature_image_url||""},o=t?U(n):c.DRAFT,p=o===c.PUBLISHED,E=t&&p,i=document.createElement("div");i.className="me-modal-overlay",i.innerHTML=`
       <div class="me-modal">
         <div class="me-modal-header">
-          <h3>${isEdit ? 'Edit Event' : 'Submit an Event'}</h3>
+          <h3>${t?"Edit Event":"Submit an Event"}</h3>
         </div>
         <div class="me-modal-body">
-          ${!isEdit ? `
+          ${t?"":`
             <div class="me-info-box">
               <p><strong>How it works:</strong> Submit your event details and our team will review it within 48 hours. Once approved, your event will appear on the MTNS MADE events calendar.</p>
             </div>
-          ` : ''}
+          `}
 
-          ${showReviewWarning ? `
+          ${E?`
             <div class="me-info-box warning">
               <p><strong>Note:</strong> This event is currently published. Any changes you make will require re-approval and the event will be temporarily unpublished until reviewed.</p>
             </div>
-          ` : ''}
+          `:""}
 
           <div class="me-form-field full-width">
             <label>Event Name <span>*</span></label>
-            <input type="text" class="me-form-input" id="me-form-name" value="${event.name || ''}" required>
+            <input type="text" class="me-form-input" id="me-form-name" value="${n.name||""}" required>
           </div>
 
           <div class="me-form-row">
             <div class="me-form-field">
               <label>Event Date Start <span>*</span></label>
               <input type="date" class="me-form-input" id="me-form-starts"
-                     value="${formatDateInput(event.date_start)}" required>
+                     value="${I(n.date_start)}" required>
             </div>
             <div class="me-form-field">
               <label>Event Date End</label>
               <input type="date" class="me-form-input" id="me-form-ends"
-                     value="${formatDateInput(event.date_end)}">
+                     value="${I(n.date_end)}">
               <div class="me-hint">Leave blank if single-day event</div>
             </div>
           </div>
@@ -984,38 +527,38 @@
           <div class="me-form-field full-width">
             <label>Time</label>
             <input type="text" class="me-form-input" id="me-form-time"
-                   value="${event.time_display || ''}" placeholder="e.g., 6pm - 8pm">
+                   value="${n.time_display||""}" placeholder="e.g., 6pm - 8pm">
           </div>
 
           <div class="me-form-field full-width">
             <label>Location Name <span>*</span></label>
             <input type="text" class="me-form-input" id="me-form-location-name"
-                   value="${event.location_name || ''}" placeholder="e.g., Blue Mountains Cultural Centre">
+                   value="${n.location_name||""}" placeholder="e.g., Blue Mountains Cultural Centre">
           </div>
 
           <div class="me-form-row">
             <div class="me-form-field">
               <label>Full Street Address</label>
               <input type="text" class="me-form-input" id="me-form-address"
-                     value="${event.location_address || ''}" placeholder="e.g., 30 Parke Street">
+                     value="${n.location_address||""}" placeholder="e.g., 30 Parke Street">
             </div>
             <div class="me-form-field">
               <label>Suburb</label>
-              ${createSuburbSelect(event.suburb_id)}
+              ${ne(n.suburb_id)}
             </div>
           </div>
 
           <div class="me-form-field full-width">
             <label>Event Description <span>*</span></label>
             <textarea class="me-form-input" id="me-form-description"
-                      placeholder="Describe your event in detail...">${event.description || ''}</textarea>
+                      placeholder="Describe your event in detail...">${n.description||""}</textarea>
             <div class="me-hint">A short summary will be automatically generated from this description.</div>
           </div>
 
           <div class="me-form-field full-width">
             <label>Feature Image <span>*</span></label>
-            <div class="me-image-upload ${eventData.feature_image_url ? 'has-image' : ''}" id="me-image-upload">
-              ${eventData.feature_image_url ? `<img src="${eventData.feature_image_url}" alt="Feature">` : ''}
+            <div class="me-image-upload ${a.feature_image_url?"has-image":""}" id="me-image-upload">
+              ${a.feature_image_url?`<img src="${a.feature_image_url}" alt="Feature">`:""}
               <div class="me-upload-placeholder">
                 <span>+</span>
                 Click to upload image<br>
@@ -1030,14 +573,14 @@
             <div class="me-form-field">
               <label>RSVP / Tickets Link</label>
               <input type="text" class="me-form-input" id="me-form-rsvp"
-                     value="${event.rsvp_link || ''}" placeholder="https://...">
+                     value="${n.rsvp_link||""}" placeholder="https://...">
               <div class="me-hint">Link to tickets, registration, or RSVP page</div>
               <div class="me-error-msg" id="me-rsvp-error">Link must be complete and include https://</div>
             </div>
             <div class="me-form-field">
               <label>Eventbrite Event ID</label>
               <input type="text" class="me-form-input" id="me-form-eventbrite"
-                     value="${event.eventbrite_id || ''}" placeholder="e.g., 123456789">
+                     value="${n.eventbrite_id||""}" placeholder="e.g., 123456789">
               <div class="me-hint">Optional: For Eventbrite integration</div>
             </div>
           </div>
@@ -1045,212 +588,12 @@
         </div>
         <div class="me-modal-footer">
           <button class="me-btn me-btn-secondary" id="me-modal-cancel">Cancel</button>
-          ${isEdit && status === STATUS.DRAFT ? `
+          ${t&&o===c.DRAFT?`
             <button class="me-btn me-btn-secondary" id="me-modal-save-draft">Save Draft</button>
-          ` : ''}
+          `:""}
           <button class="me-btn me-btn-success" id="me-modal-submit">
-            ${isEdit ? (wasPublished ? 'Submit for Re-Review' : 'Update & Submit') : 'Submit for Review'}
+            ${t?p?"Submit for Re-Review":"Update & Submit":"Submit for Review"}
           </button>
         </div>
       </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Setup image upload
-    const imageUpload = modal.querySelector('#me-image-upload');
-    const imageInput = modal.querySelector('#me-image-input');
-
-    imageUpload.addEventListener('click', (e) => {
-      if (e.target.classList.contains('me-remove-image')) {
-        e.stopPropagation();
-        eventData.feature_image_url = '';
-        eventData.newImageFile = null;
-        imageUpload.classList.remove('has-image');
-        const img = imageUpload.querySelector('img');
-        if (img) img.remove();
-        return;
-      }
-      imageInput.click();
-    });
-
-    imageInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      // Preview image
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        eventData.newImageFile = file;
-        imageUpload.classList.add('has-image');
-        let img = imageUpload.querySelector('img');
-        if (!img) {
-          img = document.createElement('img');
-          imageUpload.insertBefore(img, imageUpload.firstChild);
-        }
-        img.src = e.target.result;
-        img.alt = 'Feature';
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // Setup RSVP URL validation
-    const rsvpInput = modal.querySelector('#me-form-rsvp');
-    const rsvpError = modal.querySelector('#me-rsvp-error');
-    rsvpInput.addEventListener('blur', () => {
-      const isValid = isValidUrl(rsvpInput.value);
-      rsvpInput.classList.toggle('error', !isValid && rsvpInput.value);
-      rsvpInput.classList.toggle('valid', isValid && rsvpInput.value);
-      rsvpError.classList.toggle('visible', !isValid && rsvpInput.value);
-    });
-
-    // Close handlers
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-    modal.querySelector('#me-modal-cancel').addEventListener('click', () => modal.remove());
-
-    // Save draft (if available)
-    const saveDraftBtn = modal.querySelector('#me-modal-save-draft');
-    if (saveDraftBtn) {
-      saveDraftBtn.addEventListener('click', async () => {
-        await saveEvent(modal, event, eventData, wrapper, false);
-      });
-    }
-
-    // Submit for review
-    modal.querySelector('#me-modal-submit').addEventListener('click', async () => {
-      await saveEvent(modal, event, eventData, wrapper, true, wasPublished);
-    });
-  }
-
-  // ============================================
-  // SAVE EVENT
-  // ============================================
-
-  async function saveEvent(modal, existingEvent, eventData, wrapper, submitForReview, wasPublished = false) {
-    const isEdit = !!existingEvent.id;
-
-    // Get form values
-    const name = modal.querySelector('#me-form-name').value.trim();
-    const dateStarts = modal.querySelector('#me-form-starts').value;
-    const dateEnds = modal.querySelector('#me-form-ends').value;
-    const locationName = modal.querySelector('#me-form-location-name').value.trim();
-    const description = modal.querySelector('#me-form-description').value.trim();
-    const featureImageUrl = eventData.feature_image_url;
-    const newImageFile = eventData.newImageFile;
-
-    // Validation
-    if (!name) {
-      alert('Please enter an event name');
-      return;
-    }
-    if (!dateStarts) {
-      alert('Please set when the event starts');
-      return;
-    }
-    if (submitForReview) {
-      if (!locationName) {
-        alert('Please enter a location name');
-        return;
-      }
-      if (!description) {
-        alert('Please enter an event description');
-        return;
-      }
-      if (!featureImageUrl && !newImageFile) {
-        alert('Please upload a feature image');
-        return;
-      }
-    }
-
-    // Validate RSVP URL if provided
-    const rsvpLink = modal.querySelector('#me-form-rsvp').value.trim();
-    if (rsvpLink && !isValidUrl(rsvpLink)) {
-      alert('Please enter a valid RSVP link URL');
-      return;
-    }
-
-    const suburbId = modal.querySelector('#me-form-suburb').value || null;
-
-    const submitBtn = modal.querySelector('#me-modal-submit');
-    const saveDraftBtn = modal.querySelector('#me-modal-save-draft');
-    submitBtn.disabled = true;
-    submitBtn.textContent = submitForReview ? 'Submitting...' : 'Saving...';
-    if (saveDraftBtn) saveDraftBtn.disabled = true;
-
-    try {
-      showProgressOverlay('Saving event...', 'Please wait');
-
-      // Upload new image if provided
-      let finalImageUrl = featureImageUrl;
-      if (newImageFile) {
-        showProgressOverlay('Uploading image...', 'Please wait');
-        finalImageUrl = await uploadImage(newImageFile);
-      }
-
-      const eventObj = {
-        memberstack_id: currentMember.id,
-        member_contact_email: currentMember.auth?.email || '',
-        name: name,
-        slug: generateSlug(name),
-        date_start: dateStarts ? new Date(dateStarts).toISOString() : null,
-        date_end: dateEnds ? new Date(dateEnds).toISOString() : null,
-        date_expiry: calculateExpiryDate(dateEnds || dateStarts),
-        time_display: modal.querySelector('#me-form-time').value.trim() || null,
-        location_name: locationName || null,
-        location_address: modal.querySelector('#me-form-address').value.trim() || null,
-        suburb_id: suburbId,
-        description: description || null,
-        feature_image_url: finalImageUrl || null,
-        rsvp_link: formatUrl(rsvpLink) || null,
-        eventbrite_id: modal.querySelector('#me-form-eventbrite').value.trim() || null,
-        is_draft: submitForReview ? true : true, // Always draft until admin approves
-        is_archived: false
-      };
-
-      showProgressOverlay('Saving to database...', 'Please wait');
-
-      let savedEvent;
-      if (isEdit) {
-        savedEvent = await updateEvent(existingEvent.id, eventObj);
-        await logActivity('event_update', { id: savedEvent.id, name: savedEvent.name });
-        const index = events.findIndex(e => e.id === existingEvent.id);
-        if (index > -1) {
-          events[index] = savedEvent;
-        }
-      } else {
-        savedEvent = await createEvent(eventObj);
-        await logActivity('event_submit', { id: savedEvent.id, name: savedEvent.name });
-        events.unshift(savedEvent);
-      }
-
-      hideProgressOverlay();
-      modal.remove();
-      renderEvents(wrapper);
-
-      if (submitForReview) {
-        alert(isEdit
-          ? 'Your event has been updated and submitted for review.'
-          : 'Your event has been submitted for review. We\'ll notify you once it\'s approved.');
-      }
-    } catch (error) {
-      console.error('Error saving event:', error);
-      hideProgressOverlay();
-      alert('Error saving event. Please try again.');
-      submitBtn.disabled = false;
-      submitBtn.textContent = submitForReview ? 'Submit for Review' : 'Save';
-      if (saveDraftBtn) saveDraftBtn.disabled = false;
-    }
-  }
-
-  // ============================================
-  // RUN
-  // ============================================
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+    `,document.body.appendChild(i);const d=i.querySelector("#me-image-upload"),S=i.querySelector("#me-image-input");d.addEventListener("click",s=>{if(s.target.classList.contains("me-remove-image")){s.stopPropagation(),a.feature_image_url="",a.newImageFile=null,d.classList.remove("has-image");const v=d.querySelector("img");v&&v.remove();return}S.click()}),S.addEventListener("change",async s=>{const v=s.target.files[0];if(!v)return;const h=new FileReader;h.onload=x=>{a.newImageFile=v,d.classList.add("has-image");let b=d.querySelector("img");b||(b=document.createElement("img"),d.insertBefore(b,d.firstChild)),b.src=x.target.result,b.alt="Feature"},h.readAsDataURL(v)});const u=i.querySelector("#me-form-rsvp"),_=i.querySelector("#me-rsvp-error");u.addEventListener("blur",()=>{const s=z(u.value);u.classList.toggle("error",!s&&u.value),u.classList.toggle("valid",s&&u.value),_.classList.toggle("visible",!s&&u.value)}),i.addEventListener("click",s=>{s.target===i&&i.remove()}),i.querySelector("#me-modal-cancel").addEventListener("click",()=>i.remove());const y=i.querySelector("#me-modal-save-draft");y&&y.addEventListener("click",async()=>{await R(i,n,a,r,!1)}),i.querySelector("#me-modal-submit").addEventListener("click",async()=>{await R(i,n,a,r,!0,p)})}async function R(e,r,t,n,a,o=!1){var b;const p=!!r.id,E=e.querySelector("#me-form-name").value.trim(),i=e.querySelector("#me-form-starts").value,d=e.querySelector("#me-form-ends").value,S=e.querySelector("#me-form-location-name").value.trim(),u=e.querySelector("#me-form-description").value.trim(),_=t.feature_image_url,y=t.newImageFile;if(!E){alert("Please enter an event name");return}if(!i){alert("Please set when the event starts");return}if(a){if(!S){alert("Please enter a location name");return}if(!u){alert("Please enter an event description");return}if(!_&&!y){alert("Please upload a feature image");return}}const s=e.querySelector("#me-form-rsvp").value.trim();if(s&&!z(s)){alert("Please enter a valid RSVP link URL");return}const v=e.querySelector("#me-form-suburb").value||null,h=e.querySelector("#me-modal-submit"),x=e.querySelector("#me-modal-save-draft");h.disabled=!0,h.textContent=a?"Submitting...":"Saving...",x&&(x.disabled=!0);try{P("Saving event...","Please wait");let k=_;y&&(P("Uploading image...","Please wait"),k=await K(y));const M={memberstack_id:l.id,member_contact_email:((b=l.auth)==null?void 0:b.email)||"",name:E,slug:j(E),date_start:i?new Date(i).toISOString():null,date_end:d?new Date(d).toISOString():null,date_expiry:O(d||i),time_display:e.querySelector("#me-form-time").value.trim()||null,location_name:S||null,location_address:e.querySelector("#me-form-address").value.trim()||null,suburb_id:v,description:u||null,feature_image_url:k||null,rsvp_link:V(s)||null,eventbrite_id:e.querySelector("#me-form-eventbrite").value.trim()||null,is_draft:!0,is_archived:!1};P("Saving to database...","Please wait");let f;if(p){f=await Q(r.id,M),await N("event_update",{id:f.id,name:f.name});const D=m.findIndex(ae=>ae.id===r.id);D>-1&&(m[D]=f)}else f=await J(M),await N("event_submit",{id:f.id,name:f.name}),m.unshift(f);A(),e.remove(),q(n),a&&(Z(f,p).catch(D=>console.warn("Admin notification failed:",D)),alert(p?"Your event has been updated and submitted for review.":"Your event has been submitted for review. We'll notify you once it's approved."))}catch(k){console.error("Error saving event:",k),A(),alert("Error saving event. Please try again."),h.disabled=!1,h.textContent=a?"Submit for Review":"Save",x&&(x.disabled=!1)}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",T):T()})();

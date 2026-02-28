@@ -739,6 +739,44 @@
     }
   }
 
+  // Notify admin about event submission for review
+  async function notifyAdminEventSubmission(event, isUpdate = false) {
+    try {
+      const memberName = currentMember.customFields?.['first-name']
+        ? `${currentMember.customFields['first-name']} ${currentMember.customFields['last-name'] || ''}`.trim()
+        : currentMember.auth?.email || 'Unknown Member';
+
+      const eventDate = event.date_start
+        ? new Date(event.date_start).toLocaleDateString('en-AU', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        : null;
+
+      await fetch(`${SUPABASE_URL}/functions/v1/notify-event-submission`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          eventName: event.name,
+          eventDate: eventDate,
+          memberName: memberName,
+          memberEmail: currentMember.auth?.email || '',
+          isUpdate: isUpdate,
+        }),
+      });
+      console.log('Admin notified of event submission');
+    } catch (error) {
+      // Log error but don't fail the main operation
+      console.warn('Failed to notify admin of event submission:', error);
+    }
+  }
+
   // ============================================
   // INITIALIZATION
   // ============================================
@@ -1230,6 +1268,11 @@
       renderEvents(wrapper);
 
       if (submitForReview) {
+        // Notify admin about the submission (don't await, run in background)
+        notifyAdminEventSubmission(savedEvent, isEdit).catch(err =>
+          console.warn('Admin notification failed:', err)
+        );
+
         alert(isEdit
           ? 'Your event has been updated and submitted for review.'
           : 'Your event has been submitted for review. We\'ll notify you once it\'s approved.');

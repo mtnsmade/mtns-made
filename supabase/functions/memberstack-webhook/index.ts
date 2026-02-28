@@ -12,6 +12,10 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const MEMBERSTACK_WEBHOOK_SECRET = Deno.env.get('MEMBERSTACK_WEBHOOK_SECRET') || '';
+const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'hello@mtnsmade.com.au';
+const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
+const SITE_URL = 'https://www.mtnsmade.com.au';
 
 // Webflow config
 const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
@@ -43,6 +47,204 @@ async function logActivity(memberstackId: string, activityType: string): Promise
     console.log('Activity logged:', activityType, memberstackId);
   } catch (error) {
     console.warn('Failed to log activity:', error);
+  }
+}
+
+// Send welcome email to new member
+async function sendWelcomeEmail(email: string, firstName: string): Promise<void> {
+  if (!RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured, skipping welcome email');
+    return;
+  }
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to MTNS MADE</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #1a1a1a; padding: 32px 40px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">Welcome to MTNS MADE</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #333333; font-size: 22px; font-weight: 600;">
+                Hi ${firstName || 'there'}!
+              </h2>
+
+              <p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                Welcome to MTNS MADE - the Blue Mountains creative community! We're thrilled to have you join us.
+              </p>
+
+              <p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                To get the most out of your membership, complete your profile so other creatives can discover you in our directory.
+              </p>
+
+              <p style="margin: 0 0 30px; color: #555555; font-size: 16px; line-height: 1.6;">
+                <strong>Your next steps:</strong>
+              </p>
+
+              <ul style="margin: 0 0 30px; padding-left: 20px; color: #555555; font-size: 16px; line-height: 1.8;">
+                <li>Add your profile picture and header image</li>
+                <li>Write a short bio about yourself</li>
+                <li>Select your creative categories</li>
+                <li>Add your first project to showcase your work</li>
+              </ul>
+
+              <!-- CTA Button -->
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="background-color: #1a1a1a; border-radius: 6px;">
+                    <a href="${SITE_URL}/profile/onboarding" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
+                      Complete Your Profile
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 30px 0 0; color: #888888; font-size: 14px; line-height: 1.6;">
+                Questions? Just reply to this email - we're here to help!
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 24px 40px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0 0 8px; color: #888888; font-size: 14px;">
+                Blue Mountains Creative Community
+              </p>
+              <p style="margin: 0; color: #aaaaaa; font-size: 12px;">
+                <a href="${SITE_URL}" style="color: #888888;">mtnsmade.com.au</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+  const emailText = `Hi ${firstName || 'there'}!
+
+Welcome to MTNS MADE - the Blue Mountains creative community! We're thrilled to have you join us.
+
+To get the most out of your membership, complete your profile so other creatives can discover you in our directory.
+
+Your next steps:
+- Add your profile picture and header image
+- Write a short bio about yourself
+- Select your creative categories
+- Add your first project to showcase your work
+
+Complete your profile: ${SITE_URL}/profile/onboarding
+
+Questions? Just reply to this email - we're here to help!
+
+MTNS MADE
+Blue Mountains Creative Community
+${SITE_URL}
+`;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: [email],
+        subject: 'Welcome to MTNS MADE!',
+        html: emailHtml,
+        text: emailText,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Welcome email send error:', error);
+      return;
+    }
+
+    console.log('Welcome email sent to:', email);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+  }
+}
+
+// Notify admin of new member signup
+async function notifyAdminNewMember(email: string, firstName: string, lastName: string): Promise<void> {
+  if (!RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured, skipping admin notification');
+    return;
+  }
+
+  const memberName = [firstName, lastName].filter(Boolean).join(' ') || email;
+
+  const emailHtml = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background: #1a1a1a; color: #fff; padding: 20px; text-align: center;">
+    <h1 style="margin: 0; font-size: 20px;">New MTNS MADE Member</h1>
+  </div>
+  <div style="padding: 30px; background: #f9f9f9;">
+    <p style="margin: 0 0 20px 0; color: #333;">
+      A new member has joined MTNS MADE:
+    </p>
+    <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+      <p style="margin: 0 0 10px 0; color: #333;">
+        <strong>Name:</strong> ${memberName}
+      </p>
+      <p style="margin: 0; color: #333;">
+        <strong>Email:</strong> ${email}
+      </p>
+    </div>
+    <p style="margin: 0; color: #666; font-size: 14px;">
+      They will receive a welcome email with instructions to complete their profile.
+    </p>
+  </div>
+</div>
+`;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: [ADMIN_EMAIL],
+        subject: `New Member: ${memberName}`,
+        html: emailHtml,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Admin notification send error:', error);
+      return;
+    }
+
+    console.log('Admin notified of new member:', email);
+  } catch (error) {
+    console.error('Error notifying admin:', error);
   }
 }
 
@@ -363,6 +565,17 @@ async function updateSubscriptionStatus(memberstackId: string, status: string): 
 async function handleMemberCreated(data: MemberstackMemberData): Promise<void> {
   console.log('Handling member.created:', data.id);
   await createMember(data);
+
+  // Send welcome email to new member
+  const firstName = data.customFields?.['first-name'] || '';
+  const lastName = data.customFields?.['last-name'] || '';
+  const email = data.auth.email;
+
+  // Send emails in parallel (don't await to avoid slowing webhook response)
+  Promise.all([
+    sendWelcomeEmail(email, firstName),
+    notifyAdminNewMember(email, firstName, lastName),
+  ]).catch(err => console.warn('Email notification error:', err));
 }
 
 // Handle member.deleted event
@@ -476,6 +689,24 @@ serve(async (req: Request) => {
     });
   }
 
+  // Check environment variables early
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing required environment variables:', {
+      hasSupabaseUrl: !!SUPABASE_URL,
+      hasServiceKey: !!SUPABASE_SERVICE_ROLE_KEY,
+    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Server configuration error: missing environment variables',
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
   try {
     // Verify webhook signature if secret is configured
     if (MEMBERSTACK_WEBHOOK_SECRET) {
@@ -521,12 +752,20 @@ serve(async (req: Request) => {
     );
 
   } catch (error) {
-    console.error('Webhook handler error:', error);
+    // Log detailed error information
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Webhook handler error:', {
+      message: errorMessage,
+      stack: errorStack,
+      error: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+    });
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
+        details: errorStack,
       }),
       {
         status: 500,

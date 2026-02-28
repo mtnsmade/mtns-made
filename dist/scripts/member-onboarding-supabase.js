@@ -1,65 +1,4 @@
-// Member Onboarding Script - Supabase Version
-// Multi-step form for completing member profile after payment
-// Uses Supabase for data storage and image uploads
-// Replaces Memberstack JSON, Zapier, and Uploadcare
-
-(function() {
-  console.log('Member onboarding Supabase script loaded');
-
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
-  const STORAGE_BUCKET = 'member-images';
-
-  // Membership type classifications
-  const BUSINESS_TYPES = ['small-business', 'large-business', 'not-for-profit', 'spaces-suppliers'];
-  const SPACES_SUPPLIERS_TYPE = 'spaces-suppliers';
-
-  // ============================================
-  // STATE
-  // ============================================
-  let supabase = null;
-  let currentStep = 1;
-  let totalSteps = 5;
-  let memberData = null;  // Memberstack data
-  let supabaseMember = null;  // Supabase member record
-  let categories = { directories: [], subDirectories: [], spaceCategories: [], supplierCategories: [] };
-  let suburbs = [];
-  let formData = {
-    profileImageUrl: null,
-    profileImageFile: null,
-    featureImageUrl: null,
-    featureImageFile: null,
-    bio: '',
-    businessName: '',
-    suburb: null,  // { id, name }
-    spaceOrSupplier: null,
-    chosenDirectories: [],
-    spaceCategories: [],
-    supplierCategories: [],
-    businessAddress: '',
-    displayAddress: false,
-    openingHours: {
-      monday: '', tuesday: '', wednesday: '', thursday: '',
-      friday: '', saturday: '', sunday: ''
-    },
-    displayOpeningHours: false,
-    website: '',
-    instagram: '',
-    facebook: '',
-    linkedin: '',
-    tiktok: '',
-    youtube: ''
-  };
-
-  const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-  // ============================================
-  // STYLES
-  // ============================================
-  const styles = `
+(function(){console.log("Member onboarding Supabase script loaded");const R="https://epszwomtxkpjegbjbixr.supabase.co",j="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",I="member-images",Y=["small-business","large-business","not-for-profit","spaces-suppliers"],Z="spaces-suppliers";let g=null,b=1,P=5,u=null,U=null,S={directories:[],subDirectories:[],spaceCategories:[],supplierCategories:[]},z=[],s={profileImageUrl:null,profileImageFile:null,featureImageUrl:null,featureImageFile:null,bio:"",businessName:"",suburb:null,spaceOrSupplier:null,chosenDirectories:[],spaceCategories:[],supplierCategories:[],businessAddress:"",displayAddress:!1,openingHours:{monday:"",tuesday:"",wednesday:"",thursday:"",friday:"",saturday:"",sunday:""},displayOpeningHours:!1,website:"",instagram:"",facebook:"",linkedin:"",tiktok:"",youtube:""};const F=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],W=`
     .ms-container {
       font-family: inherit;
       width: 100%;
@@ -594,498 +533,138 @@
       color: #666;
       margin-top: 4px;
     }
-  `;
-
-  // ============================================
-  // UTILITY FUNCTIONS
-  // ============================================
-
-  function waitForDependencies() {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      const maxAttempts = 50;
-      const check = setInterval(() => {
-        attempts++;
-        if (window.$memberstackDom && window.supabase) {
-          clearInterval(check);
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(check);
-          reject(new Error('Dependencies not loaded (Memberstack or Supabase)'));
-        }
-      }, 100);
-    });
-  }
-
-  function isBusinessType(type) {
-    return BUSINESS_TYPES.includes(type);
-  }
-
-  function isSpacesSuppliers(type) {
-    return type === SPACES_SUPPLIERS_TYPE;
-  }
-
-  // Generate slug from text
-  function generateSlug(text) {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .replace(/-+/g, '-');
-  }
-
-  // Check if a slug is available (not already used by another member)
-  async function checkSlugAvailable(slug, currentMemberId = null) {
-    if (!slug || slug.length < 3) {
-      return { available: false, error: 'Slug must be at least 3 characters' };
+    /* Loading animation styles */
+    .ms-loading-screen {
+      text-align: center;
+      padding: 60px 32px;
     }
-
-    try {
-      let query = supabase
-        .from('members')
-        .select('id, slug')
-        .eq('slug', slug);
-
-      // Exclude current member when editing
-      if (currentMemberId) {
-        query = query.neq('id', currentMemberId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error checking slug:', error);
-        return { available: true }; // Assume available on error
-      }
-
-      return {
-        available: !data || data.length === 0,
-        error: data && data.length > 0 ? 'This name is already taken' : null
-      };
-    } catch (error) {
-      console.error('Error checking slug:', error);
-      return { available: true }; // Assume available on error
+    .ms-loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: ms-spin 0.8s linear infinite;
+      margin: 0 auto 24px;
     }
-  }
-
-  // Social media URL normalization
-  const SOCIAL_PLATFORMS = {
-    instagram: {
-      baseUrl: 'https://www.instagram.com/',
-      patterns: [/instagram\.com\/([^\/\?]+)/i, /^@?([a-zA-Z0-9._]+)$/]
-    },
-    facebook: {
-      baseUrl: 'https://www.facebook.com/',
-      patterns: [/facebook\.com\/([^\/\?]+)/i, /^([a-zA-Z0-9.]+)$/]
-    },
-    linkedin: {
-      baseUrl: 'https://www.linkedin.com/in/',
-      patterns: [/linkedin\.com\/(in|company)\/([^\/\?]+)/i, /^([a-zA-Z0-9-]+)$/]
-    },
-    tiktok: {
-      baseUrl: 'https://www.tiktok.com/@',
-      patterns: [/tiktok\.com\/@?([^\/\?]+)/i, /^@?([a-zA-Z0-9._]+)$/]
-    },
-    youtube: {
-      baseUrl: 'https://www.youtube.com/',
-      patterns: [/youtube\.com\/(channel|c|user|@)\/([^\/\?]+)/i, /youtube\.com\/([^\/\?]+)/i, /^@?([a-zA-Z0-9_-]+)$/]
+    @keyframes ms-spin {
+      to { transform: rotate(360deg); }
     }
-  };
-
-  function normalizeUrl(value, platform = null) {
-    if (!value || !value.trim()) {
-      return { valid: true, url: '' };
+    .ms-loading-steps {
+      max-width: 300px;
+      margin: 0 auto;
+      text-align: left;
     }
-
-    value = value.trim();
-
-    if (value.includes(' ')) {
-      return { valid: false, error: 'Please enter only one URL (no spaces)' };
+    .ms-loading-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      color: #999;
+      font-size: 14px;
+      transition: all 0.3s ease;
     }
-
-    const httpCount = (value.match(/https?:\/\//gi) || []).length;
-    if (httpCount > 1) {
-      return { valid: false, error: 'Please enter only one URL' };
+    .ms-loading-step.active {
+      color: #333;
     }
-
-    if (/^https?:\/\//i.test(value)) {
-      try {
-        new URL(value);
-        return { valid: true, url: value };
-      } catch {
-        return { valid: false, error: 'Invalid URL format' };
-      }
+    .ms-loading-step.complete {
+      color: #28a745;
     }
-
-    if (platform === 'website') {
-      if (/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}/.test(value)) {
-        return { valid: true, url: 'https://' + value };
-      }
-      return { valid: false, error: 'Please enter a full website URL (e.g., https://example.com)' };
+    .ms-loading-step-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      background: #e0e0e0;
+      color: #999;
+      transition: all 0.3s ease;
     }
-
-    if (platform && SOCIAL_PLATFORMS[platform]) {
-      const config = SOCIAL_PLATFORMS[platform];
-
-      if (value.toLowerCase().includes(platform.toLowerCase() + '.com')) {
-        return { valid: true, url: 'https://' + value.replace(/^(https?:\/\/)?/i, '') };
-      }
-
-      for (const pattern of config.patterns) {
-        const match = value.match(pattern);
-        if (match) {
-          const username = match[match.length - 1];
-          if (username.toLowerCase() === platform.toLowerCase()) {
-            return { valid: false, error: `Please enter your ${platform} profile URL or username` };
-          }
-          return { valid: true, url: config.baseUrl + username.replace(/^@/, '') };
-        }
-      }
-
-      return { valid: false, error: `Please enter a valid ${platform} URL or username` };
+    .ms-loading-step.active .ms-loading-step-icon {
+      background: #333;
+      color: #fff;
     }
-
-    return { valid: false, error: 'Invalid URL' };
-  }
-
-  function validateSocialLinks() {
-    const errors = [];
-    const platforms = ['website', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
-
-    platforms.forEach(platform => {
-      const value = formData[platform];
-      if (value && value.trim()) {
-        const result = normalizeUrl(value, platform);
-        if (!result.valid) {
-          errors.push({ platform, error: result.error });
-        } else {
-          formData[platform] = result.url;
-        }
-      }
-    });
-
-    return errors;
-  }
-
-  // ============================================
-  // SUPABASE OPERATIONS
-  // ============================================
-
-  async function loadCategories() {
-    try {
-      // Load directories
-      const { data: directories, error: dirError } = await supabase
-        .from('directories')
-        .select('id, name, slug')
-        .order('display_order');
-
-      if (dirError) throw dirError;
-
-      // Load sub-directories
-      const { data: subDirectories, error: subError } = await supabase
-        .from('sub_directories')
-        .select('id, name, slug, directory_id')
-        .order('name');
-
-      if (subError) throw subError;
-
-      // Load space categories
-      const { data: spaceCategories, error: spaceError } = await supabase
-        .from('creative_space_categories')
-        .select('id, name, slug')
-        .order('name');
-
-      if (spaceError) throw spaceError;
-
-      // Load supplier categories
-      const { data: supplierCategories, error: supplierError } = await supabase
-        .from('supplier_categories')
-        .select('id, name, slug')
-        .order('name');
-
-      if (supplierError) throw supplierError;
-
-      categories = {
-        directories: directories || [],
-        subDirectories: subDirectories || [],
-        spaceCategories: spaceCategories || [],
-        supplierCategories: supplierCategories || []
-      };
-
-      return categories;
-    } catch (error) {
-      console.error('Error loading categories:', error);
-      throw error;
+    .ms-loading-step.complete .ms-loading-step-icon {
+      background: #28a745;
+      color: #fff;
     }
-  }
-
-  async function loadAllSuburbs() {
-    try {
-      const { data, error } = await supabase
-        .from('suburbs')
-        .select('id, name')
-        .order('name');
-
-      if (error) throw error;
-
-      suburbs = data || [];
-      return suburbs;
-    } catch (error) {
-      console.error('Error loading suburbs:', error);
-      return [];
+    .ms-success-screen {
+      text-align: center;
+      padding: 60px 32px;
+      animation: ms-fade-in 0.5s ease;
     }
-  }
-
-  async function getOrCreateMember(memberstackId) {
-    try {
-      // First try to find existing member
-      const { data: existing, error: findError } = await supabase
-        .from('members')
-        .select('*')
-        .eq('memberstack_id', memberstackId)
-        .single();
-
-      if (existing) {
-        return existing;
-      }
-
-      // If not found, we need to wait for the webhook to create it
-      // The member should exist if they've gone through signup
-      console.log('Member not found in Supabase, may need to wait for webhook');
-      return null;
-    } catch (error) {
-      console.error('Error getting member:', error);
-      return null;
+    @keyframes ms-fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-  }
-
-  async function getMembershipTypeId(membershipSlug) {
-    if (!membershipSlug) return null;
-
-    try {
-      const { data, error } = await supabase
-        .from('membership_types')
-        .select('id')
-        .eq('slug', membershipSlug)
-        .single();
-
-      if (error || !data) {
-        console.warn('Membership type not found for slug:', membershipSlug);
-        return null;
-      }
-
-      return data.id;
-    } catch (error) {
-      console.error('Error looking up membership type:', error);
-      return null;
+    .ms-success-icon {
+      width: 80px;
+      height: 80px;
+      background: #28a745;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      color: #fff;
     }
-  }
-
-  async function uploadImage(file, memberstackId, type) {
-    try {
-      // Delete old images of the same type before uploading new one
-      const { data: existingFiles } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .list(memberstackId);
-
-      if (existingFiles && existingFiles.length > 0) {
-        // Find and delete files that start with the type prefix (profile_ or feature_)
-        const oldFiles = existingFiles
-          .filter(f => f.name.startsWith(`${type}_`))
-          .map(f => `${memberstackId}/${f.name}`);
-
-        if (oldFiles.length > 0) {
-          const { error: deleteError } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .remove(oldFiles);
-
-          if (deleteError) {
-            console.warn('Error deleting old images:', deleteError);
-            // Continue with upload even if delete fails
-          } else {
-            console.log(`Deleted ${oldFiles.length} old ${type} image(s)`);
-          }
-        }
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${type}_${Date.now()}.${fileExt}`;
-      const filePath = `${memberstackId}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error) {
-      console.error(`Error uploading ${type} image:`, error);
-      throw error;
+    .ms-success-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 8px 0;
     }
-  }
-
-  async function saveOnboardingData() {
-    const memberstackId = memberData.id;
-
-    try {
-      // Upload images if we have files
-      let profileImageUrl = formData.profileImageUrl;
-      let featureImageUrl = formData.featureImageUrl;
-
-      if (formData.profileImageFile) {
-        profileImageUrl = await uploadImage(formData.profileImageFile, memberstackId, 'profile');
-      }
-
-      if (formData.featureImageFile) {
-        featureImageUrl = await uploadImage(formData.featureImageFile, memberstackId, 'feature');
-      }
-
-      // Generate slug from business name or member name
-      const displayName = formData.businessName || `${memberData.customFields?.['first-name'] || ''} ${memberData.customFields?.['last-name'] || ''}`.trim();
-      const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-      // Look up membership type from Memberstack plan
-      const membershipType = memberData?.customFields?.['membership-type'];
-      const membershipTypeId = await getMembershipTypeId(membershipType);
-      console.log('Membership type:', membershipType, '-> ID:', membershipTypeId);
-
-      // Build the update data for Supabase
-      const updateData = {
-        membership_type_id: membershipTypeId,
-        profile_image_url: profileImageUrl,
-        header_image_url: featureImageUrl,
-        bio: formData.bio,
-        slug: slug,
-        name: displayName,
-        business_name: formData.businessName || null,
-        suburb_id: formData.suburb?.id || null,
-        show_address: formData.displayAddress,
-        show_opening_hours: formData.displayOpeningHours,
-        // Opening hours
-        opening_monday: formData.openingHours.monday || null,
-        opening_tuesday: formData.openingHours.tuesday || null,
-        opening_wednesday: formData.openingHours.wednesday || null,
-        opening_thursday: formData.openingHours.thursday || null,
-        opening_friday: formData.openingHours.friday || null,
-        opening_saturday: formData.openingHours.saturday || null,
-        opening_sunday: formData.openingHours.sunday || null,
-        // Links
-        website: formData.website || null,
-        instagram: formData.instagram || null,
-        facebook: formData.facebook || null,
-        linkedin: formData.linkedin || null,
-        tiktok: formData.tiktok || null,
-        youtube: formData.youtube || null,
-        // Space/Supplier flags
-        is_creative_space: formData.spaceOrSupplier === 'space',
-        is_supplier: formData.spaceOrSupplier === 'supplier',
-        // Mark profile as complete
-        profile_complete: true
-      };
-
-      // Update or insert the member
-      const { data: updatedMember, error: updateError } = await supabase
-        .from('members')
-        .upsert({
-          memberstack_id: memberstackId,
-          email: memberData.auth?.email,
-          first_name: memberData.customFields?.['first-name'] || null,
-          last_name: memberData.customFields?.['last-name'] || null,
-          ...updateData
-        }, {
-          onConflict: 'memberstack_id'
-        })
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
-      // Save category selections to junction tables
-      const memberId = updatedMember.id;
-
-      // Delete existing category associations
-      await supabase.from('member_sub_directories').delete().eq('member_id', memberId);
-      await supabase.from('member_space_categories').delete().eq('member_id', memberId);
-      await supabase.from('member_supplier_categories').delete().eq('member_id', memberId);
-
-      // Insert new sub-directory associations
-      if (formData.chosenDirectories.length > 0) {
-        const subDirInserts = formData.chosenDirectories.map(subDirId => ({
-          member_id: memberId,
-          sub_directory_id: subDirId
-        }));
-        await supabase.from('member_sub_directories').insert(subDirInserts);
-      }
-
-      // Insert space category associations
-      if (formData.spaceCategories.length > 0) {
-        const spaceCatInserts = formData.spaceCategories.map(catId => ({
-          member_id: memberId,
-          space_category_id: catId
-        }));
-        await supabase.from('member_space_categories').insert(spaceCatInserts);
-      }
-
-      // Insert supplier category associations
-      if (formData.supplierCategories.length > 0) {
-        const supplierCatInserts = formData.supplierCategories.map(catId => ({
-          member_id: memberId,
-          supplier_category_id: catId
-        }));
-        await supabase.from('member_supplier_categories').insert(supplierCatInserts);
-      }
-
-      // Also update Memberstack to mark onboarding complete
-      await window.$memberstackDom.updateMember({
-        customFields: {
-          'onboarding-complete': 'true'
-        }
-      });
-
-      console.log('Onboarding data saved successfully');
-      return updatedMember;
-
-    } catch (error) {
-      console.error('Error saving onboarding data:', error);
-      throw error;
+    .ms-success-subtitle {
+      color: #666;
+      font-size: 16px;
+      margin: 0 0 32px 0;
     }
-  }
-
-  // ============================================
-  // RENDER FUNCTIONS
-  // ============================================
-
-  function renderProgress(container) {
-    const membershipType = memberData?.customFields?.['membership-type'];
-    totalSteps = isBusinessType(membershipType) ? 5 : 4;
-
-    let html = '<div class="ms-progress">';
-    for (let i = 1; i <= totalSteps; i++) {
-      let className = 'ms-progress-step';
-      if (i < currentStep) className += ' completed';
-      if (i === currentStep) className += ' active';
-      html += `<div class="${className}"></div>`;
+    .ms-success-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
-    html += '</div>';
-    return html;
-  }
-
-  function renderStep1(container) {
-    container.innerHTML = `
+    .ms-success-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 28px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      min-width: 200px;
+    }
+    .ms-success-btn-primary {
+      background: #333;
+      color: #fff;
+      border: 2px solid #333;
+    }
+    .ms-success-btn-primary:hover {
+      background: #555;
+      border-color: #555;
+    }
+    .ms-success-btn-secondary {
+      background: #fff;
+      color: #333;
+      border: 2px solid #333;
+    }
+    .ms-success-btn-secondary:hover {
+      background: #f5f5f5;
+    }
+  `;function G(){return new Promise((e,t)=>{let i=0;const o=50,a=setInterval(()=>{i++,window.$memberstackDom&&window.supabase?(clearInterval(a),e()):i>=o&&(clearInterval(a),t(new Error("Dependencies not loaded (Memberstack or Supabase)")))},100)})}function L(e){return Y.includes(e)}function X(e){return e===Z}function V(e){return e.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").replace(/-+/g,"-")}async function J(e,t=null){if(!e||e.length<3)return{available:!1,error:"Slug must be at least 3 characters"};try{let i=g.from("members").select("id, slug").eq("slug",e);t&&(i=i.neq("id",t));const{data:o,error:a}=await i;return a?(console.error("Error checking slug:",a),{available:!0}):{available:!o||o.length===0,error:o&&o.length>0?"This name is already taken":null}}catch(i){return console.error("Error checking slug:",i),{available:!0}}}const A={instagram:{baseUrl:"https://www.instagram.com/",patterns:[/instagram\.com\/([^\/\?]+)/i,/^@?([a-zA-Z0-9._]+)$/]},facebook:{baseUrl:"https://www.facebook.com/",patterns:[/facebook\.com\/([^\/\?]+)/i,/^([a-zA-Z0-9.]+)$/]},linkedin:{baseUrl:"https://www.linkedin.com/in/",patterns:[/linkedin\.com\/(in|company)\/([^\/\?]+)/i,/^([a-zA-Z0-9-]+)$/]},tiktok:{baseUrl:"https://www.tiktok.com/@",patterns:[/tiktok\.com\/@?([^\/\?]+)/i,/^@?([a-zA-Z0-9._]+)$/]},youtube:{baseUrl:"https://www.youtube.com/",patterns:[/youtube\.com\/(channel|c|user|@)\/([^\/\?]+)/i,/youtube\.com\/([^\/\?]+)/i,/^@?([a-zA-Z0-9_-]+)$/]}};function O(e,t=null){if(!e||!e.trim())return{valid:!0,url:""};if(e=e.trim(),e.includes(" "))return{valid:!1,error:"Please enter only one URL (no spaces)"};if((e.match(/https?:\/\//gi)||[]).length>1)return{valid:!1,error:"Please enter only one URL"};if(/^https?:\/\//i.test(e))try{return new URL(e),{valid:!0,url:e}}catch{return{valid:!1,error:"Invalid URL format"}}if(t==="website")return/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}/.test(e)?{valid:!0,url:"https://"+e}:{valid:!1,error:"Please enter a full website URL (e.g., https://example.com)"};if(t&&A[t]){const o=A[t];if(e.toLowerCase().includes(t.toLowerCase()+".com"))return{valid:!0,url:"https://"+e.replace(/^(https?:\/\/)?/i,"")};for(const a of o.patterns){const n=e.match(a);if(n){const r=n[n.length-1];return r.toLowerCase()===t.toLowerCase()?{valid:!1,error:`Please enter your ${t} profile URL or username`}:{valid:!0,url:o.baseUrl+r.replace(/^@/,"")}}}return{valid:!1,error:`Please enter a valid ${t} URL or username`}}return{valid:!1,error:"Invalid URL"}}function Q(){const e=[];return["website","instagram","facebook","linkedin","tiktok","youtube"].forEach(i=>{const o=s[i];if(o&&o.trim()){const a=O(o,i);a.valid?s[i]=a.url:e.push({platform:i,error:a.error})}}),e}async function K(){try{const{data:e,error:t}=await g.from("directories").select("id, name, slug").order("display_order");if(t)throw t;const{data:i,error:o}=await g.from("sub_directories").select("id, name, slug, directory_id").order("name");if(o)throw o;const{data:a,error:n}=await g.from("creative_space_categories").select("id, name, slug").order("name");if(n)throw n;const{data:r,error:l}=await g.from("supplier_categories").select("id, name, slug").order("name");if(l)throw l;return S={directories:e||[],subDirectories:i||[],spaceCategories:a||[],supplierCategories:r||[]},S}catch(e){throw console.error("Error loading categories:",e),e}}async function ee(){try{const{data:e,error:t}=await g.from("suburbs").select("id, name").order("name");if(t)throw t;return z=e||[],z}catch(e){return console.error("Error loading suburbs:",e),[]}}async function se(e){if(!e)return null;try{const{data:t,error:i}=await g.from("membership_types").select("id").eq("slug",e).single();return i||!t?(console.warn("Membership type not found for slug:",e),null):t.id}catch(t){return console.error("Error looking up membership type:",t),null}}const M=3*1024*1024,q=2e3;async function te(e){return e.size<=M?(console.log(`Image ${e.name} is ${(e.size/1024/1024).toFixed(2)}MB - no compression needed`),e):(console.log(`Compressing image ${e.name} from ${(e.size/1024/1024).toFixed(2)}MB...`),new Promise((t,i)=>{const o=new Image,a=document.createElement("canvas"),n=a.getContext("2d");o.onload=()=>{let{width:r,height:l}=o;if(r>q||l>q){const p=Math.min(q/r,q/l);r=Math.round(r*p),l=Math.round(l*p)}a.width=r,a.height=l,n.drawImage(o,0,0,r,l);const c=p=>{a.toBlob(d=>{if(!d){i(new Error("Failed to compress image"));return}if(console.log(`Compressed to ${(d.size/1024/1024).toFixed(2)}MB at quality ${p}`),d.size<=M||p<=.3){const m=new File([d],e.name,{type:"image/jpeg",lastModified:Date.now()});t(m)}else c(p-.1)},"image/jpeg",p)};c(.8)},o.onerror=()=>i(new Error("Failed to load image for compression")),o.src=URL.createObjectURL(e)}))}async function H(e,t,i){try{const o=await te(e),{data:a}=await g.storage.from(I).list(t);if(a&&a.length>0){const p=a.filter(d=>d.name.startsWith(`${i}_`)).map(d=>`${t}/${d.name}`);if(p.length>0){const{error:d}=await g.storage.from(I).remove(p);d?console.warn("Error deleting old images:",d):console.log(`Deleted ${p.length} old ${i} image(s)`)}}const n=`${i}_${Date.now()}.jpg`,r=`${t}/${n}`,{error:l}=await g.storage.from(I).upload(r,o,{cacheControl:"3600",upsert:!0});if(l)throw l;const{data:{publicUrl:c}}=g.storage.from(I).getPublicUrl(r);return c}catch(o){throw console.error(`Error uploading ${i} image:`,o),o}}async function re(){var t,i,o,a,n,r,l;const e=u.id;try{let c=s.profileImageUrl,p=s.featureImageUrl;s.profileImageFile&&(c=await H(s.profileImageFile,e,"profile")),s.featureImageFile&&(p=await H(s.featureImageFile,e,"feature"));const d=s.businessName||`${((t=u.customFields)==null?void 0:t["first-name"])||""} ${((i=u.customFields)==null?void 0:i["last-name"])||""}`.trim(),m=d.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),f=(o=u==null?void 0:u.customFields)==null?void 0:o["membership-type"],E=await se(f);console.log("Membership type:",f,"-> ID:",E);const y={membership_type_id:E,profile_image_url:c,header_image_url:p,bio:s.bio,slug:m,name:d,business_name:s.businessName||null,suburb_id:((a=s.suburb)==null?void 0:a.id)||null,business_address:s.businessAddress||null,show_address:s.displayAddress,show_opening_hours:s.displayOpeningHours,opening_monday:s.openingHours.monday||null,opening_tuesday:s.openingHours.tuesday||null,opening_wednesday:s.openingHours.wednesday||null,opening_thursday:s.openingHours.thursday||null,opening_friday:s.openingHours.friday||null,opening_saturday:s.openingHours.saturday||null,opening_sunday:s.openingHours.sunday||null,website:s.website||null,instagram:s.instagram||null,facebook:s.facebook||null,linkedin:s.linkedin||null,tiktok:s.tiktok||null,youtube:s.youtube||null,is_creative_space:s.spaceOrSupplier==="space",is_supplier:s.spaceOrSupplier==="supplier",profile_complete:!0},{data:k,error:w}=await g.from("members").upsert({memberstack_id:e,email:(n=u.auth)==null?void 0:n.email,first_name:((r=u.customFields)==null?void 0:r["first-name"])||null,last_name:((l=u.customFields)==null?void 0:l["last-name"])||null,...y},{onConflict:"memberstack_id"}).select().single();if(w)throw w;const v=k.id;if(await g.from("member_sub_directories").delete().eq("member_id",v),await g.from("member_space_categories").delete().eq("member_id",v),await g.from("member_supplier_categories").delete().eq("member_id",v),s.chosenDirectories.length>0){const $=s.chosenDirectories.map(_=>({member_id:v,sub_directory_id:_}));await g.from("member_sub_directories").insert($)}if(s.spaceCategories.length>0){const $=s.spaceCategories.map(_=>({member_id:v,space_category_id:_}));await g.from("member_space_categories").insert($)}if(s.supplierCategories.length>0){const $=s.supplierCategories.map(_=>({member_id:v,supplier_category_id:_}));await g.from("member_supplier_categories").insert($)}return await window.$memberstackDom.updateMember({customFields:{"onboarding-complete":"true"}}),console.log("Onboarding data saved successfully"),k}catch(c){throw console.error("Error saving onboarding data:",c),c}}function C(e){var o;const t=(o=u==null?void 0:u.customFields)==null?void 0:o["membership-type"];P=L(t)?5:4;let i='<div class="ms-progress">';for(let a=1;a<=P;a++){let n="ms-progress-step";a<b&&(n+=" completed"),a===b&&(n+=" active"),i+=`<div class="${n}"></div>`}return i+="</div>",i}function ie(e){e.innerHTML=`
       <div class="ms-container">
         <div class="ms-header">
           <h2>COMPLETE YOUR PROFILE</h2>
           <p>Let's set up your public profile. This should only take a few minutes.</p>
         </div>
-        ${renderProgress(container)}
+        ${C()}
         <div class="ms-form">
           <div class="ms-error-banner" id="ms-error-banner" style="display: none;"></div>
 
@@ -1123,155 +702,53 @@
           </div>
         </div>
       </div>
-    `;
-
-    setupStep1Handlers(container);
-  }
-
-  function setupStep1Handlers(container) {
-    const profileUpload = container.querySelector('#profile-upload');
-    const featureUpload = container.querySelector('#feature-upload');
-    const profileInput = container.querySelector('#profile-file-input');
-    const featureInput = container.querySelector('#feature-file-input');
-    const nextBtn = container.querySelector('#ms-next-btn');
-    const errorBanner = container.querySelector('#ms-error-banner');
-
-    function renderProfileState() {
-      if (formData.profileImageUrl) {
-        profileUpload.innerHTML = `
-          <img src="${formData.profileImageUrl}" class="ms-image-preview profile" alt="Profile preview">
+    `,oe(e)}function oe(e){const t=e.querySelector("#profile-upload"),i=e.querySelector("#feature-upload"),o=e.querySelector("#profile-file-input"),a=e.querySelector("#feature-file-input"),n=e.querySelector("#ms-next-btn"),r=e.querySelector("#ms-error-banner");function l(){s.profileImageUrl?(t.innerHTML=`
+          <img src="${s.profileImageUrl}" class="ms-image-preview profile" alt="Profile preview">
           <button type="button" class="ms-image-remove" data-remove="profile">&times;</button>
-        `;
-        profileUpload.classList.add('has-image');
-      } else {
-        profileUpload.innerHTML = `
+        `,t.classList.add("has-image")):(t.innerHTML=`
           <input type="file" accept="image/*" id="profile-file-input">
           <div class="ms-image-upload-text">
             <strong>Click to upload</strong><br>
             Square image recommended
           </div>
-        `;
-        profileUpload.classList.remove('has-image');
-        // Re-attach file input handler
-        const newInput = profileUpload.querySelector('#profile-file-input');
-        newInput.addEventListener('change', handleProfileFileSelect);
-      }
-    }
-
-    function renderFeatureState() {
-      if (formData.featureImageUrl) {
-        featureUpload.innerHTML = `
-          <img src="${formData.featureImageUrl}" class="ms-image-preview" alt="Feature preview">
+        `,t.classList.remove("has-image"),t.querySelector("#profile-file-input").addEventListener("change",p))}function c(){s.featureImageUrl?(i.innerHTML=`
+          <img src="${s.featureImageUrl}" class="ms-image-preview" alt="Feature preview">
           <button type="button" class="ms-image-remove" data-remove="feature">&times;</button>
-        `;
-        featureUpload.classList.add('has-image');
-      } else {
-        featureUpload.innerHTML = `
+        `,i.classList.add("has-image")):(i.innerHTML=`
           <input type="file" accept="image/*" id="feature-file-input">
           <div class="ms-image-upload-text">
             <strong>Click to upload</strong><br>
             Landscape image recommended
           </div>
-        `;
-        featureUpload.classList.remove('has-image');
-        const newInput = featureUpload.querySelector('#feature-file-input');
-        newInput.addEventListener('change', handleFeatureFileSelect);
-      }
-    }
-
-    function handleProfileFileSelect(e) {
-      const file = e.target.files[0];
-      if (file) {
-        formData.profileImageFile = file;
-        formData.profileImageUrl = URL.createObjectURL(file);
-        renderProfileState();
-        errorBanner.style.display = 'none';
-      }
-    }
-
-    function handleFeatureFileSelect(e) {
-      const file = e.target.files[0];
-      if (file) {
-        formData.featureImageFile = file;
-        formData.featureImageUrl = URL.createObjectURL(file);
-        renderFeatureState();
-        errorBanner.style.display = 'none';
-      }
-    }
-
-    profileInput.addEventListener('change', handleProfileFileSelect);
-    featureInput.addEventListener('change', handleFeatureFileSelect);
-
-    // Handle remove button clicks
-    profileUpload.addEventListener('click', (e) => {
-      if (e.target.dataset.remove === 'profile') {
-        e.stopPropagation();
-        formData.profileImageUrl = null;
-        formData.profileImageFile = null;
-        renderProfileState();
-      }
-    });
-
-    featureUpload.addEventListener('click', (e) => {
-      if (e.target.dataset.remove === 'feature') {
-        e.stopPropagation();
-        formData.featureImageUrl = null;
-        formData.featureImageFile = null;
-        renderFeatureState();
-      }
-    });
-
-    // Restore previews if coming back from later step
-    renderProfileState();
-    renderFeatureState();
-
-    nextBtn.addEventListener('click', () => {
-      if (!formData.profileImageUrl) {
-        showError(errorBanner, 'Please upload a profile image');
-        return;
-      }
-      if (!formData.featureImageUrl) {
-        showError(errorBanner, 'Please upload a feature image');
-        return;
-      }
-      currentStep = 2;
-      renderCurrentStep(container);
-    });
-  }
-
-  function renderStep2(container) {
-    const membershipType = memberData?.customFields?.['membership-type'];
-    const showBusinessName = isBusinessType(membershipType);
-
-    container.innerHTML = `
+        `,i.classList.remove("has-image"),i.querySelector("#feature-file-input").addEventListener("change",d))}function p(m){const f=m.target.files[0];f&&(s.profileImageFile=f,s.profileImageUrl=URL.createObjectURL(f),l(),r.style.display="none")}function d(m){const f=m.target.files[0];f&&(s.featureImageFile=f,s.featureImageUrl=URL.createObjectURL(f),c(),r.style.display="none")}o.addEventListener("change",p),a.addEventListener("change",d),t.addEventListener("click",m=>{m.target.dataset.remove==="profile"&&(m.stopPropagation(),s.profileImageUrl=null,s.profileImageFile=null,l())}),i.addEventListener("click",m=>{m.target.dataset.remove==="feature"&&(m.stopPropagation(),s.featureImageUrl=null,s.featureImageFile=null,c())}),l(),c(),n.addEventListener("click",()=>{if(!s.profileImageUrl){h(r,"Please upload a profile image");return}if(!s.featureImageUrl){h(r,"Please upload a feature image");return}b=2,x(e)})}function ae(e){var o;const t=(o=u==null?void 0:u.customFields)==null?void 0:o["membership-type"],i=L(t);e.innerHTML=`
       <div class="ms-container">
         <div class="ms-header">
           <h2>COMPLETE YOUR PROFILE</h2>
-          <p>Tell us about yourself${showBusinessName ? ' and your business' : ''}.</p>
+          <p>Tell us about yourself${i?" and your business":""}.</p>
         </div>
-        ${renderProgress(container)}
+        ${C()}
         <div class="ms-form">
           <div class="ms-error-banner" id="ms-error-banner" style="display: none;"></div>
 
           <h3 class="ms-step-title">Step 2: About You</h3>
           <p class="ms-step-description">This information will be displayed on your public profile.</p>
 
-          ${showBusinessName ? `
+          ${i?`
             <div class="ms-form-field">
               <label>Business / Trading Name <span class="required">*</span></label>
-              <input type="text" class="ms-form-input" id="ms-business-name" value="${formData.businessName}" placeholder="Enter your business or trading name">
+              <input type="text" class="ms-form-input" id="ms-business-name" value="${s.businessName}" placeholder="Enter your business or trading name">
               <div class="ms-slug-preview" id="ms-slug-preview"></div>
               <div class="ms-slug-status" id="ms-slug-status">
                 <span class="ms-slug-icon"></span>
                 <span class="ms-slug-message"></span>
               </div>
             </div>
-          ` : ''}
+          `:""}
 
           <div class="ms-form-field">
             <label>Bio <span class="required">*</span></label>
-            <textarea class="ms-form-input" id="ms-bio" maxlength="2000" placeholder="Tell us about your creative practice, skills, and what you offer...">${formData.bio}</textarea>
-            <div class="ms-char-count"><span id="ms-bio-count">${formData.bio.length}</span> / 2000 characters</div>
+            <textarea class="ms-form-input" id="ms-bio" maxlength="2000" placeholder="Tell us about your creative practice, skills, and what you offer...">${s.bio}</textarea>
+            <div class="ms-char-count"><span id="ms-bio-count">${s.bio.length}</span> / 2000 characters</div>
           </div>
 
           <div class="ms-btn-row">
@@ -1280,139 +757,13 @@
           </div>
         </div>
       </div>
-    `;
-
-    setupStep2Handlers(container, showBusinessName);
-  }
-
-  function setupStep2Handlers(container, showBusinessName) {
-    const bioInput = container.querySelector('#ms-bio');
-    const bioCount = container.querySelector('#ms-bio-count');
-    const businessNameInput = showBusinessName ? container.querySelector('#ms-business-name') : null;
-    const slugPreview = showBusinessName ? container.querySelector('#ms-slug-preview') : null;
-    const slugStatus = showBusinessName ? container.querySelector('#ms-slug-status') : null;
-    const backBtn = container.querySelector('#ms-back-btn');
-    const nextBtn = container.querySelector('#ms-next-btn');
-    const errorBanner = container.querySelector('#ms-error-banner');
-
-    let slugCheckTimeout = null;
-    let isSlugAvailable = true;
-
-    bioInput.addEventListener('input', () => {
-      formData.bio = bioInput.value;
-      bioCount.textContent = bioInput.value.length;
-    });
-
-    if (businessNameInput && slugStatus) {
-      const updateSlugStatus = (status, message) => {
-        slugStatus.className = 'ms-slug-status ' + status;
-        const iconEl = slugStatus.querySelector('.ms-slug-icon');
-        const msgEl = slugStatus.querySelector('.ms-slug-message');
-
-        if (status === 'available') {
-          iconEl.textContent = '✓';
-          msgEl.textContent = message || 'This name is available';
-          isSlugAvailable = true;
-        } else if (status === 'taken') {
-          iconEl.textContent = '✗';
-          msgEl.textContent = message || 'This name is already taken';
-          isSlugAvailable = false;
-        } else if (status === 'checking') {
-          iconEl.textContent = '...';
-          msgEl.textContent = 'Checking availability...';
-        } else if (status === 'invalid') {
-          iconEl.textContent = '!';
-          msgEl.textContent = message || 'Name must be at least 4 characters';
-          isSlugAvailable = false;
-        } else {
-          slugStatus.className = 'ms-slug-status';
-          isSlugAvailable = true;
-        }
-      };
-
-      const checkBusinessName = async (name) => {
-        const slug = generateSlug(name);
-
-        if (slugPreview) {
-          slugPreview.textContent = slug ? `Your URL: mtnsmade.com.au/members/${slug}` : '';
-        }
-
-        if (name.trim().length < 4) {
-          if (name.trim().length > 0) {
-            updateSlugStatus('invalid', 'Name must be at least 4 characters');
-          } else {
-            updateSlugStatus('');
-          }
-          return;
-        }
-
-        updateSlugStatus('checking');
-
-        const result = await checkSlugAvailable(slug, supabaseMember?.id);
-
-        if (result.available) {
-          updateSlugStatus('available');
-        } else {
-          updateSlugStatus('taken', result.error);
-        }
-      };
-
-      businessNameInput.addEventListener('input', () => {
-        formData.businessName = businessNameInput.value;
-
-        // Debounce the slug check
-        if (slugCheckTimeout) {
-          clearTimeout(slugCheckTimeout);
-        }
-        slugCheckTimeout = setTimeout(() => {
-          checkBusinessName(businessNameInput.value);
-        }, 500);
-      });
-
-      // Check on initial load if value exists
-      if (formData.businessName) {
-        checkBusinessName(formData.businessName);
-      }
-    }
-
-    backBtn.addEventListener('click', () => {
-      currentStep = 1;
-      renderCurrentStep(container);
-    });
-
-    nextBtn.addEventListener('click', () => {
-      if (showBusinessName && !formData.businessName.trim()) {
-        showError(errorBanner, 'Please enter your business name');
-        return;
-      }
-      if (showBusinessName && !isSlugAvailable) {
-        showError(errorBanner, 'This business name is already taken. Please choose a different name.');
-        return;
-      }
-      if (!formData.bio.trim()) {
-        showError(errorBanner, 'Please enter a bio');
-        return;
-      }
-      if (formData.bio.trim().length < 50) {
-        showError(errorBanner, 'Please enter at least 50 characters for your bio');
-        return;
-      }
-      currentStep = 3;
-      renderCurrentStep(container);
-    });
-  }
-
-  function renderStep3(container) {
-    const membershipType = memberData?.customFields?.['membership-type'];
-    const isSpaceSupplier = isSpacesSuppliers(membershipType);
-
-    container.innerHTML = `
+    `,ne(e,i)}function ne(e,t){const i=e.querySelector("#ms-bio"),o=e.querySelector("#ms-bio-count"),a=t?e.querySelector("#ms-business-name"):null,n=t?e.querySelector("#ms-slug-preview"):null,r=t?e.querySelector("#ms-slug-status"):null,l=e.querySelector("#ms-back-btn"),c=e.querySelector("#ms-next-btn"),p=e.querySelector("#ms-error-banner");let d=null,m=!0;if(i.addEventListener("input",()=>{s.bio=i.value,o.textContent=i.value.length}),a&&r){const f=(y,k)=>{r.className="ms-slug-status "+y;const w=r.querySelector(".ms-slug-icon"),v=r.querySelector(".ms-slug-message");y==="available"?(w.textContent="✓",v.textContent=k||"This name is available",m=!0):y==="taken"?(w.textContent="✗",v.textContent=k||"This name is already taken",m=!1):y==="checking"?(w.textContent="...",v.textContent="Checking availability..."):y==="invalid"?(w.textContent="!",v.textContent=k||"Name must be at least 4 characters",m=!1):(r.className="ms-slug-status",m=!0)},E=async y=>{const k=V(y);if(n&&(n.textContent=k?`Your URL: mtnsmade.com.au/members/${k}`:""),y.trim().length<4){y.trim().length>0?f("invalid","Name must be at least 4 characters"):f("");return}f("checking");const w=await J(k,U==null?void 0:U.id);w.available?f("available"):f("taken",w.error)};a.addEventListener("input",()=>{s.businessName=a.value,d&&clearTimeout(d),d=setTimeout(()=>{E(a.value)},500)}),s.businessName&&E(s.businessName)}l.addEventListener("click",()=>{b=1,x(e)}),c.addEventListener("click",()=>{if(t&&!s.businessName.trim()){h(p,"Please enter your business name");return}if(t&&!m){h(p,"This business name is already taken. Please choose a different name.");return}if(!s.bio.trim()){h(p,"Please enter a bio");return}if(s.bio.trim().length<50){h(p,"Please enter at least 50 characters for your bio");return}b=3,x(e)})}function le(e){var o;const t=(o=u==null?void 0:u.customFields)==null?void 0:o["membership-type"],i=X(t);e.innerHTML=`
       <div class="ms-container">
         <div class="ms-header">
           <h2>COMPLETE YOUR PROFILE</h2>
           <p>Select the categories that best describe your work.</p>
         </div>
-        ${renderProgress(container)}
+        ${C()}
         <div class="ms-form">
           <div class="ms-error-banner" id="ms-error-banner" style="display: none;"></div>
 
@@ -1420,7 +771,7 @@
           <p class="ms-step-description">Choose categories so people can find you in the directory. Select at least one.</p>
 
           <div id="categories-container">
-            ${isSpaceSupplier ? renderSpaceSupplierSelector() : renderDirectoriesSelector()}
+            ${i?ce():pe()}
           </div>
 
           <div class="ms-btn-row">
@@ -1429,292 +780,48 @@
           </div>
         </div>
       </div>
-    `;
-
-    setupStep3Handlers(container, isSpaceSupplier);
-  }
-
-  function renderSpaceSupplierSelector() {
-    return `
+    `,ue(e,i)}function ce(){return`
       <div class="ms-form-field">
         <label>What type of listing are you? <span class="required">*</span></label>
         <div class="ms-radio-group">
-          <label class="ms-radio-item ${formData.spaceOrSupplier === 'space' ? 'selected' : ''}" id="radio-space">
-            <input type="radio" name="space-supplier" value="space" ${formData.spaceOrSupplier === 'space' ? 'checked' : ''}>
+          <label class="ms-radio-item ${s.spaceOrSupplier==="space"?"selected":""}" id="radio-space">
+            <input type="radio" name="space-supplier" value="space" ${s.spaceOrSupplier==="space"?"checked":""}>
             <div class="ms-radio-item-title">Creative Space</div>
             <div class="ms-radio-item-desc">Studios, venues, galleries, etc.</div>
           </label>
-          <label class="ms-radio-item ${formData.spaceOrSupplier === 'supplier' ? 'selected' : ''}" id="radio-supplier">
-            <input type="radio" name="space-supplier" value="supplier" ${formData.spaceOrSupplier === 'supplier' ? 'checked' : ''}>
+          <label class="ms-radio-item ${s.spaceOrSupplier==="supplier"?"selected":""}" id="radio-supplier">
+            <input type="radio" name="space-supplier" value="supplier" ${s.spaceOrSupplier==="supplier"?"checked":""}>
             <div class="ms-radio-item-title">Supplier</div>
             <div class="ms-radio-item-desc">Materials, services, equipment, etc.</div>
           </label>
         </div>
       </div>
-      <div id="space-supplier-categories" style="${formData.spaceOrSupplier ? '' : 'display: none;'}">
-        ${formData.spaceOrSupplier === 'space' ? renderSpaceCategories() : ''}
-        ${formData.spaceOrSupplier === 'supplier' ? renderSupplierCategories() : ''}
+      <div id="space-supplier-categories" style="${s.spaceOrSupplier?"":"display: none;"}">
+        ${s.spaceOrSupplier==="space"?D():""}
+        ${s.spaceOrSupplier==="supplier"?N():""}
       </div>
-    `;
-  }
-
-  function renderSpaceCategories() {
-    let html = '<div class="ms-category-section"><div class="ms-category-header" style="font-weight:600;margin-bottom:12px;">Select Space Categories</div><div class="ms-category-grid">';
-    categories.spaceCategories.forEach(cat => {
-      const selected = formData.spaceCategories.includes(cat.id);
-      html += `
-        <label class="ms-category-item ${selected ? 'selected' : ''}" data-id="${cat.id}">
-          <input type="checkbox" value="${cat.id}" ${selected ? 'checked' : ''}>
-          ${cat.name}
+    `}function D(){let e='<div class="ms-category-section"><div class="ms-category-header" style="font-weight:600;margin-bottom:12px;">Select Space Categories</div><div class="ms-category-grid">';return S.spaceCategories.forEach(t=>{const i=s.spaceCategories.includes(t.id);e+=`
+        <label class="ms-category-item ${i?"selected":""}" data-id="${t.id}">
+          <input type="checkbox" value="${t.id}" ${i?"checked":""}>
+          ${t.name}
         </label>
-      `;
-    });
-    html += '</div><div class="ms-selected-count"><span id="space-count">' + formData.spaceCategories.length + '</span> selected</div></div>';
-    return html;
-  }
-
-  function renderSupplierCategories() {
-    let html = '<div class="ms-category-section"><div class="ms-category-header" style="font-weight:600;margin-bottom:12px;">Select Supplier Categories</div><div class="ms-category-grid">';
-    categories.supplierCategories.forEach(cat => {
-      const selected = formData.supplierCategories.includes(cat.id);
-      html += `
-        <label class="ms-category-item ${selected ? 'selected' : ''}" data-id="${cat.id}">
-          <input type="checkbox" value="${cat.id}" ${selected ? 'checked' : ''}>
-          ${cat.name}
+      `}),e+='</div><div class="ms-selected-count"><span id="space-count">'+s.spaceCategories.length+"</span> selected</div></div>",e}function N(){let e='<div class="ms-category-section"><div class="ms-category-header" style="font-weight:600;margin-bottom:12px;">Select Supplier Categories</div><div class="ms-category-grid">';return S.supplierCategories.forEach(t=>{const i=s.supplierCategories.includes(t.id);e+=`
+        <label class="ms-category-item ${i?"selected":""}" data-id="${t.id}">
+          <input type="checkbox" value="${t.id}" ${i?"checked":""}>
+          ${t.name}
         </label>
-      `;
-    });
-    html += '</div><div class="ms-selected-count"><span id="supplier-count">' + formData.supplierCategories.length + '</span> selected</div></div>';
-    return html;
-  }
-
-  function getCategoryName(id) {
-    const dir = categories.subDirectories.find(d => d.id === id);
-    return dir ? dir.name : id;
-  }
-
-  function renderDirectoriesSelector() {
-    let html = '<div class="ms-category-selector">';
-
-    // Parent category buttons
-    html += '<div class="ms-parent-categories">';
-    categories.directories.forEach(parent => {
-      html += `<button type="button" class="ms-parent-btn" data-parent="${parent.id}">${parent.name}</button>`;
-    });
-    html += '</div>';
-
-    // Child category containers
-    categories.directories.forEach(parent => {
-      const subDirs = categories.subDirectories.filter(d => d.directory_id === parent.id);
-      html += `<div class="ms-child-categories" data-parent="${parent.id}">`;
-      subDirs.forEach(dir => {
-        const isSelected = formData.chosenDirectories.includes(dir.id);
-        html += `<button type="button" class="ms-child-btn ${isSelected ? 'selected' : ''}" data-id="${dir.id}">${dir.name}</button>`;
-      });
-      html += '</div>';
-    });
-
-    // Selected categories display
-    html += `
-      <div class="ms-selected-categories" id="ms-selected-section" style="${formData.chosenDirectories.length ? '' : 'display: none;'}">
+      `}),e+='</div><div class="ms-selected-count"><span id="supplier-count">'+s.supplierCategories.length+"</span> selected</div></div>",e}function de(e){const t=S.subDirectories.find(i=>i.id===e);return t?t.name:e}function pe(){let e='<div class="ms-category-selector">';return e+='<div class="ms-parent-categories">',S.directories.forEach(t=>{e+=`<button type="button" class="ms-parent-btn" data-parent="${t.id}">${t.name}</button>`}),e+="</div>",S.directories.forEach(t=>{const i=S.subDirectories.filter(o=>o.directory_id===t.id);e+=`<div class="ms-child-categories" data-parent="${t.id}">`,i.forEach(o=>{const a=s.chosenDirectories.includes(o.id);e+=`<button type="button" class="ms-child-btn ${a?"selected":""}" data-id="${o.id}">${o.name}</button>`}),e+="</div>"}),e+=`
+      <div class="ms-selected-categories" id="ms-selected-section" style="${s.chosenDirectories.length?"":"display: none;"}">
         <h5>Selected Categories</h5>
         <div class="ms-selected-list" id="ms-selected-list"></div>
       </div>
-    </div>`;
-
-    return html;
-  }
-
-  function setupStep3Handlers(container, isSpaceSupplier) {
-    const backBtn = container.querySelector('#ms-back-btn');
-    const nextBtn = container.querySelector('#ms-next-btn');
-    const errorBanner = container.querySelector('#ms-error-banner');
-
-    backBtn.addEventListener('click', () => {
-      currentStep = 2;
-      renderCurrentStep(container);
-    });
-
-    if (isSpaceSupplier) {
-      const radioSpace = container.querySelector('#radio-space');
-      const radioSupplier = container.querySelector('#radio-supplier');
-      const categoriesContainer = container.querySelector('#space-supplier-categories');
-
-      radioSpace.addEventListener('click', () => {
-        formData.spaceOrSupplier = 'space';
-        formData.supplierCategories = [];
-        radioSpace.classList.add('selected');
-        radioSupplier.classList.remove('selected');
-        categoriesContainer.innerHTML = renderSpaceCategories();
-        categoriesContainer.style.display = 'block';
-        setupCategoryCheckboxes(container, 'spaceCategories', 'space-count');
-      });
-
-      radioSupplier.addEventListener('click', () => {
-        formData.spaceOrSupplier = 'supplier';
-        formData.spaceCategories = [];
-        radioSupplier.classList.add('selected');
-        radioSpace.classList.remove('selected');
-        categoriesContainer.innerHTML = renderSupplierCategories();
-        categoriesContainer.style.display = 'block';
-        setupCategoryCheckboxes(container, 'supplierCategories', 'supplier-count');
-      });
-
-      if (formData.spaceOrSupplier === 'space') {
-        setupCategoryCheckboxes(container, 'spaceCategories', 'space-count');
-      } else if (formData.spaceOrSupplier === 'supplier') {
-        setupCategoryCheckboxes(container, 'supplierCategories', 'supplier-count');
-      }
-
-      nextBtn.addEventListener('click', () => {
-        if (!formData.spaceOrSupplier) {
-          showError(errorBanner, 'Please select whether you are a Creative Space or Supplier');
-          return;
-        }
-        const categoryCount = formData.spaceOrSupplier === 'space'
-          ? formData.spaceCategories.length
-          : formData.supplierCategories.length;
-        if (categoryCount === 0) {
-          showError(errorBanner, 'Please select at least one category');
-          return;
-        }
-        currentStep = 4;
-        renderCurrentStep(container);
-      });
-
-    } else {
-      // Button-based category selector handlers
-      setupDirectoryCategorySelector(container);
-
-      nextBtn.addEventListener('click', () => {
-        if (formData.chosenDirectories.length === 0) {
-          showError(errorBanner, 'Please select at least one category');
-          return;
-        }
-        const membershipType = memberData?.customFields?.['membership-type'];
-        if (isBusinessType(membershipType)) {
-          currentStep = 4;
-        } else {
-          currentStep = 5;
-        }
-        renderCurrentStep(container);
-      });
-    }
-  }
-
-  function setupDirectoryCategorySelector(container) {
-    const parentBtns = container.querySelectorAll('.ms-parent-btn');
-    const childContainers = container.querySelectorAll('.ms-child-categories');
-    const selectedList = container.querySelector('#ms-selected-list');
-    const selectedSection = container.querySelector('#ms-selected-section');
-
-    function updateSelectedDisplay() {
-      if (!selectedList || !selectedSection) return;
-
-      selectedList.innerHTML = formData.chosenDirectories.map(id => {
-        const name = getCategoryName(id);
-        return `<span class="ms-selected-tag">${name}<button type="button" data-id="${id}">&times;</button></span>`;
-      }).join('');
-
-      selectedSection.style.display = formData.chosenDirectories.length ? '' : 'none';
-
-      container.querySelectorAll('.ms-child-btn').forEach(btn => {
-        const id = btn.dataset.id;
-        btn.classList.toggle('selected', formData.chosenDirectories.includes(id));
-      });
-    }
-
-    updateSelectedDisplay();
-
-    parentBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const parentId = btn.dataset.parent;
-        const isActive = btn.classList.contains('active');
-
-        parentBtns.forEach(b => b.classList.remove('active'));
-        childContainers.forEach(c => c.classList.remove('visible'));
-
-        if (!isActive) {
-          btn.classList.add('active');
-          container.querySelector(`.ms-child-categories[data-parent="${parentId}"]`).classList.add('visible');
-        }
-      });
-    });
-
-    container.querySelectorAll('.ms-child-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const index = formData.chosenDirectories.indexOf(id);
-
-        if (index === -1) {
-          formData.chosenDirectories.push(id);
-        } else {
-          formData.chosenDirectories.splice(index, 1);
-        }
-
-        updateSelectedDisplay();
-      });
-    });
-
-    if (selectedList) {
-      selectedList.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-          const id = e.target.dataset.id;
-          const index = formData.chosenDirectories.indexOf(id);
-          if (index !== -1) {
-            formData.chosenDirectories.splice(index, 1);
-            updateSelectedDisplay();
-          }
-        }
-      });
-    }
-  }
-
-  function setupCategoryCheckboxes(container, dataKey, countId) {
-    container.querySelectorAll('.ms-category-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const id = item.dataset.id;
-        const index = formData[dataKey].indexOf(id);
-
-        if (index === -1) {
-          formData[dataKey].push(id);
-          item.classList.add('selected');
-        } else {
-          formData[dataKey].splice(index, 1);
-          item.classList.remove('selected');
-        }
-
-        const countEl = container.querySelector('#' + countId);
-        if (countEl) {
-          countEl.textContent = formData[dataKey].length;
-        }
-
-        if (dataKey === 'chosenDirectories') {
-          updateAccordionCounts(container);
-        }
-      });
-    });
-  }
-
-  function updateAccordionCounts(container) {
-    container.querySelectorAll('.ms-accordion').forEach(accordion => {
-      const parentId = accordion.dataset.parent;
-      const subDirs = categories.subDirectories.filter(d => d.directory_id === parentId);
-      const selectedCount = subDirs.filter(d => formData.chosenDirectories.includes(d.id)).length;
-      const countSpan = accordion.querySelector('.ms-accordion-count');
-      countSpan.textContent = selectedCount > 0 ? `(${selectedCount} selected)` : '';
-    });
-  }
-
-  function renderStep4(container) {
-    container.innerHTML = `
+    </div>`,e}function ue(e,t){const i=e.querySelector("#ms-back-btn"),o=e.querySelector("#ms-next-btn"),a=e.querySelector("#ms-error-banner");if(i.addEventListener("click",()=>{b=2,x(e)}),t){const n=e.querySelector("#radio-space"),r=e.querySelector("#radio-supplier"),l=e.querySelector("#space-supplier-categories");n.addEventListener("click",()=>{s.spaceOrSupplier="space",s.supplierCategories=[],n.classList.add("selected"),r.classList.remove("selected"),l.innerHTML=D(),l.style.display="block",T(e,"spaceCategories","space-count")}),r.addEventListener("click",()=>{s.spaceOrSupplier="supplier",s.spaceCategories=[],r.classList.add("selected"),n.classList.remove("selected"),l.innerHTML=N(),l.style.display="block",T(e,"supplierCategories","supplier-count")}),s.spaceOrSupplier==="space"?T(e,"spaceCategories","space-count"):s.spaceOrSupplier==="supplier"&&T(e,"supplierCategories","supplier-count"),o.addEventListener("click",()=>{if(!s.spaceOrSupplier){h(a,"Please select whether you are a Creative Space or Supplier");return}if((s.spaceOrSupplier==="space"?s.spaceCategories.length:s.supplierCategories.length)===0){h(a,"Please select at least one category");return}b=4,x(e)})}else me(e),o.addEventListener("click",()=>{var r;if(s.chosenDirectories.length===0){h(a,"Please select at least one category");return}const n=(r=u==null?void 0:u.customFields)==null?void 0:r["membership-type"];L(n)?b=4:b=5,x(e)})}function me(e){const t=e.querySelectorAll(".ms-parent-btn"),i=e.querySelectorAll(".ms-child-categories"),o=e.querySelector("#ms-selected-list"),a=e.querySelector("#ms-selected-section");function n(){!o||!a||(o.innerHTML=s.chosenDirectories.map(r=>`<span class="ms-selected-tag">${de(r)}<button type="button" data-id="${r}">&times;</button></span>`).join(""),a.style.display=s.chosenDirectories.length?"":"none",e.querySelectorAll(".ms-child-btn").forEach(r=>{const l=r.dataset.id;r.classList.toggle("selected",s.chosenDirectories.includes(l))}))}n(),t.forEach(r=>{r.addEventListener("click",()=>{const l=r.dataset.parent,c=r.classList.contains("active");t.forEach(p=>p.classList.remove("active")),i.forEach(p=>p.classList.remove("visible")),c||(r.classList.add("active"),e.querySelector(`.ms-child-categories[data-parent="${l}"]`).classList.add("visible"))})}),e.querySelectorAll(".ms-child-btn").forEach(r=>{r.addEventListener("click",()=>{const l=r.dataset.id,c=s.chosenDirectories.indexOf(l);c===-1?s.chosenDirectories.push(l):s.chosenDirectories.splice(c,1),n()})}),o&&o.addEventListener("click",r=>{if(r.target.tagName==="BUTTON"){const l=r.target.dataset.id,c=s.chosenDirectories.indexOf(l);c!==-1&&(s.chosenDirectories.splice(c,1),n())}})}function T(e,t,i){e.querySelectorAll(".ms-category-item").forEach(o=>{o.addEventListener("click",a=>{a.preventDefault();const n=o.dataset.id,r=s[t].indexOf(n);r===-1?(s[t].push(n),o.classList.add("selected")):(s[t].splice(r,1),o.classList.remove("selected"));const l=e.querySelector("#"+i);l&&(l.textContent=s[t].length),t==="chosenDirectories"&&ge(e)})})}function ge(e){e.querySelectorAll(".ms-accordion").forEach(t=>{const i=t.dataset.parent,a=S.subDirectories.filter(r=>r.directory_id===i).filter(r=>s.chosenDirectories.includes(r.id)).length,n=t.querySelector(".ms-accordion-count");n.textContent=a>0?`(${a} selected)`:""})}function fe(e){e.innerHTML=`
       <div class="ms-container">
         <div class="ms-header">
           <h2>COMPLETE YOUR PROFILE</h2>
           <p>Add your business location and hours.</p>
         </div>
-        ${renderProgress(container)}
+        ${C()}
         <div class="ms-form">
           <div class="ms-error-banner" id="ms-error-banner" style="display: none;"></div>
 
@@ -1725,21 +832,21 @@
             <label>Suburb <span class="required">*</span></label>
             <select class="ms-form-input" id="ms-suburb-select">
               <option value="">Select your suburb...</option>
-              ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+              ${z.map(t=>{var i;return`<option value="${t.id}" ${((i=s.suburb)==null?void 0:i.id)===t.id?"selected":""}>${t.name}</option>`}).join("")}
             </select>
             <div class="ms-hint">This helps members find you in the directory</div>
           </div>
 
           <div class="ms-form-field">
             <label>Business Address</label>
-            <input type="text" class="ms-form-input" id="ms-address" value="${formData.businessAddress}" placeholder="Enter your business address (optional)">
+            <input type="text" class="ms-form-input" id="ms-address" value="${s.businessAddress}" placeholder="Enter your business address (optional)">
             <div class="ms-hint">This is where customers can find you</div>
           </div>
 
           <div class="ms-toggle-field">
             <span class="ms-toggle-label">Display address publicly on my profile</span>
             <label class="ms-toggle">
-              <input type="checkbox" id="ms-display-address" ${formData.displayAddress ? 'checked' : ''}>
+              <input type="checkbox" id="ms-display-address" ${s.displayAddress?"checked":""}>
               <span class="ms-toggle-slider"></span>
             </label>
           </div>
@@ -1747,21 +854,21 @@
           <div class="ms-form-field">
             <label>Opening Hours</label>
             <div class="ms-hours-grid">
-              ${DAYS_OF_WEEK.map(day => `
+              ${F.map(t=>`
                 <div class="ms-hours-row">
-                  <span class="ms-hours-day">${day}</span>
-                  <input type="text" class="ms-hours-input" id="ms-hours-${day.toLowerCase()}"
-                    value="${formData.openingHours[day.toLowerCase()]}"
+                  <span class="ms-hours-day">${t}</span>
+                  <input type="text" class="ms-hours-input" id="ms-hours-${t.toLowerCase()}"
+                    value="${s.openingHours[t.toLowerCase()]}"
                     placeholder="e.g., 9am - 5pm or Closed">
                 </div>
-              `).join('')}
+              `).join("")}
             </div>
           </div>
 
           <div class="ms-toggle-field">
             <span class="ms-toggle-label">Display opening hours publicly on my profile</span>
             <label class="ms-toggle">
-              <input type="checkbox" id="ms-display-hours" ${formData.displayOpeningHours ? 'checked' : ''}>
+              <input type="checkbox" id="ms-display-hours" ${s.displayOpeningHours?"checked":""}>
               <span class="ms-toggle-slider"></span>
             </label>
           </div>
@@ -1772,108 +879,43 @@
           </div>
         </div>
       </div>
-    `;
-
-    setupStep4Handlers(container);
-  }
-
-  function setupStep4Handlers(container) {
-    const suburbSelect = container.querySelector('#ms-suburb-select');
-    const addressInput = container.querySelector('#ms-address');
-    const displayAddressToggle = container.querySelector('#ms-display-address');
-    const displayHoursToggle = container.querySelector('#ms-display-hours');
-    const backBtn = container.querySelector('#ms-back-btn');
-    const nextBtn = container.querySelector('#ms-next-btn');
-    const errorBanner = container.querySelector('#ms-error-banner');
-
-    suburbSelect.addEventListener('change', () => {
-      const selectedOption = suburbSelect.options[suburbSelect.selectedIndex];
-      if (selectedOption.value) {
-        formData.suburb = {
-          id: selectedOption.value,
-          name: selectedOption.text
-        };
-      } else {
-        formData.suburb = null;
-      }
-    });
-
-    addressInput.addEventListener('input', () => {
-      formData.businessAddress = addressInput.value;
-    });
-
-    displayAddressToggle.addEventListener('change', () => {
-      formData.displayAddress = displayAddressToggle.checked;
-    });
-
-    displayHoursToggle.addEventListener('change', () => {
-      formData.displayOpeningHours = displayHoursToggle.checked;
-    });
-
-    DAYS_OF_WEEK.forEach(day => {
-      const input = container.querySelector(`#ms-hours-${day.toLowerCase()}`);
-      input.addEventListener('input', () => {
-        formData.openingHours[day.toLowerCase()] = input.value;
-      });
-    });
-
-    backBtn.addEventListener('click', () => {
-      currentStep = 3;
-      renderCurrentStep(container);
-    });
-
-    nextBtn.addEventListener('click', () => {
-      // Validate suburb selection
-      if (!formData.suburb) {
-        showError(errorBanner, 'Please select your suburb');
-        return;
-      }
-      currentStep = 5;
-      renderCurrentStep(container);
-    });
-  }
-
-  function renderStep5(container) {
-    const membershipType = memberData?.customFields?.['membership-type'];
-    const stepNumber = isBusinessType(membershipType) ? 5 : 4;
-
-    container.innerHTML = `
+    `,be(e)}function be(e){const t=e.querySelector("#ms-suburb-select"),i=e.querySelector("#ms-address"),o=e.querySelector("#ms-display-address"),a=e.querySelector("#ms-display-hours"),n=e.querySelector("#ms-back-btn"),r=e.querySelector("#ms-next-btn"),l=e.querySelector("#ms-error-banner");t.addEventListener("change",()=>{const c=t.options[t.selectedIndex];c.value?s.suburb={id:c.value,name:c.text}:s.suburb=null}),i.addEventListener("input",()=>{s.businessAddress=i.value}),o.addEventListener("change",()=>{s.displayAddress=o.checked}),a.addEventListener("change",()=>{s.displayOpeningHours=a.checked}),F.forEach(c=>{const p=e.querySelector(`#ms-hours-${c.toLowerCase()}`);p.addEventListener("input",()=>{s.openingHours[c.toLowerCase()]=p.value})}),n.addEventListener("click",()=>{b=3,x(e)}),r.addEventListener("click",()=>{if(!s.suburb){h(l,"Please select your suburb");return}b=5,x(e)})}function he(e){var o;const t=(o=u==null?void 0:u.customFields)==null?void 0:o["membership-type"],i=L(t)?5:4;e.innerHTML=`
       <div class="ms-container">
         <div class="ms-header">
           <h2>COMPLETE YOUR PROFILE</h2>
           <p>Almost done! Add your online presence.</p>
         </div>
-        ${renderProgress(container)}
+        ${C()}
         <div class="ms-form">
           <div class="ms-error-banner" id="ms-error-banner" style="display: none;"></div>
 
-          <h3 class="ms-step-title">Step ${stepNumber}: Links</h3>
+          <h3 class="ms-step-title">Step ${i}: Links</h3>
           <p class="ms-step-description">Add your website and social media links. All fields are optional.</p>
 
           <div class="ms-links-grid">
             <div class="ms-link-field">
               <span class="ms-link-label">Website</span>
-              <input type="url" class="ms-form-input" id="ms-website" value="${formData.website}" placeholder="https://yourwebsite.com">
+              <input type="url" class="ms-form-input" id="ms-website" value="${s.website}" placeholder="https://yourwebsite.com">
             </div>
             <div class="ms-link-field">
               <span class="ms-link-label">Instagram</span>
-              <input type="url" class="ms-form-input" id="ms-instagram" value="${formData.instagram}" placeholder="https://instagram.com/username">
+              <input type="url" class="ms-form-input" id="ms-instagram" value="${s.instagram}" placeholder="https://instagram.com/username">
             </div>
             <div class="ms-link-field">
               <span class="ms-link-label">Facebook</span>
-              <input type="url" class="ms-form-input" id="ms-facebook" value="${formData.facebook}" placeholder="https://facebook.com/page">
+              <input type="url" class="ms-form-input" id="ms-facebook" value="${s.facebook}" placeholder="https://facebook.com/page">
             </div>
             <div class="ms-link-field">
               <span class="ms-link-label">LinkedIn</span>
-              <input type="url" class="ms-form-input" id="ms-linkedin" value="${formData.linkedin}" placeholder="https://linkedin.com/in/username">
+              <input type="url" class="ms-form-input" id="ms-linkedin" value="${s.linkedin}" placeholder="https://linkedin.com/in/username">
             </div>
             <div class="ms-link-field">
               <span class="ms-link-label">TikTok</span>
-              <input type="url" class="ms-form-input" id="ms-tiktok" value="${formData.tiktok}" placeholder="https://tiktok.com/@username">
+              <input type="url" class="ms-form-input" id="ms-tiktok" value="${s.tiktok}" placeholder="https://tiktok.com/@username">
             </div>
             <div class="ms-link-field">
               <span class="ms-link-label">YouTube</span>
-              <input type="url" class="ms-form-input" id="ms-youtube" value="${formData.youtube}" placeholder="https://youtube.com/channel">
+              <input type="url" class="ms-form-input" id="ms-youtube" value="${s.youtube}" placeholder="https://youtube.com/channel">
             </div>
           </div>
 
@@ -1883,148 +925,34 @@
           </div>
         </div>
       </div>
-    `;
-
-    setupStep5Handlers(container);
-  }
-
-  function setupStep5Handlers(container) {
-    const backBtn = container.querySelector('#ms-back-btn');
-    const submitBtn = container.querySelector('#ms-submit-btn');
-    const errorBanner = container.querySelector('#ms-error-banner');
-
-    const linkInputs = ['website', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
-    linkInputs.forEach(platform => {
-      const input = container.querySelector(`#ms-${platform}`);
-      const field = input.closest('.ms-link-field');
-
-      let errorEl = field.querySelector('.ms-field-error');
-      if (!errorEl) {
-        errorEl = document.createElement('div');
-        errorEl.className = 'ms-field-error';
-        errorEl.style.cssText = 'grid-column: 2;';
-        field.appendChild(errorEl);
-      }
-
-      input.addEventListener('input', () => {
-        formData[platform] = input.value;
-        input.classList.remove('error');
-        errorEl.textContent = '';
-      });
-
-      input.addEventListener('blur', () => {
-        const value = input.value.trim();
-        if (!value) {
-          input.classList.remove('error');
-          errorEl.textContent = '';
-          return;
-        }
-
-        const result = normalizeUrl(value, platform);
-        if (result.valid) {
-          if (result.url !== value) {
-            input.value = result.url;
-            formData[platform] = result.url;
-          }
-          input.classList.remove('error');
-          errorEl.textContent = '';
-        } else {
-          input.classList.add('error');
-          errorEl.textContent = result.error;
-        }
-      });
-    });
-
-    backBtn.addEventListener('click', () => {
-      const membershipType = memberData?.customFields?.['membership-type'];
-      if (isBusinessType(membershipType)) {
-        currentStep = 4;
-      } else {
-        currentStep = 3;
-      }
-      renderCurrentStep(container);
-    });
-
-    submitBtn.addEventListener('click', async () => {
-      const errors = validateSocialLinks();
-      if (errors.length > 0) {
-        errors.forEach(({ platform, error }) => {
-          const input = container.querySelector(`#ms-${platform}`);
-          const field = input.closest('.ms-link-field');
-          const errorEl = field.querySelector('.ms-field-error');
-          input.classList.add('error');
-          if (errorEl) errorEl.textContent = error;
-        });
-        showError(errorBanner, 'Please fix the highlighted fields before continuing');
-        return;
-      }
-
-      linkInputs.forEach(platform => {
-        const input = container.querySelector(`#ms-${platform}`);
-        if (formData[platform]) {
-          input.value = formData[platform];
-        }
-      });
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Saving...';
-
-      try {
-        await saveOnboardingData();
-        renderSuccess(container);
-      } catch (error) {
-        console.error('Submit error:', error);
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Complete Profile';
-        showError(errorBanner, 'An error occurred. Please try again.');
-      }
-    });
-  }
-
-  function renderSuccess(container) {
-    let countdown = 5;
-
-    container.innerHTML = `
+    `,ye(e)}function ye(e){const t=e.querySelector("#ms-back-btn"),i=e.querySelector("#ms-submit-btn"),o=e.querySelector("#ms-error-banner"),a=["website","instagram","facebook","linkedin","tiktok","youtube"];a.forEach(n=>{const r=e.querySelector(`#ms-${n}`),l=r.closest(".ms-link-field");let c=l.querySelector(".ms-field-error");c||(c=document.createElement("div"),c.className="ms-field-error",c.style.cssText="grid-column: 2;",l.appendChild(c)),r.addEventListener("input",()=>{s[n]=r.value,r.classList.remove("error"),c.textContent=""}),r.addEventListener("blur",()=>{const p=r.value.trim();if(!p){r.classList.remove("error"),c.textContent="";return}const d=O(p,n);d.valid?(d.url!==p&&(r.value=d.url,s[n]=d.url),r.classList.remove("error"),c.textContent=""):(r.classList.add("error"),c.textContent=d.error)})}),t.addEventListener("click",()=>{var r;const n=(r=u==null?void 0:u.customFields)==null?void 0:r["membership-type"];L(n)?b=4:b=3,x(e)}),i.addEventListener("click",async()=>{const n=Q();if(n.length>0){n.forEach(({platform:r,error:l})=>{const c=e.querySelector(`#ms-${r}`),d=c.closest(".ms-link-field").querySelector(".ms-field-error");c.classList.add("error"),d&&(d.textContent=l)}),h(o,"Please fix the highlighted fields before continuing");return}a.forEach(r=>{const l=e.querySelector(`#ms-${r}`);s[r]&&(l.value=s[r])}),i.disabled=!0,i.textContent="Saving...";try{await re(),ve(e)}catch(r){console.error("Submit error:",r),i.disabled=!1,i.textContent="Complete Profile",h(o,"An error occurred. Please try again.")}})}function ve(e){var c,p;const o=`/members/${(s.businessName||`${((c=u.customFields)==null?void 0:c["first-name"])||""} ${((p=u.customFields)==null?void 0:p["last-name"])||""}`.trim()).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}`,a=[{text:"Creating your profile page",icon:"1",duration:800},{text:"Uploading profile images",icon:"2",duration:1200},{text:"Setting up your categories",icon:"3",duration:900},{text:"Finalizing your listing",icon:"4",duration:700}];e.innerHTML=`
       <div class="ms-container">
-        <div class="ms-form" style="text-align: center; padding: 48px 32px;">
-          <div style="font-size: 48px; margin-bottom: 16px;">&#10003;</div>
-          <h2 style="margin: 0 0 8px 0;">Profile Complete!</h2>
-          <p style="color: #666; margin-bottom: 16px;">Your profile is now set up and ready to go.</p>
-          <p style="color: #999; font-size: 14px;">Transferring you to your dashboard in <span id="countdown">${countdown}</span> seconds...</p>
-          <a href="/profile/start" class="ms-btn" style="display: inline-block; text-decoration: none; margin-top: 16px;">Go to Dashboard Now</a>
+        <div class="ms-form ms-loading-screen">
+          <div class="ms-loading-spinner"></div>
+          <h2 style="margin: 0 0 24px 0; color: #333;">Setting Up Your Profile</h2>
+          <div class="ms-loading-steps">
+            ${a.map((d,m)=>`
+              <div class="ms-loading-step" data-step="${m}">
+                <span class="ms-loading-step-icon">${d.icon}</span>
+                <span>${d.text}</span>
+              </div>
+            `).join("")}
+          </div>
         </div>
       </div>
-    `;
-
-    const countdownEl = container.querySelector('#countdown');
-    const timer = setInterval(() => {
-      countdown--;
-      if (countdownEl) countdownEl.textContent = countdown;
-      if (countdown <= 0) {
-        clearInterval(timer);
-        window.location.href = '/profile/start';
-      }
-    }, 1000);
-  }
-
-  function renderCurrentStep(container) {
-    switch (currentStep) {
-      case 1: renderStep1(container); break;
-      case 2: renderStep2(container); break;
-      case 3: renderStep3(container); break;
-      case 4: renderStep4(container); break;
-      case 5: renderStep5(container); break;
-    }
-  }
-
-  function showError(banner, message) {
-    banner.textContent = message;
-    banner.style.display = 'block';
-    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  function renderNotLoggedIn(container) {
-    container.innerHTML = `
+    `;const n=e.querySelectorAll(".ms-loading-step");let r=0;function l(){if(r>0&&n[r-1]){n[r-1].classList.remove("active"),n[r-1].classList.add("complete");const d=n[r-1].querySelector(".ms-loading-step-icon");d&&(d.textContent="✓")}if(r<n.length){n[r].classList.add("active");const d=a[r].duration;r++,setTimeout(l,d)}else setTimeout(()=>{xe(e,o)},500)}setTimeout(l,300)}function xe(e,t){e.innerHTML=`
+      <div class="ms-container">
+        <div class="ms-form ms-success-screen">
+          <div class="ms-success-icon">✓</div>
+          <h2 class="ms-success-title">Profile Complete!</h2>
+          <p class="ms-success-subtitle">Your MTNS MADE profile is now live and ready to be discovered.</p>
+          <div class="ms-success-buttons">
+            <a href="${t}" class="ms-success-btn ms-success-btn-primary">View my MTNS MADE Profile</a>
+            <a href="/profile/start" class="ms-success-btn ms-success-btn-secondary">Go to my Dashboard</a>
+          </div>
+        </div>
+      </div>
+    `}function x(e){switch(b){case 1:ie(e);break;case 2:ae(e);break;case 3:le(e);break;case 4:fe(e);break;case 5:he(e);break}}function h(e,t){e.textContent=t,e.style.display="block",e.scrollIntoView({behavior:"smooth",block:"center"})}function ke(e){e.innerHTML=`
       <div class="ms-container">
         <div class="ms-form">
           <div class="ms-error-banner" style="display: block;">
@@ -2035,11 +963,7 @@
           </p>
         </div>
       </div>
-    `;
-  }
-
-  function renderAlreadyCompleted(container) {
-    container.innerHTML = `
+    `}function we(e){e.innerHTML=`
       <div class="ms-container">
         <div class="ms-form" style="text-align: center; padding: 48px 32px;">
           <div style="font-size: 48px; margin-bottom: 16px;">&#10003;</div>
@@ -2048,77 +972,10 @@
           <a href="/profile/start" class="ms-btn" style="display: inline-block; text-decoration: none;">Go to Dashboard</a>
         </div>
       </div>
-    `;
-  }
-
-  function renderError(container, message) {
-    container.innerHTML = `
+    `}function Se(e,t){e.innerHTML=`
       <div class="ms-container">
         <div class="ms-form">
-          <div class="ms-error-banner" style="display: block;">${message}</div>
+          <div class="ms-error-banner" style="display: block;">${t}</div>
         </div>
       </div>
-    `;
-  }
-
-  // ============================================
-  // INITIALIZATION
-  // ============================================
-
-  async function init() {
-    // Look for either container class
-    const container = document.querySelector('.onboarding-form') || document.querySelector('.supabase-onboarding-container');
-    if (!container) {
-      console.warn('Could not find onboarding container (.onboarding-form or .supabase-onboarding-container)');
-      return;
-    }
-
-    // Add styles
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    document.head.appendChild(styleEl);
-
-    // Show loading
-    container.innerHTML = '<div class="ms-loading">Loading...</div>';
-
-    try {
-      await waitForDependencies();
-
-      // Initialize Supabase
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-      const { data: member } = await window.$memberstackDom.getCurrentMember();
-
-      if (!member) {
-        renderNotLoggedIn(container);
-        return;
-      }
-
-      memberData = member;
-
-      // Check if already completed
-      if (member.customFields?.['onboarding-complete'] === 'true') {
-        renderAlreadyCompleted(container);
-        return;
-      }
-
-      // Load categories and suburbs from Supabase
-      await loadCategories();
-      await loadAllSuburbs();
-
-      // Start onboarding
-      renderCurrentStep(container);
-
-    } catch (error) {
-      console.error('Init error:', error);
-      renderError(container, 'Error loading onboarding. Please refresh the page.');
-    }
-  }
-
-  // Run on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+    `}async function B(){var i;const e=document.querySelector(".onboarding-form")||document.querySelector(".supabase-onboarding-container");if(!e){console.warn("Could not find onboarding container (.onboarding-form or .supabase-onboarding-container)");return}const t=document.createElement("style");t.textContent=W,document.head.appendChild(t),e.innerHTML='<div class="ms-loading">Loading...</div>';try{await G(),g=window.supabase.createClient(R,j);const{data:o}=await window.$memberstackDom.getCurrentMember();if(!o){ke(e);return}if(u=o,((i=o.customFields)==null?void 0:i["onboarding-complete"])==="true"){we(e);return}await K(),await ee(),x(e)}catch(o){console.error("Init error:",o),Se(e,"Error loading onboarding. Please refresh the page.")}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",B):B()})();
