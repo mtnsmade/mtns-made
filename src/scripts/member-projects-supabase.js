@@ -1012,14 +1012,83 @@
   // IMAGE UPLOAD OPERATIONS
   // ============================================
 
+  const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
+  const MAX_DIMENSION = 2000; // Max width/height in pixels
+
+  async function compressImage(file) {
+    const originalSize = (file.size / 1024 / 1024).toFixed(1);
+
+    // Skip if already under size limit
+    if (file.size <= MAX_FILE_SIZE) {
+      console.log(`Image ${file.name} is ${originalSize}MB - no compression needed`);
+      return file;
+    }
+
+    console.log(`Compressing image ${file.name} from ${originalSize}MB...`);
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const tryCompress = (quality) => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to compress image'));
+                return;
+              }
+
+              const finalSize = (blob.size / 1024 / 1024).toFixed(1);
+              console.log(`Compressed to ${finalSize}MB at quality ${quality}`);
+
+              if (blob.size <= MAX_FILE_SIZE || quality <= 0.3) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                tryCompress(quality - 0.1);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+
+        tryCompress(0.8);
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function uploadImage(file, projectId) {
+    // Compress image before upload
+    const compressedFile = await compressImage(file);
+
     const timestamp = Date.now();
-    const ext = file.name.split('.').pop();
+    const ext = compressedFile.type === 'image/jpeg' ? 'jpg' : file.name.split('.').pop();
     const path = `${currentMember.id}/${projectId || 'new'}/${timestamp}.${ext}`;
 
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(path, file, {
+      .upload(path, compressedFile, {
         cacheControl: '3600',
         upsert: false
       });
