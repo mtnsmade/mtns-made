@@ -1006,6 +1006,26 @@
       const displayName = formData.businessName || `${formData.firstName} ${formData.lastName}`.trim();
       const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+      // Check if profile meets completion criteria
+      const hasProfileImage = !!profileImageUrl;
+      const hasFeatureImage = !!featureImageUrl;
+      const hasBio = formData.bio && formData.bio.length >= 50;
+      const hasCategories = formData.chosenDirectories.length > 0 ||
+                           formData.spaceCategories.length > 0 ||
+                           formData.supplierCategories.length > 0;
+      const hasLocation = !!formData.suburb?.id;
+
+      const isProfileComplete = hasProfileImage && hasFeatureImage && hasBio && hasCategories && hasLocation;
+
+      console.log('Profile completion check:', {
+        hasProfileImage,
+        hasFeatureImage,
+        hasBio,
+        hasCategories,
+        hasLocation,
+        isProfileComplete
+      });
+
       // Build update data
       const updateData = {
         first_name: formData.firstName,
@@ -1033,7 +1053,8 @@
         tiktok: formData.tiktok || null,
         youtube: formData.youtube || null,
         is_creative_space: formData.spaceOrSupplier === 'space',
-        is_supplier: formData.spaceOrSupplier === 'supplier'
+        is_supplier: formData.spaceOrSupplier === 'supplier',
+        profile_complete: isProfileComplete
       };
 
       // Update member
