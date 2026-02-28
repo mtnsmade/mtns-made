@@ -437,9 +437,8 @@ async function archiveInWebflow(webflowId: string): Promise<void> {
   }
 
   console.log('Member archived in Webflow:', webflowId);
-
-  // Publish the change
-  await publishWebflowMember(webflowId);
+  // Note: Archived items are automatically removed from the live site
+  // No publish needed - Webflow handles this automatically
 }
 
 // Unarchive member in Webflow CMS (when they resubscribe)
