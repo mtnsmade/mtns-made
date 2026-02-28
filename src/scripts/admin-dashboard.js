@@ -361,6 +361,17 @@
       cursor: not-allowed;
     }
 
+    .action-btn.delete-btn {
+      background: #fff;
+      color: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .action-btn.delete-btn:hover {
+      background: #dc3545;
+      color: #fff;
+    }
+
     /* Empty state */
     .empty-state {
       padding: 48px 24px;
@@ -828,6 +839,7 @@ MTNS MADE Team`;
         profile_image_url, header_image_url, bio, suburb_id,
         created_at, updated_at
       `)
+      .neq('is_deleted', true)
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -841,7 +853,8 @@ MTNS MADE Team`;
   async function loadMemberStats() {
     const { data: all } = await supabase
       .from('members')
-      .select('id, subscription_status, profile_complete, webflow_id');
+      .select('id, subscription_status, profile_complete, webflow_id')
+      .neq('is_deleted', true);
 
     const total = all?.length || 0;
     const active = all?.filter(m => m.subscription_status === 'active').length || 0;
@@ -891,6 +904,7 @@ MTNS MADE Team`;
       `)
       .eq('profile_complete', false)
       .eq('subscription_status', 'active')
+      .neq('is_deleted', true)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -909,7 +923,8 @@ MTNS MADE Team`;
         id, memberstack_id, name, email, first_name, slug,
         subscription_status, profile_complete, profile_reminder_sent_at, created_at
       `)
-      .not('subscription_status', 'in', '("active","lapsed")')
+      .not('subscription_status', 'in', '("active","lapsed","deleted")')
+      .neq('is_deleted', true)
       .order('created_at', { ascending: false })
       .limit(30);
 
@@ -1319,6 +1334,45 @@ MTNS MADE Team`;
         }
       });
     });
+
+    // Setup delete buttons
+    container.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const memberId = btn.dataset.memberId;
+        const memberName = btn.dataset.memberName;
+
+        if (!confirm(`Delete "${memberName}"?\n\nThis will remove them from the dashboard and Webflow directory. This action cannot be undone.`)) {
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        try {
+          // Soft delete: set is_deleted = true and subscription_status = 'deleted'
+          const { error } = await supabase
+            .from('members')
+            .update({
+              is_deleted: true,
+              subscription_status: 'deleted',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', memberId);
+
+          if (error) {
+            throw error;
+          }
+
+          alert(`"${memberName}" has been deleted.`);
+          refreshDashboard(container);
+        } catch (error) {
+          console.error('Delete error:', error);
+          alert('Error deleting member. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Delete';
+        }
+      });
+    });
   }
 
   function renderIssuesSection(data) {
@@ -1433,9 +1487,12 @@ MTNS MADE Team`;
               </td>
               <td class="time-cell">${timeAgo(member.created_at)}</td>
               <td>
-                ${member.webflow_id && member.slug ? `
-                  <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
-                ` : '--'}
+                <div class="action-btns">
+                  ${member.webflow_id && member.slug ? `
+                    <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
+                  ` : ''}
+                  <button class="action-btn delete-btn" data-member-id="${member.id}" data-member-name="${member.name || member.first_name || 'this member'}">Delete</button>
+                </div>
               </td>
             </tr>
           `).join('')}
@@ -1531,11 +1588,14 @@ MTNS MADE Team`;
               </td>
               <td class="time-cell">${timeAgo(member.created_at)}</td>
               <td>
-                ${member.profile_reminder_sent_at ? `
-                  <button class="action-btn contacted" disabled>Contacted</button>
-                ` : `
-                  <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
-                `}
+                <div class="action-btns">
+                  ${member.profile_reminder_sent_at ? `
+                    <button class="action-btn contacted" disabled>Contacted</button>
+                  ` : `
+                    <button class="action-btn contact-btn" data-member-id="${member.id}">Contact</button>
+                  `}
+                  <button class="action-btn delete-btn" data-member-id="${member.id}" data-member-name="${member.name || member.first_name || 'this member'}">Delete</button>
+                </div>
               </td>
             </tr>
           `).join('')}

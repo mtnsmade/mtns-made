@@ -310,13 +310,15 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
   }
 
   // Determine subscription status from plan connections
-  let subscriptionStatus = 'pending';
+  // Default to 'active' since members must pay to complete signup
+  // Memberstack webhook may not always include planConnections data
+  let subscriptionStatus = 'active';
   if (memberData.planConnections && memberData.planConnections.length > 0) {
     const activePlan = memberData.planConnections.find(p => p.status === 'ACTIVE');
-    if (activePlan) {
-      subscriptionStatus = 'active';
-    }
+    // Only set to pending if we have plan data but no active plan
+    subscriptionStatus = activePlan ? 'active' : 'pending';
   }
+  console.log('Setting subscription status for new member:', subscriptionStatus, 'planConnections:', memberData.planConnections);
 
   const { error } = await supabase
     .from('members')
