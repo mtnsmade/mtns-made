@@ -721,8 +721,9 @@ serve(async (req: Request) => {
       // TODO: Implement signature verification
     }
 
-    const payload: MemberstackWebhookPayload = await req.json();
+    const payload = await req.json();
     console.log('Received Memberstack webhook:', payload.event);
+    console.log('Payload structure:', JSON.stringify(payload, null, 2).substring(0, 500));
 
     switch (payload.event) {
       case 'member.created':
@@ -738,7 +739,10 @@ serve(async (req: Request) => {
         break;
 
       case 'member.plan.canceled':
-        await handleMemberPlanCanceled(payload.payload);
+        // member.plan.canceled has nested structure: payload.member contains member data
+        const memberData = payload.payload?.member || payload.payload;
+        console.log('Extracted member ID for plan.canceled:', memberData?.id);
+        await handleMemberPlanCanceled(memberData);
         break;
 
       default:
