@@ -96,6 +96,22 @@ CONTACT FORM
 - Webflow API token missing `sites:write` scope (can't auto-publish after archiving)
 - Archived members require manual site publish to disappear from live site
 
+## Bugs Fixed (March 2026)
+
+### profile_complete Bug (FIXED)
+**Issue:** Members had all profile requirements but `profile_complete` stayed `false`.
+
+**Root Causes Found:**
+1. `member-onboarding-supabase.js` was setting `profile_complete: true` unconditionally without validation
+2. Some members could bypass step validation and submit without all fields
+
+**Fixes Applied:**
+- Added proper `isProfileComplete` calculation to onboarding script (same logic as edit profile)
+- Fixed 12 members whose `profile_complete` was incorrectly `false`
+- Fixed 9 members who had `profile_complete: true` but no suburb selected
+
+**Remaining Issue:** Intermittent bug in `member-edit-profile-supabase.js` where completion check fails despite all requirements being met. Needs browser console logging to diagnose. The check at lines 1009-1018 is correct but sometimes evaluates wrong.
+
 ## Credentials Location
 - Supabase URL: `https://epszwomtxkpjegbjbixr.supabase.co`
 - Edge functions deployed via `supabase functions deploy <name> --no-verify-jwt`

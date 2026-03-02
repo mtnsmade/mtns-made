@@ -1149,6 +1149,26 @@
       const membershipTypeId = await getMembershipTypeId(membershipType);
       console.log('Membership type:', membershipType, '-> ID:', membershipTypeId);
 
+      // Check if profile meets completion criteria
+      const hasProfileImage = !!profileImageUrl;
+      const hasFeatureImage = !!featureImageUrl;
+      const hasBio = formData.bio && formData.bio.length >= 50;
+      const hasCategories = formData.chosenDirectories.length > 0 ||
+                           formData.spaceCategories.length > 0 ||
+                           formData.supplierCategories.length > 0;
+      const hasLocation = !!formData.suburb?.id;
+
+      const isProfileComplete = hasProfileImage && hasFeatureImage && hasBio && hasCategories && hasLocation;
+
+      console.log('Profile completion check:', {
+        hasProfileImage,
+        hasFeatureImage,
+        hasBio,
+        hasCategories,
+        hasLocation,
+        isProfileComplete
+      });
+
       // Build the update data for Supabase
       const updateData = {
         membership_type_id: membershipTypeId,
@@ -1180,8 +1200,8 @@
         // Space/Supplier flags
         is_creative_space: formData.spaceOrSupplier === 'space',
         is_supplier: formData.spaceOrSupplier === 'supplier',
-        // Mark profile as complete
-        profile_complete: true
+        // Only mark complete if all requirements met
+        profile_complete: isProfileComplete
       };
 
       // Update or insert the member
