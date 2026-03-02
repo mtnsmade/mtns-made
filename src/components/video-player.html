@@ -1,0 +1,495 @@
+<!--
+  MTNS MADE Minimal Video Player
+
+  Usage in Webflow:
+  1. Add this as a custom embed
+  2. Replace VIDEO_URL with your mp4 URL
+  3. Replace POSTER_URL with your cover image URL
+
+  Example:
+  data-video-src="https://peachey-mosig.b-cdn.net/Project-Videos/artsACT-265.mov.mp4"
+  data-poster="https://your-cover-image.jpg"
+-->
+
+<!-- =============================================
+     EDIT THESE TWO URLs:
+     - data-video-src = your MP4 video URL
+     - data-poster = your cover image URL
+     ============================================= -->
+<div class="mm-video-container"
+     data-video-src="https://peachey-mosig.b-cdn.net/Project-Videos/artsACT-265.mov.mp4"
+     data-poster="PUT_YOUR_COVER_IMAGE_URL_HERE">
+  <video class="mm-video" playsinline>
+    <source type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <!-- Cover image overlay (shown before play) -->
+  <div class="mm-video-cover">
+    <button class="mm-play-btn-large" aria-label="Play video">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+  </div>
+
+  <!-- Minimal controls -->
+  <div class="mm-video-controls">
+    <button class="mm-btn mm-play-btn" aria-label="Play">
+      <svg class="mm-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="mm-icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    </button>
+
+    <div class="mm-progress-container">
+      <div class="mm-progress-bar">
+        <div class="mm-progress-filled"></div>
+        <div class="mm-progress-handle"></div>
+      </div>
+    </div>
+
+    <span class="mm-time">0:00 / 0:00</span>
+
+    <button class="mm-btn mm-mute-btn" aria-label="Mute">
+      <svg class="mm-icon-volume" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      <svg class="mm-icon-muted" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+    </button>
+
+    <button class="mm-btn mm-fullscreen-btn" aria-label="Fullscreen">
+      <svg class="mm-icon-expand" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      <svg class="mm-icon-compress" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+    </button>
+  </div>
+</div>
+
+<style>
+.mm-video-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+
+.mm-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+
+/* Cover image overlay */
+.mm-video-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.mm-video-container.mm-playing .mm-video-cover,
+.mm-video-container.mm-started .mm-video-cover {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mm-play-btn-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.mm-play-btn-large:hover {
+  transform: scale(1.1);
+  background: #fff;
+}
+
+.mm-play-btn-large svg {
+  width: 36px;
+  height: 36px;
+  margin-left: 4px;
+  color: #1a1a1a;
+}
+
+/* Controls bar */
+.mm-video-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.mm-video-container:hover .mm-video-controls,
+.mm-video-container.mm-playing .mm-video-controls,
+.mm-video-container:focus-within .mm-video-controls {
+  opacity: 1;
+}
+
+.mm-video-container.mm-playing:not(:hover) .mm-video-controls {
+  opacity: 0;
+}
+
+.mm-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.mm-btn:hover {
+  opacity: 1;
+}
+
+.mm-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Play/Pause toggle */
+.mm-play-btn .mm-icon-pause,
+.mm-video-container.mm-playing .mm-play-btn .mm-icon-play {
+  display: none;
+}
+
+.mm-video-container.mm-playing .mm-play-btn .mm-icon-pause {
+  display: block;
+}
+
+/* Volume toggle */
+.mm-mute-btn .mm-icon-muted,
+.mm-video-container.mm-muted .mm-mute-btn .mm-icon-volume {
+  display: none;
+}
+
+.mm-video-container.mm-muted .mm-mute-btn .mm-icon-muted {
+  display: block;
+}
+
+/* Fullscreen toggle */
+.mm-fullscreen-btn .mm-icon-compress,
+.mm-video-container.mm-fullscreen .mm-fullscreen-btn .mm-icon-expand {
+  display: none;
+}
+
+.mm-video-container.mm-fullscreen .mm-fullscreen-btn .mm-icon-compress {
+  display: block;
+}
+
+/* Progress bar */
+.mm-progress-container {
+  flex: 1;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.mm-progress-bar {
+  position: relative;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+}
+
+.mm-progress-filled {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+
+.mm-progress-handle {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.15s;
+}
+
+.mm-progress-container:hover .mm-progress-handle,
+.mm-video-container.mm-scrubbing .mm-progress-handle {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Time display */
+.mm-time {
+  font-size: 13px;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  white-space: nowrap;
+  min-width: 85px;
+}
+
+/* Fullscreen adjustments */
+.mm-video-container:fullscreen,
+.mm-video-container:-webkit-full-screen {
+  border-radius: 0;
+}
+
+.mm-video-container:fullscreen .mm-video-controls,
+.mm-video-container:-webkit-full-screen .mm-video-controls {
+  padding: 16px 24px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .mm-video-controls {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .mm-time {
+    font-size: 11px;
+    min-width: 70px;
+  }
+
+  .mm-play-btn-large {
+    width: 60px;
+    height: 60px;
+  }
+
+  .mm-play-btn-large svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+</style>
+
+<script>
+(function() {
+  // Initialize all video players on page
+  function initVideoPlayers() {
+    document.querySelectorAll('.mm-video-container').forEach(initPlayer);
+  }
+
+  function initPlayer(container) {
+    const video = container.querySelector('.mm-video');
+    const source = video.querySelector('source');
+    const cover = container.querySelector('.mm-video-cover');
+    const playBtnLarge = container.querySelector('.mm-play-btn-large');
+    const playBtn = container.querySelector('.mm-play-btn');
+    const muteBtn = container.querySelector('.mm-mute-btn');
+    const fullscreenBtn = container.querySelector('.mm-fullscreen-btn');
+    const progressContainer = container.querySelector('.mm-progress-container');
+    const progressFilled = container.querySelector('.mm-progress-filled');
+    const progressHandle = container.querySelector('.mm-progress-handle');
+    const timeDisplay = container.querySelector('.mm-time');
+
+    // Set video source and poster from data attributes
+    const videoSrc = container.dataset.videoSrc;
+    const posterSrc = container.dataset.poster;
+
+    if (videoSrc) {
+      source.src = videoSrc;
+      video.load();
+    }
+
+    if (posterSrc) {
+      cover.style.backgroundImage = `url(${posterSrc})`;
+    }
+
+    // Format time helper
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Update progress bar
+    function updateProgress() {
+      const percent = (video.currentTime / video.duration) * 100 || 0;
+      progressFilled.style.width = `${percent}%`;
+      progressHandle.style.left = `${percent}%`;
+      timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+    }
+
+    // Play/Pause
+    function togglePlay() {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    }
+
+    // Scrub
+    function scrub(e) {
+      const rect = progressContainer.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      video.currentTime = percent * video.duration;
+    }
+
+    // Event listeners
+    playBtnLarge.addEventListener('click', function() {
+      container.classList.add('mm-started');
+      video.play();
+    });
+
+    cover.addEventListener('click', function(e) {
+      if (e.target !== playBtnLarge) {
+        container.classList.add('mm-started');
+        video.play();
+      }
+    });
+
+    playBtn.addEventListener('click', togglePlay);
+
+    video.addEventListener('click', togglePlay);
+
+    video.addEventListener('play', function() {
+      container.classList.add('mm-playing');
+    });
+
+    video.addEventListener('pause', function() {
+      container.classList.remove('mm-playing');
+    });
+
+    video.addEventListener('ended', function() {
+      container.classList.remove('mm-playing');
+      container.classList.remove('mm-started');
+    });
+
+    video.addEventListener('timeupdate', updateProgress);
+    video.addEventListener('loadedmetadata', updateProgress);
+
+    // Mute
+    muteBtn.addEventListener('click', function() {
+      video.muted = !video.muted;
+      container.classList.toggle('mm-muted', video.muted);
+    });
+
+    // Fullscreen
+    fullscreenBtn.addEventListener('click', function() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      } else {
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        }
+      }
+    });
+
+    document.addEventListener('fullscreenchange', function() {
+      container.classList.toggle('mm-fullscreen', document.fullscreenElement === container);
+    });
+
+    document.addEventListener('webkitfullscreenchange', function() {
+      container.classList.toggle('mm-fullscreen', document.webkitFullscreenElement === container);
+    });
+
+    // Progress scrubbing
+    let isScrubbing = false;
+
+    progressContainer.addEventListener('click', scrub);
+
+    progressContainer.addEventListener('mousedown', function(e) {
+      isScrubbing = true;
+      container.classList.add('mm-scrubbing');
+      scrub(e);
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (isScrubbing) scrub(e);
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (isScrubbing) {
+        isScrubbing = false;
+        container.classList.remove('mm-scrubbing');
+      }
+    });
+
+    // Touch support for progress bar
+    progressContainer.addEventListener('touchstart', function(e) {
+      isScrubbing = true;
+      container.classList.add('mm-scrubbing');
+      const touch = e.touches[0];
+      scrub({ clientX: touch.clientX });
+    });
+
+    progressContainer.addEventListener('touchmove', function(e) {
+      if (isScrubbing) {
+        const touch = e.touches[0];
+        scrub({ clientX: touch.clientX });
+      }
+    });
+
+    progressContainer.addEventListener('touchend', function() {
+      isScrubbing = false;
+      container.classList.remove('mm-scrubbing');
+    });
+
+    // Keyboard controls
+    container.setAttribute('tabindex', '0');
+    container.addEventListener('keydown', function(e) {
+      switch(e.key) {
+        case ' ':
+        case 'k':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          video.currentTime = Math.max(0, video.currentTime - 5);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          video.currentTime = Math.min(video.duration, video.currentTime + 5);
+          break;
+        case 'm':
+          video.muted = !video.muted;
+          container.classList.toggle('mm-muted', video.muted);
+          break;
+        case 'f':
+          fullscreenBtn.click();
+          break;
+      }
+    });
+  }
+
+  // Initialize when DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initVideoPlayers);
+  } else {
+    initVideoPlayers();
+  }
+})();
+</script>
