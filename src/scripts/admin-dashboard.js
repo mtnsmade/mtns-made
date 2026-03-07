@@ -1173,6 +1173,8 @@ MTNS MADE Team`;
   }
 
   function showEditMemberModal(memberId, memberName, currentTypeId) {
+    const currentTypeName = membershipTypes.find(t => t.id === currentTypeId)?.name || 'Not set';
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -1187,21 +1189,40 @@ MTNS MADE Team`;
             <input type="text" class="form-input" value="${memberName}" readonly>
           </div>
           <div class="form-field">
-            <label class="form-label">Membership Type</label>
+            <label class="form-label">Current Type</label>
+            <input type="text" class="form-input" value="${currentTypeName}" readonly>
+          </div>
+          <div class="form-field">
+            <label class="form-label">New Membership Type</label>
             <select class="form-input" id="modal-membership-type">
-              <option value="">-- Select Type --</option>
+              <option value="">-- Select New Type --</option>
               ${membershipTypes.map(type => `
-                <option value="${type.id}" ${type.id === currentTypeId ? 'selected' : ''}>
-                  ${type.name}
+                <option value="${type.id}" ${type.id === currentTypeId ? 'disabled' : ''}>
+                  ${type.name}${type.id === currentTypeId ? ' (current)' : ''}
                 </option>
               `).join('')}
             </select>
-            <div class="form-hint">This will update Supabase and sync to Webflow</div>
+          </div>
+          <div class="form-field">
+            <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="modal-skip-billing" style="width: auto;">
+              <span>Skip billing change (update label only)</span>
+            </label>
+            <div class="form-hint">If unchecked, this will change their Memberstack plan and Stripe subscription</div>
+          </div>
+          <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px; margin-top: 12px; font-size: 12px;">
+            <strong>Warning:</strong> Changing membership type will:
+            <ul style="margin: 8px 0 0 16px; padding: 0;">
+              <li>Update Memberstack custom field</li>
+              <li>Change Stripe subscription (unless skipped)</li>
+              <li>Update Supabase database</li>
+              <li>Sync changes to Webflow</li>
+            </ul>
           </div>
         </div>
         <div class="modal-footer">
           <button class="admin-btn" id="modal-cancel">Cancel</button>
-          <button class="admin-btn primary" id="modal-save">Save Changes</button>
+          <button class="admin-btn primary" id="modal-save">Update Membership</button>
         </div>
       </div>
     `;
@@ -1217,62 +1238,56 @@ MTNS MADE Team`;
 
     modal.querySelector('#modal-save').addEventListener('click', async () => {
       const newTypeId = modal.querySelector('#modal-membership-type').value;
+      const skipBilling = modal.querySelector('#modal-skip-billing').checked;
 
       if (!newTypeId) {
-        alert('Please select a membership type');
+        alert('Please select a new membership type');
         return;
       }
 
-      if (newTypeId === currentTypeId) {
-        modal.remove();
+      const newTypeName = membershipTypes.find(t => t.id === newTypeId)?.name || 'Unknown';
+
+      // Confirm the change
+      const confirmMsg = skipBilling
+        ? `Change ${memberName}'s type from "${currentTypeName}" to "${newTypeName}"?\n\nThis will update the label only (no billing change).`
+        : `Change ${memberName}'s type from "${currentTypeName}" to "${newTypeName}"?\n\nThis WILL change their Stripe subscription and billing.`;
+
+      if (!confirm(confirmMsg)) {
         return;
       }
 
       const saveBtn = modal.querySelector('#modal-save');
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
+      saveBtn.textContent = 'Updating Memberstack...';
 
       try {
-        // Update membership type in Supabase
-        const { error } = await supabase
-          .from('members')
-          .update({
-            membership_type_id: newTypeId,
-            updated_at: new Date().toISOString()
+        // Call the admin-update-member Edge Function
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-update-member`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            memberId: memberId,
+            newMembershipTypeId: newTypeId,
+            skipPlanChange: skipBilling
           })
-          .eq('id', memberId);
+        });
 
-        if (error) throw error;
+        const result = await response.json();
 
-        // Get the updated member record for Webflow sync
-        const { data: member } = await supabase
-          .from('members')
-          .select('*')
-          .eq('id', memberId)
-          .single();
-
-        if (member && member.webflow_id) {
-          // Trigger sync to Webflow
-          saveBtn.textContent = 'Syncing to Webflow...';
-          try {
-            await fetch(`${SUPABASE_URL}/functions/v1/sync-to-webflow`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                type: 'UPDATE',
-                table: 'members',
-                schema: 'public',
-                record: member
-              })
-            });
-          } catch (syncError) {
-            console.warn('Webflow sync warning:', syncError);
-          }
+        if (!response.ok) {
+          throw new Error(result.error || 'Update failed');
         }
 
-        alert('Membership type updated successfully!');
+        // Show success with details
+        let successMsg = `Membership type updated!\n\n${result.change.from} → ${result.change.to}`;
+
+        if (result.results.warnings && result.results.warnings.length > 0) {
+          successMsg += `\n\nWarnings:\n- ${result.results.warnings.join('\n- ')}`;
+        }
+
+        alert(successMsg);
         modal.remove();
 
         // Refresh the dashboard
@@ -1280,9 +1295,9 @@ MTNS MADE Team`;
         if (container) refreshDashboard(container);
       } catch (error) {
         console.error('Error updating membership type:', error);
-        alert('Error updating membership type. Please try again.');
+        alert('Error updating membership type: ' + error.message);
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Changes';
+        saveBtn.textContent = 'Update Membership';
       }
     });
   }
