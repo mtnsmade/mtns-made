@@ -14,6 +14,7 @@
 
   let supabase = null;
   let dashboardData = null;
+  let membershipTypes = [];
 
   // ============================================
   // STYLES - Light Monotonal Theme
@@ -370,6 +371,22 @@
     .action-btn.delete-btn:hover {
       background: #dc3545;
       color: #fff;
+    }
+
+    .action-btn.edit-btn {
+      background: #fff;
+      color: #0066cc;
+      border-color: #0066cc;
+    }
+
+    .action-btn.edit-btn:hover {
+      background: #0066cc;
+      color: #fff;
+    }
+
+    .type-cell {
+      font-size: 12px;
+      color: #666;
     }
 
     /* Empty state */
@@ -803,7 +820,8 @@ MTNS MADE Team`;
       eventStats,
       recentProjects,
       messageStats,
-      recentActivity
+      recentActivity,
+      membershipTypesData
     ] = await Promise.all([
       loadRecentMembers(),
       loadMemberStats(),
@@ -813,8 +831,12 @@ MTNS MADE Team`;
       loadEventStats(),
       loadRecentProjects(),
       loadMessageStats(),
-      loadRecentActivity()
+      loadRecentActivity(),
+      loadMembershipTypes()
     ]);
+
+    // Store membership types globally for use in modals
+    membershipTypes = membershipTypesData;
 
     return {
       recentMembers,
@@ -826,6 +848,7 @@ MTNS MADE Team`;
       recentProjects,
       messageStats,
       recentActivity,
+      membershipTypes: membershipTypesData,
       loadedAt: new Date()
     };
   }
@@ -837,6 +860,7 @@ MTNS MADE Team`;
         id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
+        membership_type_id, membership_types(id, name),
         created_at, updated_at
       `)
       .neq('is_deleted', true)
@@ -864,6 +888,19 @@ MTNS MADE Team`;
     const pendingSync = all?.filter(m => m.profile_complete && !m.webflow_id && m.subscription_status === 'active').length || 0;
 
     return { total, active, lapsed, complete, synced, pendingSync };
+  }
+
+  async function loadMembershipTypes() {
+    const { data, error } = await supabase
+      .from('membership_types')
+      .select('id, name')
+      .order('name');
+
+    if (error) {
+      console.error('Error loading membership types:', error);
+      return [];
+    }
+    return data || [];
   }
 
   async function loadMessageStats() {
@@ -1135,6 +1172,121 @@ MTNS MADE Team`;
     });
   }
 
+  function showEditMemberModal(memberId, memberName, currentTypeId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Member</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">Member</label>
+            <input type="text" class="form-input" value="${memberName}" readonly>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Membership Type</label>
+            <select class="form-input" id="modal-membership-type">
+              <option value="">-- Select Type --</option>
+              ${membershipTypes.map(type => `
+                <option value="${type.id}" ${type.id === currentTypeId ? 'selected' : ''}>
+                  ${type.name}
+                </option>
+              `).join('')}
+            </select>
+            <div class="form-hint">This will update Supabase and sync to Webflow</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="admin-btn" id="modal-cancel">Cancel</button>
+          <button class="admin-btn primary" id="modal-save">Save Changes</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('#modal-cancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    modal.querySelector('#modal-save').addEventListener('click', async () => {
+      const newTypeId = modal.querySelector('#modal-membership-type').value;
+
+      if (!newTypeId) {
+        alert('Please select a membership type');
+        return;
+      }
+
+      if (newTypeId === currentTypeId) {
+        modal.remove();
+        return;
+      }
+
+      const saveBtn = modal.querySelector('#modal-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      try {
+        // Update membership type in Supabase
+        const { error } = await supabase
+          .from('members')
+          .update({
+            membership_type_id: newTypeId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', memberId);
+
+        if (error) throw error;
+
+        // Get the updated member record for Webflow sync
+        const { data: member } = await supabase
+          .from('members')
+          .select('*')
+          .eq('id', memberId)
+          .single();
+
+        if (member && member.webflow_id) {
+          // Trigger sync to Webflow
+          saveBtn.textContent = 'Syncing to Webflow...';
+          try {
+            await fetch(`${SUPABASE_URL}/functions/v1/sync-to-webflow`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                type: 'UPDATE',
+                table: 'members',
+                schema: 'public',
+                record: member
+              })
+            });
+          } catch (syncError) {
+            console.warn('Webflow sync warning:', syncError);
+          }
+        }
+
+        alert('Membership type updated successfully!');
+        modal.remove();
+
+        // Refresh the dashboard
+        const container = document.querySelector('.dashboard-feed');
+        if (container) refreshDashboard(container);
+      } catch (error) {
+        console.error('Error updating membership type:', error);
+        alert('Error updating membership type. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+      }
+    });
+  }
+
   // ============================================
   // RENDER FUNCTIONS
   // ============================================
@@ -1335,6 +1487,16 @@ MTNS MADE Team`;
       });
     });
 
+    // Setup edit buttons
+    container.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const memberId = btn.dataset.memberId;
+        const memberName = btn.dataset.memberName;
+        const currentTypeId = btn.dataset.currentType;
+        showEditMemberModal(memberId, memberName, currentTypeId);
+      });
+    });
+
     // Setup delete buttons
     container.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -1456,9 +1618,9 @@ MTNS MADE Team`;
         <thead>
           <tr>
             <th>Member</th>
+            <th>Type</th>
             <th>Status</th>
             <th>Profile</th>
-            <th>Webflow</th>
             <th>Joined</th>
             <th>Action</th>
           </tr>
@@ -1471,6 +1633,9 @@ MTNS MADE Team`;
                 <div class="email-cell">${member.email || '--'}</div>
               </td>
               <td>
+                <span class="type-cell">${member.membership_types?.name || 'Not set'}</span>
+              </td>
+              <td>
                 <span class="status ${member.subscription_status || 'active'}">
                   ${member.subscription_status || 'active'}
                 </span>
@@ -1480,14 +1645,10 @@ MTNS MADE Team`;
                   ${member.profile_complete ? 'Complete' : 'Incomplete'}
                 </span>
               </td>
-              <td>
-                <span class="status ${member.webflow_id ? 'synced' : 'pending'}">
-                  ${member.webflow_id ? 'Synced' : 'Pending'}
-                </span>
-              </td>
               <td class="time-cell">${timeAgo(member.created_at)}</td>
               <td>
                 <div class="action-btns">
+                  <button class="action-btn edit-btn" data-member-id="${member.id}" data-member-name="${member.name || member.first_name || 'this member'}" data-current-type="${member.membership_type_id || ''}">Edit</button>
                   ${member.webflow_id && member.slug ? `
                     <a href="${SITE_URL}/members/${member.slug}" target="_blank" class="action-btn view-btn">View</a>
                   ` : ''}
