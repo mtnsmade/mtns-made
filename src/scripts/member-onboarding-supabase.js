@@ -1263,12 +1263,62 @@
         }
       });
 
-      console.log('Onboarding data saved successfully');
+      console.log('Onboarding data saved to Supabase successfully');
+
+      // Trigger sync to Webflow
+      await syncToWebflow(memberId);
+
+      console.log('Onboarding data synced to Webflow successfully');
       return updatedMember;
 
     } catch (error) {
       console.error('Error saving onboarding data:', error);
       throw error;
+    }
+  }
+
+  // Sync member data to Webflow via Edge Function
+  async function syncToWebflow(memberId) {
+    try {
+      // Get the full member record to send to the webhook
+      const { data: member, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('id', memberId)
+        .single();
+
+      if (error) {
+        console.warn('Failed to fetch member for Webflow sync:', error);
+        return;
+      }
+
+      // Call the sync-to-webflow edge function directly
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/sync-to-webflow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          type: 'UPDATE',
+          table: 'members',
+          schema: 'public',
+          record: member,
+          old_record: null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn('Webflow sync returned error:', response.status, errorText);
+        // Don't throw - profile was saved, sync failure shouldn't break the flow
+      } else {
+        console.log('Webflow sync completed');
+      }
+    } catch (error) {
+      // Log error but don't fail - profile was already saved to Supabase
+      console.warn('Failed to sync to Webflow:', error);
     }
   }
 

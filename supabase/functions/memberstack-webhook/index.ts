@@ -13,7 +13,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const MEMBERSTACK_WEBHOOK_SECRET = Deno.env.get('MEMBERSTACK_WEBHOOK_SECRET') || '';
 const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
-const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'hello@mtnsmade.com.au';
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
 const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
@@ -70,10 +70,10 @@ async function sendWelcomeEmail(email: string, firstName: string): Promise<void>
     <tr>
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <!-- Header -->
+          <!-- Header with Logo -->
           <tr>
             <td style="background-color: #1a1a1a; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">Welcome to MTNS MADE</h1>
+              <img src="https://cdn.prod.website-files.com/64229aff3da29012f062753c/64c8c73cbe927ed3e4ade8df_mtns-made-white.svg" alt="MTNS MADE" width="180" style="display: block; margin: 0 auto;">
             </td>
           </tr>
 
@@ -92,15 +92,15 @@ async function sendWelcomeEmail(email: string, firstName: string): Promise<void>
                 To get the most out of your membership, complete your profile so other creatives can discover you in our directory.
               </p>
 
-              <p style="margin: 0 0 30px; color: #555555; font-size: 16px; line-height: 1.6;">
-                <strong>Your next steps:</strong>
+              <p style="margin: 0 0 16px; color: #555555; font-size: 16px; line-height: 1.6;">
+                <strong>To complete your profile you'll need to:</strong>
               </p>
 
               <ul style="margin: 0 0 30px; padding-left: 20px; color: #555555; font-size: 16px; line-height: 1.8;">
                 <li>Add your profile picture and header image</li>
                 <li>Write a short bio about yourself</li>
                 <li>Select your creative categories</li>
-                <li>Add your first project to showcase your work</li>
+                <li>Choose your suburb</li>
               </ul>
 
               <!-- CTA Button -->
@@ -145,11 +145,11 @@ Welcome to MTNS MADE - the Blue Mountains creative community! We're thrilled to 
 
 To get the most out of your membership, complete your profile so other creatives can discover you in our directory.
 
-Your next steps:
+To complete your profile you'll need to:
 - Add your profile picture and header image
 - Write a short bio about yourself
 - Select your creative categories
-- Add your first project to showcase your work
+- Choose your suburb
 
 Complete your profile: ${SITE_URL}/profile/onboarding
 

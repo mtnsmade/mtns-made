@@ -813,15 +813,19 @@ MTNS MADE Team`}async function g(){const[t,e,n,a,i,o,s,r,c]=await Promise.all([k
         <!-- Activity Tabs -->
         <div class="admin-section">
           <div class="tabs-container">
-            <button class="tab-btn active" data-tab="members">Recent Members</button>
+            <button class="tab-btn active" data-tab="activity">Activity</button>
+            <button class="tab-btn" data-tab="members">Recent Members</button>
             <button class="tab-btn" data-tab="incomplete">Incomplete (${n})</button>
             <button class="tab-btn" data-tab="failed">Failed Signups (${e.failedSignups.length})</button>
             <button class="tab-btn" data-tab="events">Events</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
-            <button class="tab-btn" data-tab="activity">Activity</button>
           </div>
 
-          <div class="tab-content active" id="tab-members">
+          <div class="tab-content active" id="tab-activity">
+            ${F(e.recentActivity)}
+          </div>
+
+          <div class="tab-content" id="tab-members">
             ${P(e.recentMembers)}
           </div>
 
@@ -839,10 +843,6 @@ MTNS MADE Team`}async function g(){const[t,e,n,a,i,o,s,r,c]=await Promise.all([k
 
           <div class="tab-content" id="tab-projects">
             ${U(e.recentProjects)}
-          </div>
-
-          <div class="tab-content" id="tab-activity">
-            ${F(e.recentActivity)}
           </div>
         </div>
       </div>

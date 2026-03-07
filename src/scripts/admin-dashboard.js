@@ -1179,15 +1179,19 @@ MTNS MADE Team`;
         <!-- Activity Tabs -->
         <div class="admin-section">
           <div class="tabs-container">
-            <button class="tab-btn active" data-tab="members">Recent Members</button>
+            <button class="tab-btn active" data-tab="activity">Activity</button>
+            <button class="tab-btn" data-tab="members">Recent Members</button>
             <button class="tab-btn" data-tab="incomplete">Incomplete (${incompleteCount})</button>
             <button class="tab-btn" data-tab="failed">Failed Signups (${data.failedSignups.length})</button>
             <button class="tab-btn" data-tab="events">Events</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
-            <button class="tab-btn" data-tab="activity">Activity</button>
           </div>
 
-          <div class="tab-content active" id="tab-members">
+          <div class="tab-content active" id="tab-activity">
+            ${renderActivityFeed(data.recentActivity)}
+          </div>
+
+          <div class="tab-content" id="tab-members">
             ${renderMembersTable(data.recentMembers)}
           </div>
 
@@ -1205,10 +1209,6 @@ MTNS MADE Team`;
 
           <div class="tab-content" id="tab-projects">
             ${renderProjectsTable(data.recentProjects)}
-          </div>
-
-          <div class="tab-content" id="tab-activity">
-            ${renderActivityFeed(data.recentActivity)}
           </div>
         </div>
       </div>
