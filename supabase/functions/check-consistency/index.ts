@@ -84,6 +84,33 @@ interface ConsistencyReport {
     issues_warning: number;
     issues_info: number;
   };
+  breakdown: {
+    memberstack: {
+      total: number;
+      active: number;
+      lapsed: number;
+    };
+    supabase: {
+      total: number;
+      active: number;
+      lapsed: number;
+      deleted: number;
+      profile_complete: number;
+      profile_incomplete: number;
+    };
+    webflow: {
+      total: number;
+      published: number;
+      archived: number;
+      draft: number;
+    };
+    expected: {
+      should_be_in_webflow: number;      // Active + profile complete
+      should_be_archived: number;         // Lapsed with webflow_id
+      correctly_published: number;        // Actually published and should be
+      correctly_archived: number;         // Actually archived and should be
+    };
+  };
   issues: ConsistencyIssue[];
 }
 
@@ -368,6 +395,50 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
     }
   }
 
+  // Calculate detailed breakdowns
+  const activeMemberstackMembers = memberstackMembers.filter(m => isMemberstackActive(m));
+  const lapsedMemberstackMembers = memberstackMembers.filter(m => !isMemberstackActive(m));
+
+  const activeSupabaseMembers = supabaseMembers.filter(m => m.subscription_status === 'active' && !m.is_deleted);
+  const lapsedSupabaseMembers = supabaseMembers.filter(m => m.subscription_status === 'lapsed' && !m.is_deleted);
+  const deletedSupabaseMembers = supabaseMembers.filter(m => m.is_deleted);
+  const profileCompleteMembers = supabaseMembers.filter(m => m.profile_complete && !m.is_deleted);
+  const profileIncompleteMembers = supabaseMembers.filter(m => !m.profile_complete && !m.is_deleted);
+
+  const publishedWebflowMembers = webflowMembers.filter(m => !m.isArchived && !m.isDraft);
+  const archivedWebflowMembers = webflowMembers.filter(m => m.isArchived);
+  const draftWebflowMembers = webflowMembers.filter(m => m.isDraft && !m.isArchived);
+
+  // Calculate expected vs actual
+  const shouldBeInWebflow = supabaseMembers.filter(m =>
+    m.subscription_status === 'active' && m.profile_complete && !m.is_deleted
+  );
+  const shouldBeArchived = supabaseMembers.filter(m =>
+    m.webflow_id && (m.subscription_status === 'lapsed' || m.is_deleted)
+  );
+
+  // Check how many are correctly published/archived
+  let correctlyPublished = 0;
+  let correctlyArchived = 0;
+
+  for (const member of shouldBeInWebflow) {
+    if (member.webflow_id) {
+      const wfMember = webflowById.get(member.webflow_id);
+      if (wfMember && !wfMember.isArchived && !wfMember.isDraft) {
+        correctlyPublished++;
+      }
+    }
+  }
+
+  for (const member of shouldBeArchived) {
+    if (member.webflow_id) {
+      const wfMember = webflowById.get(member.webflow_id);
+      if (wfMember && wfMember.isArchived) {
+        correctlyArchived++;
+      }
+    }
+  }
+
   // Build report
   const report: ConsistencyReport = {
     timestamp: new Date().toISOString(),
@@ -378,6 +449,33 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
       issues_critical: issues.filter(i => i.severity === 'critical').length,
       issues_warning: issues.filter(i => i.severity === 'warning').length,
       issues_info: issues.filter(i => i.severity === 'info').length,
+    },
+    breakdown: {
+      memberstack: {
+        total: memberstackMembers.length,
+        active: activeMemberstackMembers.length,
+        lapsed: lapsedMemberstackMembers.length,
+      },
+      supabase: {
+        total: supabaseMembers.length,
+        active: activeSupabaseMembers.length,
+        lapsed: lapsedSupabaseMembers.length,
+        deleted: deletedSupabaseMembers.length,
+        profile_complete: profileCompleteMembers.length,
+        profile_incomplete: profileIncompleteMembers.length,
+      },
+      webflow: {
+        total: webflowMembers.length,
+        published: publishedWebflowMembers.length,
+        archived: archivedWebflowMembers.length,
+        draft: draftWebflowMembers.length,
+      },
+      expected: {
+        should_be_in_webflow: shouldBeInWebflow.length,
+        should_be_archived: shouldBeArchived.length,
+        correctly_published: correctlyPublished,
+        correctly_archived: correctlyArchived,
+      },
     },
     issues,
   };
@@ -435,6 +533,8 @@ async function sendAlertEmail(report: ConsistencyReport): Promise<void> {
     </tr>
   `).join('');
 
+  const b = report.breakdown;
+
   const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -448,27 +548,108 @@ async function sendAlertEmail(report: ConsistencyReport): Promise<void> {
       <h1 style="margin: 0; font-size: 20px;">Data Consistency Alert</h1>
     </div>
     <div style="padding: 20px;">
-      <h2 style="margin-top: 0;">Summary</h2>
+
+      <!-- Issues Summary -->
+      <div style="display: flex; gap: 20px; margin-bottom: 24px;">
+        <div style="flex: 1; padding: 16px; background: ${report.summary.issues_critical > 0 ? '#ffebee' : '#e8f5e9'}; border-radius: 8px; text-align: center;">
+          <div style="font-size: 28px; font-weight: bold; color: ${report.summary.issues_critical > 0 ? '#d32f2f' : '#2e7d32'};">${report.summary.issues_critical}</div>
+          <div style="font-size: 12px; color: #666;">Critical</div>
+        </div>
+        <div style="flex: 1; padding: 16px; background: ${report.summary.issues_warning > 0 ? '#fff3e0' : '#e8f5e9'}; border-radius: 8px; text-align: center;">
+          <div style="font-size: 28px; font-weight: bold; color: ${report.summary.issues_warning > 0 ? '#f57c00' : '#2e7d32'};">${report.summary.issues_warning}</div>
+          <div style="font-size: 12px; color: #666;">Warnings</div>
+        </div>
+        <div style="flex: 1; padding: 16px; background: #e3f2fd; border-radius: 8px; text-align: center;">
+          <div style="font-size: 28px; font-weight: bold; color: #1976d2;">${report.summary.issues_info}</div>
+          <div style="font-size: 12px; color: #666;">Info</div>
+        </div>
+      </div>
+
+      <!-- Memberstack Breakdown -->
+      <h2 style="margin-top: 0; font-size: 16px; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px;">Memberstack (Source of Truth)</h2>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
         <tr>
-          <td style="padding: 8px; background: #f9f9f9;">Memberstack Members</td>
-          <td style="padding: 8px; background: #f9f9f9;"><strong>${report.summary.memberstack_total}</strong></td>
+          <td style="padding: 8px; background: #f9f9f9;">Total Members</td>
+          <td style="padding: 8px; background: #f9f9f9; text-align: right;"><strong>${b.memberstack.total}</strong></td>
         </tr>
         <tr>
-          <td style="padding: 8px;">Supabase Members</td>
-          <td style="padding: 8px;"><strong>${report.summary.supabase_total}</strong></td>
+          <td style="padding: 8px; padding-left: 24px; color: #2e7d32;">↳ Active subscriptions</td>
+          <td style="padding: 8px; text-align: right; color: #2e7d32;"><strong>${b.memberstack.active}</strong></td>
         </tr>
         <tr>
-          <td style="padding: 8px; background: #f9f9f9;">Webflow Members</td>
-          <td style="padding: 8px; background: #f9f9f9;"><strong>${report.summary.webflow_total}</strong></td>
+          <td style="padding: 8px; padding-left: 24px; color: #9e9e9e;">↳ Lapsed/cancelled</td>
+          <td style="padding: 8px; text-align: right; color: #9e9e9e;"><strong>${b.memberstack.lapsed}</strong></td>
+        </tr>
+      </table>
+
+      <!-- Supabase Breakdown -->
+      <h2 style="font-size: 16px; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px;">Supabase (Database)</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <tr>
+          <td style="padding: 8px; background: #f9f9f9;">Total Records</td>
+          <td style="padding: 8px; background: #f9f9f9; text-align: right;"><strong>${b.supabase.total}</strong></td>
         </tr>
         <tr>
-          <td style="padding: 8px; color: #d32f2f;">Critical Issues</td>
-          <td style="padding: 8px; color: #d32f2f;"><strong>${report.summary.issues_critical}</strong></td>
+          <td style="padding: 8px; padding-left: 24px; color: #2e7d32;">↳ Active</td>
+          <td style="padding: 8px; text-align: right; color: #2e7d32;"><strong>${b.supabase.active}</strong></td>
         </tr>
         <tr>
-          <td style="padding: 8px; background: #f9f9f9; color: #f57c00;">Warning Issues</td>
-          <td style="padding: 8px; background: #f9f9f9; color: #f57c00;"><strong>${report.summary.issues_warning}</strong></td>
+          <td style="padding: 8px; padding-left: 24px; color: #9e9e9e;">↳ Lapsed</td>
+          <td style="padding: 8px; text-align: right; color: #9e9e9e;"><strong>${b.supabase.lapsed}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; padding-left: 24px; color: #bdbdbd;">↳ Soft-deleted</td>
+          <td style="padding: 8px; text-align: right; color: #bdbdbd;"><strong>${b.supabase.deleted}</strong></td>
+        </tr>
+        <tr style="border-top: 1px solid #eee;">
+          <td style="padding: 8px; padding-left: 24px;">Profile complete</td>
+          <td style="padding: 8px; text-align: right;"><strong>${b.supabase.profile_complete}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; padding-left: 24px; color: #f57c00;">Profile incomplete</td>
+          <td style="padding: 8px; text-align: right; color: #f57c00;"><strong>${b.supabase.profile_incomplete}</strong></td>
+        </tr>
+      </table>
+
+      <!-- Webflow Breakdown -->
+      <h2 style="font-size: 16px; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px;">Webflow (Live Site)</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <tr>
+          <td style="padding: 8px; background: #f9f9f9;">Total Items</td>
+          <td style="padding: 8px; background: #f9f9f9; text-align: right;"><strong>${b.webflow.total}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; padding-left: 24px; color: #2e7d32;">↳ Published (live)</td>
+          <td style="padding: 8px; text-align: right; color: #2e7d32;"><strong>${b.webflow.published}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; padding-left: 24px; color: #9e9e9e;">↳ Archived</td>
+          <td style="padding: 8px; text-align: right; color: #9e9e9e;"><strong>${b.webflow.archived}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; padding-left: 24px; color: #bdbdbd;">↳ Draft</td>
+          <td style="padding: 8px; text-align: right; color: #bdbdbd;"><strong>${b.webflow.draft}</strong></td>
+        </tr>
+      </table>
+
+      <!-- Data Flow Alignment -->
+      <h2 style="font-size: 16px; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px;">Data Flow Alignment</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <tr>
+          <td style="padding: 8px; background: #e8f5e9;">Active + Profile Complete → Should be published</td>
+          <td style="padding: 8px; background: #e8f5e9; text-align: right;"><strong>${b.expected.should_be_in_webflow}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; padding-left: 24px;">↳ Correctly published</td>
+          <td style="padding: 8px; text-align: right; color: ${b.expected.correctly_published === b.expected.should_be_in_webflow ? '#2e7d32' : '#f57c00'};"><strong>${b.expected.correctly_published}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; background: #fafafa;">Lapsed/Deleted with Webflow ID → Should be archived</td>
+          <td style="padding: 8px; background: #fafafa; text-align: right;"><strong>${b.expected.should_be_archived}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; padding-left: 24px;">↳ Correctly archived</td>
+          <td style="padding: 8px; text-align: right; color: ${b.expected.correctly_archived === b.expected.should_be_archived ? '#2e7d32' : '#f57c00'};"><strong>${b.expected.correctly_archived}</strong></td>
         </tr>
       </table>
 
