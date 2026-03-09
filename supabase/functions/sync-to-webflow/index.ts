@@ -14,6 +14,7 @@ const WEBFLOW_MEMBERS_COLLECTION_ID = '64a938756620ae4bee88df34';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
+const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 
 // Site URL for building Webflow member URLs
 const SITE_URL = 'https://www.mtnsmade.com.au';
@@ -1031,6 +1032,11 @@ async function createWebflowMember(record: MemberRecord): Promise<string | null>
   // Publish if active and profile complete
   if (record.subscription_status === 'active' && record.profile_complete) {
     await publishWebflowMember(itemId);
+
+    // Send "profile is live" email for new members
+    if (record.email && record.slug) {
+      await sendProfileLiveEmail(record, record.slug);
+    }
   }
 
   return itemId;
@@ -1090,6 +1096,78 @@ async function deleteWebflowMember(webflowId: string): Promise<void> {
   }
 
   console.log('Webflow member deleted:', webflowId);
+}
+
+// Send "Your Profile is Live" email
+async function sendProfileLiveEmail(record: MemberRecord, slug: string): Promise<void> {
+  if (!RESEND_API_KEY) {
+    console.log('RESEND_API_KEY not configured, skipping profile live email');
+    return;
+  }
+
+  const firstName = record.first_name || record.name?.split(' ')[0] || 'there';
+  const profileUrl = `${SITE_URL}/members/${slug}`;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+      <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 24px;">Your profile is now live!</h1>
+
+      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        Hi ${firstName},
+      </p>
+
+      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        Great news! Your MTNS MADE profile has been published and is now visible in our creative directory.
+      </p>
+
+      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        <a href="${profileUrl}" style="color: #0066cc; text-decoration: underline;">View your profile</a>
+      </p>
+
+      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        <strong>What's next?</strong>
+      </p>
+
+      <ul style="color: #333; font-size: 16px; line-height: 1.8;">
+        <li>Add projects to showcase your work</li>
+        <li>Share your profile link on social media</li>
+        <li>Connect with other creatives in the Blue Mountains</li>
+      </ul>
+
+      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        Welcome to the MTNS MADE community!
+      </p>
+
+      <p style="color: #888; font-size: 14px; margin-top: 40px;">
+        — The MTNS MADE Team
+      </p>
+    </div>
+  `;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'MTNS MADE <support@mail.mtnsmade.com.au>',
+        to: [record.email],
+        subject: 'Your MTNS MADE profile is now live!',
+        html: html,
+      }),
+    });
+
+    if (response.ok) {
+      console.log('Profile live email sent to:', record.email);
+    } else {
+      const error = await response.text();
+      console.error('Failed to send profile live email:', error);
+    }
+  } catch (error) {
+    console.error('Error sending profile live email:', error);
+  }
 }
 
 // Publish member in Webflow CMS

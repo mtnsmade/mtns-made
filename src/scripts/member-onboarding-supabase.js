@@ -2421,6 +2421,17 @@
       await loadCategories();
       await loadAllSuburbs();
 
+      // Pre-populate suburb from Memberstack if set during signup
+      const savedSuburbId = member.customFields?.['suburb-id'];
+      const savedSuburbName = member.customFields?.['suburb'];
+      if (savedSuburbId && savedSuburbName) {
+        formData.suburb = {
+          id: savedSuburbId,
+          name: savedSuburbName
+        };
+        console.log('Pre-populated suburb from signup:', formData.suburb);
+      }
+
       // Start onboarding
       renderCurrentStep(container);
 
