@@ -999,7 +999,8 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
 }
 
 // Create member in Webflow CMS
-async function createWebflowMember(record: MemberRecord): Promise<string | null> {
+// Returns { id, slug } where slug is the actual slug assigned by Webflow
+async function createWebflowMember(record: MemberRecord): Promise<{ id: string; slug: string } | null> {
   const fieldData = await mapMemberToWebflowFields(record, true); // Include slug on create
 
   const response = await fetch(
@@ -1027,19 +1028,21 @@ async function createWebflowMember(record: MemberRecord): Promise<string | null>
 
   const result = await response.json();
   const itemId = result.id;
-  console.log('Webflow member created:', itemId);
+  // Get the actual slug assigned by Webflow (may be truncated/modified)
+  const actualSlug = result.fieldData?.slug || fieldData.slug;
+  console.log('Webflow member created:', itemId, 'slug:', actualSlug);
 
   // Publish if active and profile complete
   if (record.subscription_status === 'active' && record.profile_complete) {
     await publishWebflowMember(itemId);
 
     // Send "profile is live" email for new members
-    if (record.email && record.slug) {
-      await sendProfileLiveEmail(record, record.slug);
+    if (record.email && actualSlug) {
+      await sendProfileLiveEmail(record, actualSlug);
     }
   }
 
-  return itemId;
+  return { id: itemId, slug: actualSlug };
 }
 
 // Update member in Webflow CMS
@@ -1199,12 +1202,17 @@ async function publishWebflowMember(itemId: string): Promise<void> {
 }
 
 // Update Supabase member with Webflow ID
-async function updateMemberWithWebflowId(memberId: string, webflowId: string): Promise<void> {
+async function updateMemberWithWebflowId(memberId: string, webflowId: string, actualSlug?: string): Promise<void> {
   const supabase = getSupabaseClient();
+
+  const updateData: { webflow_id: string; slug?: string } = { webflow_id: webflowId };
+  if (actualSlug) {
+    updateData.slug = actualSlug;
+  }
 
   const { error } = await supabase
     .from('members')
-    .update({ webflow_id: webflowId })
+    .update(updateData)
     .eq('id', memberId);
 
   if (error) {
@@ -1212,7 +1220,7 @@ async function updateMemberWithWebflowId(memberId: string, webflowId: string): P
     throw error;
   }
 
-  console.log(`Updated member ${memberId} with Webflow ID: ${webflowId}`);
+  console.log(`Updated member ${memberId} with Webflow ID: ${webflowId}${actualSlug ? `, slug: ${actualSlug}` : ''}`);
 }
 
 // Handle member webhook
@@ -1238,14 +1246,13 @@ async function handleMemberWebhook(payload: WebhookPayload): Promise<void> {
         break;
       }
 
-      const webflowId = await createWebflowMember(record);
+      const webflowResult = await createWebflowMember(record);
 
-      if (webflowId) {
-        await updateMemberWithWebflowId(record.id, webflowId);
-        // Sync Webflow ID and URL back to Memberstack
-        if (record.slug) {
-          await updateMemberstack(record.memberstack_id, webflowId, record.slug);
-        }
+      if (webflowResult) {
+        // Update Supabase with Webflow ID and actual slug (may differ from what we sent)
+        await updateMemberWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
+        // Sync Webflow ID and URL back to Memberstack using actual slug
+        await updateMemberstack(record.memberstack_id, webflowResult.id, webflowResult.slug);
       }
 
       break;
@@ -1264,13 +1271,12 @@ async function handleMemberWebhook(payload: WebhookPayload): Promise<void> {
 
       // If no Webflow ID yet and profile is complete, create
       if (!record.webflow_id && record.profile_complete) {
-        const webflowId = await createWebflowMember(record);
-        if (webflowId) {
-          await updateMemberWithWebflowId(record.id, webflowId);
-          // Sync Webflow ID and URL back to Memberstack
-          if (record.slug) {
-            await updateMemberstack(record.memberstack_id, webflowId, record.slug);
-          }
+        const webflowResult = await createWebflowMember(record);
+        if (webflowResult) {
+          // Update Supabase with Webflow ID and actual slug (may differ from what we sent)
+          await updateMemberWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
+          // Sync Webflow ID and URL back to Memberstack using actual slug
+          await updateMemberstack(record.memberstack_id, webflowResult.id, webflowResult.slug);
         }
         break;
       }
