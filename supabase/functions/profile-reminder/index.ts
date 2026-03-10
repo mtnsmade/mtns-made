@@ -392,13 +392,14 @@ serve(async (req) => {
         failed++;
       }
 
-      // Small delay to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Rate limit: 500ms between emails (Resend allows 2 req/sec)
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     console.log(`Reminder complete: ${sent} sent, ${failed} failed`);
 
     // Send admin summary (always, even if no reminders sent)
+    await new Promise(resolve => setTimeout(resolve, 500)); // Rate limit delay
     await sendAdminSummary(sentMembers, failed);
 
     return new Response(

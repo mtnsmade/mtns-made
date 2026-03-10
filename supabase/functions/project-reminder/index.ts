@@ -128,6 +128,9 @@ ${SITE_URL}
 `;
 }
 
+// Delay helper for rate limiting (Resend allows 2 requests/second)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function sendEmail(to: string, firstName: string): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!RESEND_API_KEY) {
     return { success: false, error: 'RESEND_API_KEY not configured' };
@@ -252,11 +255,18 @@ serve(async (req) => {
       errors: [] as string[],
     };
 
-    for (const member of membersWithoutProjects) {
+    for (let i = 0; i < membersWithoutProjects.length; i++) {
+      const member = membersWithoutProjects[i];
+
       if (!member.email) {
         results.failed++;
         results.errors.push(`${member.id}: No email`);
         continue;
+      }
+
+      // Rate limit: wait 500ms between emails (Resend allows 2 req/sec)
+      if (i > 0) {
+        await delay(500);
       }
 
       const emailResult = await sendEmail(member.email, member.first_name);
@@ -269,16 +279,18 @@ serve(async (req) => {
           .eq('id', member.id);
 
         results.sent++;
-        console.log(`Sent project reminder to ${member.email}`);
+        console.log(`Sent project reminder to ${member.email} (${i + 1}/${membersWithoutProjects.length})`);
       } else {
         results.failed++;
         results.errors.push(`${member.email}: ${emailResult.error}`);
       }
     }
 
-    // Send admin summary if any emails were sent
-    if (results.sent > 0 && RESEND_API_KEY) {
+    // Send admin summary if any emails were sent or failed
+    if ((results.sent > 0 || results.failed > 0) && RESEND_API_KEY) {
       try {
+        // Wait to avoid rate limit
+        await delay(500);
         await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
