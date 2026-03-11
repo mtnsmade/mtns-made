@@ -112,6 +112,33 @@ CONTACT FORM
 
 **Remaining Issue:** Intermittent bug in `member-edit-profile-supabase.js` where completion check fails despite all requirements being met. Needs browser console logging to diagnose. The check at lines 1009-1018 is correct but sometimes evaluates wrong.
 
+## Automated Systems
+
+### Data Consistency Check
+**Edge Function:** `check-consistency`
+**Schedule:** Daily at 6:00 AM AEST (via pg_cron)
+
+Compares member data across Memberstack, Supabase, and Webflow to identify:
+- **Missing from Supabase:** Active Memberstack members not in database
+- **Missing from Webflow:** Complete profiles not synced to CMS
+- **Status Mismatches:** Subscription status differs between systems
+- **Orphaned Records:** Records in Supabase/Webflow but not in Memberstack
+
+**Manual Trigger:**
+```bash
+curl -X POST "https://epszwomtxkpjegbjbixr.supabase.co/functions/v1/check-consistency" \
+  -H "Content-Type: application/json" -d "{}"
+```
+
+**Last Check Results (March 2026):**
+- 212 status mismatches (Memberstack inactive, Supabase active)
+- 237 orphaned records (in Supabase but not in Memberstack)
+- 0 critical issues
+
+**Note:** Run migration `023_consistency_reports.sql` in Supabase SQL Editor to enable report storage and daily cron.
+
+---
+
 ## Credentials Location
 - Supabase URL: `https://epszwomtxkpjegbjbixr.supabase.co`
 - Edge functions deployed via `supabase functions deploy <name> --no-verify-jwt`

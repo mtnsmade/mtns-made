@@ -53,6 +53,7 @@
     tiktok: '',
     youtube: ''
   };
+  let progressSaveTimeout = null;
 
   const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -1124,6 +1125,160 @@
     }
   }
 
+  // Save progress to Supabase (partial save during onboarding)
+  async function saveProgress(step) {
+    if (!memberData?.id || !supabase) return;
+
+    try {
+      const memberstackId = memberData.id;
+
+      // Build partial update data based on what's been filled
+      const progressData = {
+        onboarding_step: step,
+        onboarding_started_at: new Date().toISOString()
+      };
+
+      // Save images if uploaded (step 1)
+      if (formData.profileImageFile) {
+        const profileUrl = await uploadImage(formData.profileImageFile, memberstackId, 'profile');
+        progressData.profile_image_url = profileUrl;
+        formData.profileImageUrl = profileUrl;
+        formData.profileImageFile = null; // Clear file after upload
+      } else if (formData.profileImageUrl) {
+        progressData.profile_image_url = formData.profileImageUrl;
+      }
+
+      if (formData.featureImageFile) {
+        const featureUrl = await uploadImage(formData.featureImageFile, memberstackId, 'feature');
+        progressData.header_image_url = featureUrl;
+        formData.featureImageUrl = featureUrl;
+        formData.featureImageFile = null; // Clear file after upload
+      } else if (formData.featureImageUrl) {
+        progressData.header_image_url = formData.featureImageUrl;
+      }
+
+      // Save bio and business name (step 2)
+      if (formData.bio) progressData.bio = formData.bio;
+      if (formData.businessName) progressData.business_name = formData.businessName;
+
+      // Save location (step 4)
+      if (formData.suburb?.id) progressData.suburb_id = formData.suburb.id;
+
+      // Save business details (step 5)
+      if (formData.businessAddress) progressData.business_address = formData.businessAddress;
+      progressData.show_address = formData.displayAddress;
+      progressData.show_opening_hours = formData.displayOpeningHours;
+      if (formData.openingHours.monday) progressData.opening_monday = formData.openingHours.monday;
+      if (formData.openingHours.tuesday) progressData.opening_tuesday = formData.openingHours.tuesday;
+      if (formData.openingHours.wednesday) progressData.opening_wednesday = formData.openingHours.wednesday;
+      if (formData.openingHours.thursday) progressData.opening_thursday = formData.openingHours.thursday;
+      if (formData.openingHours.friday) progressData.opening_friday = formData.openingHours.friday;
+      if (formData.openingHours.saturday) progressData.opening_saturday = formData.openingHours.saturday;
+      if (formData.openingHours.sunday) progressData.opening_sunday = formData.openingHours.sunday;
+
+      // Save social links
+      if (formData.website) progressData.website = formData.website;
+      if (formData.instagram) progressData.instagram = formData.instagram;
+      if (formData.facebook) progressData.facebook = formData.facebook;
+      if (formData.linkedin) progressData.linkedin = formData.linkedin;
+      if (formData.tiktok) progressData.tiktok = formData.tiktok;
+      if (formData.youtube) progressData.youtube = formData.youtube;
+
+      const { error } = await supabase
+        .from('members')
+        .update(progressData)
+        .eq('memberstack_id', memberstackId);
+
+      if (error) {
+        console.warn('Error saving progress:', error);
+      } else {
+        console.log(`Progress saved at step ${step}`);
+      }
+    } catch (error) {
+      console.warn('Error saving progress:', error);
+      // Don't throw - progress save failure shouldn't block the user
+    }
+  }
+
+  // Load saved progress from Supabase
+  async function loadSavedProgress() {
+    if (!memberData?.id || !supabase) return null;
+
+    try {
+      const { data: member, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('memberstack_id', memberData.id)
+        .single();
+
+      if (error || !member) return null;
+
+      // If they have progress, restore it
+      if (member.onboarding_step && member.onboarding_step > 0) {
+        console.log('Restoring progress from step', member.onboarding_step);
+
+        // Restore formData from saved member data
+        if (member.profile_image_url) formData.profileImageUrl = member.profile_image_url;
+        if (member.header_image_url) formData.featureImageUrl = member.header_image_url;
+        if (member.bio) formData.bio = member.bio;
+        if (member.business_name) formData.businessName = member.business_name;
+        if (member.suburb_id) {
+          const suburb = suburbs.find(s => s.id === member.suburb_id);
+          if (suburb) formData.suburb = { id: suburb.id, name: suburb.name };
+        }
+        if (member.business_address) formData.businessAddress = member.business_address;
+        formData.displayAddress = member.show_address || false;
+        formData.displayOpeningHours = member.show_opening_hours || false;
+        formData.openingHours = {
+          monday: member.opening_monday || '',
+          tuesday: member.opening_tuesday || '',
+          wednesday: member.opening_wednesday || '',
+          thursday: member.opening_thursday || '',
+          friday: member.opening_friday || '',
+          saturday: member.opening_saturday || '',
+          sunday: member.opening_sunday || ''
+        };
+        if (member.website) formData.website = member.website;
+        if (member.instagram) formData.instagram = member.instagram;
+        if (member.facebook) formData.facebook = member.facebook;
+        if (member.linkedin) formData.linkedin = member.linkedin;
+        if (member.tiktok) formData.tiktok = member.tiktok;
+        if (member.youtube) formData.youtube = member.youtube;
+
+        // Restore space/supplier selection
+        if (member.is_creative_space) formData.spaceOrSupplier = 'space';
+        else if (member.is_supplier) formData.spaceOrSupplier = 'supplier';
+
+        // Load saved categories
+        const memberId = member.id;
+        const { data: subDirs } = await supabase
+          .from('member_sub_directories')
+          .select('sub_directory_id')
+          .eq('member_id', memberId);
+        if (subDirs) formData.chosenDirectories = subDirs.map(d => d.sub_directory_id);
+
+        const { data: spaceCats } = await supabase
+          .from('member_space_categories')
+          .select('space_category_id')
+          .eq('member_id', memberId);
+        if (spaceCats) formData.spaceCategories = spaceCats.map(c => c.space_category_id);
+
+        const { data: supplierCats } = await supabase
+          .from('member_supplier_categories')
+          .select('supplier_category_id')
+          .eq('member_id', memberId);
+        if (supplierCats) formData.supplierCategories = supplierCats.map(c => c.supplier_category_id);
+
+        return member.onboarding_step;
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Error loading saved progress:', error);
+      return null;
+    }
+  }
+
   async function saveOnboardingData() {
     const memberstackId = memberData.id;
 
@@ -1488,7 +1643,7 @@
     renderProfileState();
     renderFeatureState();
 
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', async () => {
       if (!formData.profileImageUrl) {
         showError(errorBanner, 'Please upload a profile image');
         return;
@@ -1498,6 +1653,7 @@
         return;
       }
       currentStep = 2;
+      await saveProgress(currentStep); // Auto-save progress
       renderCurrentStep(container);
     });
   }
@@ -1643,7 +1799,7 @@
       renderCurrentStep(container);
     });
 
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', async () => {
       if (showBusinessName && !formData.businessName.trim()) {
         showError(errorBanner, 'Please enter your business name');
         return;
@@ -1661,6 +1817,7 @@
         return;
       }
       currentStep = 3;
+      await saveProgress(currentStep); // Auto-save progress
       renderCurrentStep(container);
     });
   }
@@ -1829,7 +1986,7 @@
         setupCategoryCheckboxes(container, 'supplierCategories', 'supplier-count');
       }
 
-      nextBtn.addEventListener('click', () => {
+      nextBtn.addEventListener('click', async () => {
         if (!formData.spaceOrSupplier) {
           showError(errorBanner, 'Please select whether you are a Creative Space or Supplier');
           return;
@@ -1842,6 +1999,7 @@
           return;
         }
         currentStep = 4;
+        await saveProgress(currentStep); // Auto-save progress
         renderCurrentStep(container);
       });
 
@@ -1849,7 +2007,7 @@
       // Button-based category selector handlers
       setupDirectoryCategorySelector(container);
 
-      nextBtn.addEventListener('click', () => {
+      nextBtn.addEventListener('click', async () => {
         if (formData.chosenDirectories.length === 0) {
           showError(errorBanner, 'Please select at least one category');
           return;
@@ -1860,6 +2018,7 @@
         } else {
           currentStep = 5;
         }
+        await saveProgress(currentStep); // Auto-save progress
         renderCurrentStep(container);
       });
     }
@@ -2085,13 +2244,14 @@
       renderCurrentStep(container);
     });
 
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', async () => {
       // Validate suburb selection
       if (!formData.suburb) {
         showError(errorBanner, 'Please select your suburb');
         return;
       }
       currentStep = 5;
+      await saveProgress(currentStep); // Auto-save progress
       renderCurrentStep(container);
     });
   }
@@ -2432,7 +2592,14 @@
         console.log('Pre-populated suburb from signup:', formData.suburb);
       }
 
-      // Start onboarding
+      // Check for saved progress and resume from where they left off
+      const savedStep = await loadSavedProgress();
+      if (savedStep && savedStep > 1) {
+        currentStep = savedStep;
+        console.log('Resuming onboarding from step', currentStep);
+      }
+
+      // Start/resume onboarding
       renderCurrentStep(container);
 
     } catch (error) {
