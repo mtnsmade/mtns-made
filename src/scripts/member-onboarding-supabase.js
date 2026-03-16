@@ -949,7 +949,7 @@
     try {
       const { data, error } = await supabase
         .from('suburbs')
-        .select('id, name')
+        .select('id, name, webflow_id')
         .order('name');
 
       if (error) throw error;
@@ -2582,14 +2582,31 @@
       await loadAllSuburbs();
 
       // Pre-populate suburb from Memberstack if set during signup
-      const savedSuburbId = member.customFields?.['suburb-id'];
+      // Note: Memberstack stores Webflow ID, need to find Supabase UUID
+      const savedSuburbWebflowId = member.customFields?.['suburb-id'];
       const savedSuburbName = member.customFields?.['suburb'];
-      if (savedSuburbId && savedSuburbName) {
-        formData.suburb = {
-          id: savedSuburbId,
-          name: savedSuburbName
-        };
-        console.log('Pre-populated suburb from signup:', formData.suburb);
+      if (savedSuburbWebflowId && savedSuburbName) {
+        // Look up the Supabase suburb by webflow_id
+        const matchingSuburb = suburbs.find(s => s.webflow_id === savedSuburbWebflowId);
+        if (matchingSuburb) {
+          formData.suburb = {
+            id: matchingSuburb.id,
+            name: matchingSuburb.name
+          };
+          console.log('Pre-populated suburb from signup (matched to Supabase):', formData.suburb);
+        } else {
+          // Fallback: try to find by name
+          const suburbByName = suburbs.find(s => s.name === savedSuburbName);
+          if (suburbByName) {
+            formData.suburb = {
+              id: suburbByName.id,
+              name: suburbByName.name
+            };
+            console.log('Pre-populated suburb from signup (matched by name):', formData.suburb);
+          } else {
+            console.warn('Could not find suburb in Supabase:', savedSuburbWebflowId, savedSuburbName);
+          }
+        }
       }
 
       // Check for saved progress and resume from where they left off

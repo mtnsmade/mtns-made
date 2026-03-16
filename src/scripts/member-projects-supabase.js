@@ -760,12 +760,46 @@
     return PROJECT_LIMITS[type] || 2;
   }
 
-  function generateSlug(name) {
+  // Generate a clean slug from name
+  function createSlugBase(name) {
     return name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
-      .substring(0, 50) + '-' + Date.now().toString(36);
+      .substring(0, 80);
+  }
+
+  // Check if slug exists and find a unique one
+  async function generateUniqueSlug(name) {
+    const baseSlug = createSlugBase(name);
+
+    // Check if base slug exists
+    const { data: existing } = await supabase
+      .from('projects')
+      .select('slug')
+      .eq('slug', baseSlug)
+      .maybeSingle();
+
+    if (!existing) {
+      return baseSlug; // Use clean slug if available
+    }
+
+    // Find next available suffix
+    const { data: similar } = await supabase
+      .from('projects')
+      .select('slug')
+      .like('slug', `${baseSlug}-%`);
+
+    const existingSlugs = new Set((similar || []).map(p => p.slug));
+    existingSlugs.add(baseSlug);
+
+    // Try numeric suffixes: slug-2, slug-3, etc.
+    let counter = 2;
+    while (existingSlugs.has(`${baseSlug}-${counter}`)) {
+      counter++;
+    }
+
+    return `${baseSlug}-${counter}`;
   }
 
   function sanitizeText(text) {
@@ -901,13 +935,16 @@
     try {
       const { categories, ...projectFields } = projectData;
 
+      // Generate unique slug (checks for conflicts)
+      const slug = await generateUniqueSlug(projectFields.name);
+
       // Insert project
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
           memberstack_id: currentMember.id,
           name: projectFields.name,
-          slug: generateSlug(projectFields.name),
+          slug: slug,
           description: projectFields.description,
           feature_image_url: projectFields.feature_image_url || null,
           gallery_images: projectFields.gallery_images || [],

@@ -519,12 +519,46 @@
     return expiryDate.toISOString();
   }
 
-  function generateSlug(name) {
+  // Generate a clean slug from name
+  function createSlugBase(name) {
     return name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .substring(0, 100);
+  }
+
+  // Check if slug exists and find a unique one
+  async function generateUniqueSlug(name) {
+    const baseSlug = createSlugBase(name);
+
+    // Check if base slug exists
+    const { data: existing } = await supabase
+      .from('events')
+      .select('slug')
+      .eq('slug', baseSlug)
+      .maybeSingle();
+
+    if (!existing) {
+      return baseSlug; // Use clean slug if available
+    }
+
+    // Find next available suffix
+    const { data: similar } = await supabase
+      .from('events')
+      .select('slug')
+      .like('slug', `${baseSlug}-%`);
+
+    const existingSlugs = new Set((similar || []).map(e => e.slug));
+    existingSlugs.add(baseSlug);
+
+    // Try numeric suffixes: slug-2, slug-3, etc.
+    let counter = 2;
+    while (existingSlugs.has(`${baseSlug}-${counter}`)) {
+      counter++;
+    }
+
+    return `${baseSlug}-${counter}`;
   }
 
   function sanitizeText(text) {
@@ -1296,11 +1330,14 @@
         finalImageUrl = await uploadImage(newImageFile);
       }
 
+      // Generate unique slug (checks for conflicts)
+      const slug = isEdit ? existingEvent.slug : await generateUniqueSlug(name);
+
       const eventObj = {
         memberstack_id: currentMember.id,
         member_contact_email: currentMember.auth?.email || '',
         name: name,
-        slug: generateSlug(name),
+        slug: slug,
         date_start: dateStarts ? new Date(dateStarts).toISOString() : null,
         date_end: dateEnds ? new Date(dateEnds).toISOString() : null,
         date_expiry: calculateExpiryDate(dateEnds || dateStarts),
