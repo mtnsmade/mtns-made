@@ -567,6 +567,9 @@ async function handleMemberCreated(data: MemberstackMemberData): Promise<void> {
   console.log('Handling member.created:', data.id);
   await createMember(data);
 
+  // Log the signup to activity feed
+  await logActivity(data.id, 'member_signup');
+
   // Send welcome email to new member
   const firstName = data.customFields?.['first-name'] || '';
   const lastName = data.customFields?.['last-name'] || '';

@@ -12,7 +12,7 @@ const SITE_URL = 'https://www.mtnsmade.com.au';
 
 interface ActivityRequest {
   memberstack_id: string;
-  activity_type: 'profile_update' | 'project_create' | 'project_update' | 'project_delete' | 'event_submit' | 'event_update';
+  activity_type: 'member_signup' | 'profile_update' | 'project_create' | 'project_update' | 'project_delete' | 'event_submit' | 'event_update';
   entity_type?: 'project' | 'event' | null;
   entity_id?: string;
   entity_name?: string;
@@ -27,6 +27,8 @@ interface ActivityResult {
 // Generate human-readable description based on activity type
 function generateDescription(activityType: string, entityName?: string): string {
   switch (activityType) {
+    case 'member_signup':
+      return 'joined MTNS MADE';
     case 'profile_update':
       return 'updated their profile';
     case 'project_create':
@@ -100,7 +102,7 @@ serve(async (req) => {
     }
 
     // Validate activity type
-    const validTypes = ['profile_update', 'project_create', 'project_update', 'project_delete', 'event_submit', 'event_update', 'subscription_canceled', 'subscription_reactivated'];
+    const validTypes = ['member_signup', 'profile_update', 'project_create', 'project_update', 'project_delete', 'event_submit', 'event_update', 'subscription_canceled', 'subscription_reactivated'];
     if (!validTypes.includes(body.activity_type)) {
       return new Response(
         JSON.stringify({ success: false, error: `Invalid activity_type. Must be one of: ${validTypes.join(', ')}` }),

@@ -467,6 +467,111 @@ serve(async (req) => {
       );
     }
 
+    // Sync member slugs from Webflow to Supabase
+    if (body.mode === 'sync-member-slugs') {
+      if (!WEBFLOW_API_TOKEN) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'WEBFLOW_API_TOKEN not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get all members that have a webflow_id
+      const { data: members, error: memError } = await supabase
+        .from('members')
+        .select('id, name, slug, webflow_id')
+        .not('webflow_id', 'is', null)
+        .eq('is_deleted', false);
+
+      if (memError) {
+        return new Response(
+          JSON.stringify({ success: false, error: memError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const results: Array<{ member: string; oldSlug: string; newSlug: string; status: string }> = [];
+
+      for (const member of members || []) {
+        try {
+          // Get the actual slug from Webflow
+          const response = await fetch(
+            `https://api.webflow.com/v2/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${member.webflow_id}`,
+            {
+              headers: { 'Authorization': `Bearer ${WEBFLOW_API_TOKEN}` }
+            }
+          );
+
+          if (!response.ok) {
+            results.push({
+              member: member.name || member.id,
+              oldSlug: member.slug || '',
+              newSlug: '',
+              status: `Error fetching from Webflow: ${response.status}`
+            });
+            continue;
+          }
+
+          const webflowItem = await response.json();
+          const webflowSlug = webflowItem.fieldData?.slug;
+
+          if (!webflowSlug) {
+            results.push({
+              member: member.name || member.id,
+              oldSlug: member.slug || '',
+              newSlug: '',
+              status: 'No slug in Webflow'
+            });
+            continue;
+          }
+
+          if (webflowSlug === member.slug) {
+            results.push({
+              member: member.name || member.id,
+              oldSlug: member.slug || '',
+              newSlug: webflowSlug,
+              status: 'Already in sync'
+            });
+            continue;
+          }
+
+          // Update Supabase with the Webflow slug
+          const { error: updateError } = await supabase
+            .from('members')
+            .update({ slug: webflowSlug })
+            .eq('id', member.id);
+
+          if (updateError) {
+            results.push({
+              member: member.name || member.id,
+              oldSlug: member.slug || '',
+              newSlug: webflowSlug,
+              status: `Error updating: ${updateError.message}`
+            });
+          } else {
+            results.push({
+              member: member.name || member.id,
+              oldSlug: member.slug || '',
+              newSlug: webflowSlug,
+              status: 'Updated'
+            });
+          }
+        } catch (err) {
+          results.push({
+            member: member.name || member.id,
+            oldSlug: member.slug || '',
+            newSlug: '',
+            status: `Error: ${err.message}`
+          });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, results }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Delete Webflow project mode (for cleanup)
     if (body.mode === 'delete-webflow-project' && body.webflow_id) {
       if (!WEBFLOW_API_TOKEN) {

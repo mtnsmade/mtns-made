@@ -726,7 +726,7 @@
         overflow-x: auto;
       }
     }
-  `;function c(t){if(!t)return"--";const e=new Date(t),a=Math.floor((new Date-e)/1e3);return a<60?"now":a<3600?`${Math.floor(a/60)}m`:a<86400?`${Math.floor(a/3600)}h`:a<604800?`${Math.floor(a/86400)}d`:e.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function T(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function _(t){const e=[];return t.profile_image_url||e.push("Profile Image"),t.header_image_url||e.push("Header Image"),(!t.bio||t.bio.length<50)&&e.push("Bio"),t.suburb_id||e.push("Location"),e}function A(t,e){const n=t.first_name||t.name||"there",a=e.length>0?`
+  `;function c(a){if(!a)return"--";const e=new Date(a),t=Math.floor((new Date-e)/1e3);return t<60?"now":t<3600?`${Math.floor(t/60)}m`:t<86400?`${Math.floor(t/3600)}h`:t<604800?`${Math.floor(t/86400)}d`:e.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function T(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function _(a){const e=[];return a.profile_image_url||e.push("Profile Image"),a.header_image_url||e.push("Header Image"),(!a.bio||a.bio.length<50)&&e.push("Bio"),a.suburb_id||e.push("Location"),e}function A(a,e){const n=a.first_name||a.name||"there",t=e.length>0?`
 
 To complete your profile, you'll need:
 ${e.map(i=>`- ${i}`).join(`
@@ -734,33 +734,33 @@ ${e.map(i=>`- ${i}`).join(`
 
 Thanks for being part of MTNS MADE! We noticed your profile isn't quite complete yet.
 
-A complete profile helps other creatives find you in the directory and shows off your amazing work.${a}
+A complete profile helps other creatives find you in the directory and shows off your amazing work.${t}
 
 Complete your profile here: ${h}/profile/start
 
 Let us know if you need any help!
 
-MTNS MADE Team`}async function w(){const[t,e,n,a,i,s,o,r,l,p]=await Promise.all([C(),q(),I(),N(),P(),D(),U(),L(),R(),z()]);return x=p,{recentMembers:t,memberStats:e,incompleteProfiles:n,failedSignups:a,recentEvents:i,eventStats:s,recentProjects:o,messageStats:r,recentActivity:l,membershipTypes:p,loadedAt:new Date}}async function C(){const{data:t,error:e}=await d.from("members").select(`
+MTNS MADE Team`}async function w(){const[a,e,n,t,i,s,o,r,l,p]=await Promise.all([C(),q(),I(),N(),P(),D(),U(),L(),R(),z()]);return x=p,{recentMembers:a,memberStats:e,incompleteProfiles:n,failedSignups:t,recentEvents:i,eventStats:s,recentProjects:o,messageStats:r,recentActivity:l,membershipTypes:p,loadedAt:new Date}}async function C(){const{data:a,error:e}=await d.from("members").select(`
         id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
         membership_type_id, membership_types(id, name),
         created_at, updated_at
-      `).neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(20);return e?(console.error("Error loading recent members:",e),[]):t||[]}async function q(){const{data:t}=await d.from("members").select("id, subscription_status, profile_complete, webflow_id").neq("is_deleted",!0),e=(t==null?void 0:t.length)||0,n=(t==null?void 0:t.filter(r=>r.subscription_status==="active").length)||0,a=(t==null?void 0:t.filter(r=>r.subscription_status==="lapsed").length)||0,i=(t==null?void 0:t.filter(r=>r.profile_complete).length)||0,s=(t==null?void 0:t.filter(r=>r.webflow_id).length)||0,o=(t==null?void 0:t.filter(r=>r.profile_complete&&!r.webflow_id&&r.subscription_status==="active").length)||0;return{total:e,active:n,lapsed:a,complete:i,synced:s,pendingSync:o}}async function z(){const{data:t,error:e}=await d.from("membership_types").select("id, name").order("name");return e?(console.error("Error loading membership types:",e),[]):t||[]}async function L(){try{const t=new Date,e=new Date(t.getFullYear(),t.getMonth(),1).toISOString(),{data:n}=await d.from("messages").select("id, is_read, created_at"),{data:a}=await d.from("messages").select("id").gte("created_at",e),i=(n==null?void 0:n.length)||0,s=(n==null?void 0:n.filter(r=>!r.is_read).length)||0,o=(a==null?void 0:a.length)||0;return{total:i,unread:s,thisMonth:o}}catch(t){return console.error("Error loading message stats:",t),{total:0,unread:0,thisMonth:0}}}async function I(){const{data:t,error:e}=await d.from("members").select(`
+      `).neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(20);return e?(console.error("Error loading recent members:",e),[]):a||[]}async function q(){const{data:a}=await d.from("members").select("id, subscription_status, profile_complete, webflow_id").neq("is_deleted",!0),e=(a==null?void 0:a.length)||0,n=(a==null?void 0:a.filter(r=>r.subscription_status==="active").length)||0,t=(a==null?void 0:a.filter(r=>r.subscription_status==="lapsed").length)||0,i=(a==null?void 0:a.filter(r=>r.profile_complete).length)||0,s=(a==null?void 0:a.filter(r=>r.webflow_id).length)||0,o=(a==null?void 0:a.filter(r=>r.profile_complete&&!r.webflow_id&&r.subscription_status==="active").length)||0;return{total:e,active:n,lapsed:t,complete:i,synced:s,pendingSync:o}}async function z(){const{data:a,error:e}=await d.from("membership_types").select("id, name").order("name");return e?(console.error("Error loading membership types:",e),[]):a||[]}async function L(){try{const a=new Date,e=new Date(a.getFullYear(),a.getMonth(),1).toISOString(),{data:n}=await d.from("messages").select("id, is_read, created_at"),{data:t}=await d.from("messages").select("id").gte("created_at",e),i=(n==null?void 0:n.length)||0,s=(n==null?void 0:n.filter(r=>!r.is_read).length)||0,o=(t==null?void 0:t.length)||0;return{total:i,unread:s,thisMonth:o}}catch(a){return console.error("Error loading message stats:",a),{total:0,unread:0,thisMonth:0}}}async function I(){const{data:a,error:e}=await d.from("members").select(`
         id, memberstack_id, name, email, first_name, slug, subscription_status,
         profile_complete, profile_reminder_sent_at, created_at,
         profile_image_url, header_image_url, bio, suburb_id
-      `).eq("profile_complete",!1).eq("subscription_status","active").neq("is_deleted",!0).order("created_at",{ascending:!0});return e?(console.error("Error loading incomplete profiles:",e),[]):t||[]}async function N(){const{data:t,error:e}=await d.from("members").select(`
+      `).eq("profile_complete",!1).eq("subscription_status","active").neq("is_deleted",!0).order("created_at",{ascending:!0});return e?(console.error("Error loading incomplete profiles:",e),[]):a||[]}async function N(){const{data:a,error:e}=await d.from("members").select(`
         id, memberstack_id, name, email, first_name, slug,
         subscription_status, profile_complete, profile_reminder_sent_at, created_at
-      `).not("subscription_status","in",'("active","lapsed","deleted")').neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(30);return e?(console.error("Error loading failed signups:",e),[]):t||[]}async function P(){const{data:t,error:e}=await d.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("created_at",{ascending:!1}).limit(15);return e?(console.error("Error loading recent events:",e),[]):t||[]}async function D(){const{data:t}=await d.from("events").select("id, is_draft, is_archived, webflow_id"),e=(t==null?void 0:t.length)||0,n=(t==null?void 0:t.filter(i=>i.is_draft&&!i.is_archived).length)||0,a=(t==null?void 0:t.filter(i=>!i.is_draft&&!i.is_archived).length)||0;return{total:e,pending:n,published:a}}async function U(){const{data:t,error:e}=await d.from("projects").select(`
+      `).not("subscription_status","in",'("active","lapsed","deleted")').neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(30);return e?(console.error("Error loading failed signups:",e),[]):a||[]}async function P(){const{data:a,error:e}=await d.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("created_at",{ascending:!1}).limit(15);return e?(console.error("Error loading recent events:",e),[]):a||[]}async function D(){const{data:a}=await d.from("events").select("id, is_draft, is_archived, webflow_id"),e=(a==null?void 0:a.length)||0,n=(a==null?void 0:a.filter(i=>i.is_draft&&!i.is_archived).length)||0,t=(a==null?void 0:a.filter(i=>!i.is_draft&&!i.is_archived).length)||0;return{total:e,pending:n,published:t}}async function U(){const{data:a,error:e}=await d.from("projects").select(`
         id, name, slug, member_id, webflow_id, is_draft, is_deleted,
         created_at, updated_at
-      `).eq("is_deleted",!1).order("updated_at",{ascending:!1}).limit(15);return e?(console.error("Error loading recent projects:",e),[]):t||[]}async function R(){const{data:t,error:e}=await d.from("activity_log").select(`
+      `).eq("is_deleted",!1).order("updated_at",{ascending:!1}).limit(15);return e?(console.error("Error loading recent projects:",e),[]):a||[]}async function R(){const{data:a,error:e}=await d.from("activity_log").select(`
         id, member_id, memberstack_id, activity_type, description,
         entity_type, entity_id, entity_name,
         member_webflow_url, entity_webflow_url, created_at
-      `).order("created_at",{ascending:!1}).limit(50);if(e)return console.error("Error loading recent activity:",e),[];const n=[...new Set(t.filter(i=>i.member_id).map(i=>i.member_id))];let a={};if(n.length>0){const{data:i}=await d.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",n);i&&i.forEach(s=>{a[s.id]={name:s.name||`${s.first_name||""} ${s.last_name||""}`.trim()||"Unknown Member",profile_image_url:s.profile_image_url||null}})}return t.map(i=>{var s,o;return{...i,member_name:i.member_id&&((s=a[i.member_id])==null?void 0:s.name)||"Unknown Member",member_profile_image:i.member_id&&((o=a[i.member_id])==null?void 0:o.profile_image_url)||null}})}function O(t){const e=_(t),n=A(t,e),a=document.createElement("div");a.className="modal-overlay",a.innerHTML=`
+      `).order("created_at",{ascending:!1}).limit(50);if(e)return console.error("Error loading recent activity:",e),[];const n=[...new Set(a.filter(i=>i.member_id).map(i=>i.member_id))];let t={};if(n.length>0){const{data:i}=await d.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",n);i&&i.forEach(s=>{t[s.id]={name:s.name||`${s.first_name||""} ${s.last_name||""}`.trim()||"Unknown Member",profile_image_url:s.profile_image_url||null}})}return a.map(i=>{var s,o;return{...i,member_name:i.member_id&&((s=t[i.member_id])==null?void 0:s.name)||"Unknown Member",member_profile_image:i.member_id&&((o=t[i.member_id])==null?void 0:o.profile_image_url)||null}})}function O(a){const e=_(a),n=A(a,e),t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Contact Member</h3>
@@ -769,7 +769,7 @@ MTNS MADE Team`}async function w(){const[t,e,n,a,i,s,o,r,l,p]=await Promise.all(
         <div class="modal-body">
           <div class="form-field">
             <label class="form-label">To</label>
-            <input type="text" class="form-input" id="modal-to" value="${t.email||""}" readonly>
+            <input type="text" class="form-input" id="modal-to" value="${a.email||""}" readonly>
           </div>
           <div class="form-field">
             <label class="form-label">Subject</label>
@@ -794,7 +794,7 @@ MTNS MADE Team`}async function w(){const[t,e,n,a,i,s,o,r,l,p]=await Promise.all(
           <button class="admin-btn primary" id="modal-send">Send Email</button>
         </div>
       </div>
-    `,document.body.appendChild(a),a.querySelector(".modal-close").addEventListener("click",()=>a.remove()),a.querySelector("#modal-cancel").addEventListener("click",()=>a.remove()),a.addEventListener("click",i=>{i.target===a&&a.remove()}),a.querySelector("#modal-send").addEventListener("click",async()=>{const i=a.querySelector("#modal-to").value,s=a.querySelector("#modal-subject").value,o=a.querySelector("#modal-body").value;if(!i){alert("No email address available for this member");return}const r=a.querySelector("#modal-send");r.disabled=!0,r.textContent="Sending...";try{const p=await(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:i,subject:s,text:o,html:o.replace(/\n/g,"<br>")})})).json();if(p.success){await d.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",t.id),alert("Email sent successfully!"),a.remove();const m=document.querySelector(".dashboard-feed");m&&f(m)}else alert("Failed to send email: "+(p.error||"Unknown error")),r.disabled=!1,r.textContent="Send Email"}catch(l){console.error("Error sending email:",l),alert("Error sending email. Check console for details."),r.disabled=!1,r.textContent="Send Email"}})}function F(t,e,n){var s;const a=((s=x.find(o=>o.id===n))==null?void 0:s.name)||"Not set",i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
+    `,document.body.appendChild(t),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.querySelector("#modal-cancel").addEventListener("click",()=>t.remove()),t.addEventListener("click",i=>{i.target===t&&t.remove()}),t.querySelector("#modal-send").addEventListener("click",async()=>{const i=t.querySelector("#modal-to").value,s=t.querySelector("#modal-subject").value,o=t.querySelector("#modal-body").value;if(!i){alert("No email address available for this member");return}const r=t.querySelector("#modal-send");r.disabled=!0,r.textContent="Sending...";try{const p=await(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:i,subject:s,text:o,html:o.replace(/\n/g,"<br>")})})).json();if(p.success){await d.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",a.id),alert("Email sent successfully!"),t.remove();const m=document.querySelector(".dashboard-feed");m&&f(m)}else alert("Failed to send email: "+(p.error||"Unknown error")),r.disabled=!1,r.textContent="Send Email"}catch(l){console.error("Error sending email:",l),alert("Error sending email. Check console for details."),r.disabled=!1,r.textContent="Send Email"}})}function F(a,e,n){var s;const t=((s=x.find(o=>o.id===n))==null?void 0:s.name)||"Not set",i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Edit Member</h3>
@@ -807,7 +807,7 @@ MTNS MADE Team`}async function w(){const[t,e,n,a,i,s,o,r,l,p]=await Promise.all(
           </div>
           <div class="form-field">
             <label class="form-label">Current Type</label>
-            <input type="text" class="form-input" value="${a}" readonly>
+            <input type="text" class="form-input" value="${t}" readonly>
           </div>
           <div class="form-field">
             <label class="form-label">New Membership Type</label>
@@ -842,17 +842,17 @@ MTNS MADE Team`}async function w(){const[t,e,n,a,i,s,o,r,l,p]=await Promise.all(
           <button class="admin-btn primary" id="modal-save">Update Membership</button>
         </div>
       </div>
-    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#modal-cancel").addEventListener("click",()=>i.remove()),i.addEventListener("click",o=>{o.target===i&&i.remove()}),i.querySelector("#modal-save").addEventListener("click",async()=>{var k;const o=i.querySelector("#modal-membership-type").value,r=i.querySelector("#modal-skip-billing").checked;if(!o){alert("Please select a new membership type");return}const l=((k=x.find(b=>b.id===o))==null?void 0:k.name)||"Unknown",p=r?`Change ${e}'s type from "${a}" to "${l}"?
+    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#modal-cancel").addEventListener("click",()=>i.remove()),i.addEventListener("click",o=>{o.target===i&&i.remove()}),i.querySelector("#modal-save").addEventListener("click",async()=>{var k;const o=i.querySelector("#modal-membership-type").value,r=i.querySelector("#modal-skip-billing").checked;if(!o){alert("Please select a new membership type");return}const l=((k=x.find(b=>b.id===o))==null?void 0:k.name)||"Unknown",p=r?`Change ${e}'s type from "${t}" to "${l}"?
 
-This will update the label only (no billing change).`:`Change ${e}'s type from "${a}" to "${l}"?
+This will update the label only (no billing change).`:`Change ${e}'s type from "${t}" to "${l}"?
 
-This WILL change their Stripe subscription and billing.`;if(!confirm(p))return;const m=i.querySelector("#modal-save");m.disabled=!0,m.textContent="Updating Memberstack...";try{const b=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:t,newMembershipTypeId:o,skipPlanChange:r})}),u=await b.json();if(!b.ok)throw new Error(u.error||"Update failed");let E=`Membership type updated!
+This WILL change their Stripe subscription and billing.`;if(!confirm(p))return;const m=i.querySelector("#modal-save");m.disabled=!0,m.textContent="Updating Memberstack...";try{const b=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:a,newMembershipTypeId:o,skipPlanChange:r})}),u=await b.json();if(!b.ok)throw new Error(u.error||"Update failed");let E=`Membership type updated!
 
 ${u.change.from} → ${u.change.to}`;u.results.warnings&&u.results.warnings.length>0&&(E+=`
 
 Warnings:
 - ${u.results.warnings.join(`
-- `)}`),alert(E),i.remove();const M=document.querySelector(".dashboard-feed");M&&f(M)}catch(b){console.error("Error updating membership type:",b),alert("Error updating membership type: "+b.message),m.disabled=!1,m.textContent="Update Membership"}})}function $(t,e){const n=e.incompleteProfiles.length;e.eventStats.pending,t.innerHTML=`
+- `)}`),alert(E),i.remove();const M=document.querySelector(".dashboard-feed");M&&f(M)}catch(b){console.error("Error updating membership type:",b),alert("Error updating membership type: "+b.message),m.disabled=!1,m.textContent="Update Membership"}})}function $(a,e){const n=e.incompleteProfiles.length;e.eventStats.pending,a.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-header">
           <h1>MTNS MADE // System Dashboard</h1>
@@ -921,17 +921,17 @@ Warnings:
           </div>
         </div>
       </div>
-    `,t.querySelectorAll(".tab-btn").forEach(a=>{a.addEventListener("click",()=>{t.querySelectorAll(".tab-btn").forEach(i=>i.classList.remove("active")),t.querySelectorAll(".tab-content").forEach(i=>i.classList.remove("active")),a.classList.add("active"),t.querySelector(`#tab-${a.dataset.tab}`).classList.add("active")})}),t.querySelector("#refresh-btn").addEventListener("click",()=>f(t)),t.querySelectorAll(".contact-btn").forEach(a=>{a.addEventListener("click",()=>{const i=a.dataset.memberId,s=e.incompleteProfiles.find(o=>o.id===i)||e.recentMembers.find(o=>o.id===i)||e.failedSignups.find(o=>o.id===i);s&&O(s)})}),t.querySelectorAll(".approve-btn").forEach(a=>{a.addEventListener("click",async()=>{const i=a.dataset.eventId,s=a.dataset.eventName;if(confirm(`Approve event "${s}"?
+    `,a.querySelectorAll(".tab-btn").forEach(t=>{t.addEventListener("click",()=>{a.querySelectorAll(".tab-btn").forEach(i=>i.classList.remove("active")),a.querySelectorAll(".tab-content").forEach(i=>i.classList.remove("active")),t.classList.add("active"),a.querySelector(`#tab-${t.dataset.tab}`).classList.add("active")})}),a.querySelector("#refresh-btn").addEventListener("click",()=>f(a)),a.querySelectorAll(".contact-btn").forEach(t=>{t.addEventListener("click",()=>{const i=t.dataset.memberId,s=e.incompleteProfiles.find(o=>o.id===i)||e.recentMembers.find(o=>o.id===i)||e.failedSignups.find(o=>o.id===i);s&&O(s)})}),a.querySelectorAll(".approve-btn").forEach(t=>{t.addEventListener("click",async()=>{const i=t.dataset.eventId,s=t.dataset.eventName;if(confirm(`Approve event "${s}"?
 
-This will publish the event and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const r=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({eventId:i,action:"approve"})})).json();r.success?(alert(`Event "${s}" has been approved!
+This will publish the event and notify the member.`)){t.disabled=!0,t.textContent="Approving...";try{const r=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({eventId:i,action:"approve"})})).json();r.success?(alert(`Event "${s}" has been approved!
 
-The member will be notified and the event will sync to Webflow.`),f(t)):(alert(`Failed to approve event: ${r.error}`),a.disabled=!1,a.textContent="Approve")}catch(o){console.error("Approve error:",o),alert("Error approving event. Please try again."),a.disabled=!1,a.textContent="Approve"}}})}),t.querySelectorAll(".reject-btn").forEach(a=>{a.addEventListener("click",async()=>{const i=a.dataset.eventId,s=a.dataset.eventName,o=prompt(`Reject event "${s}"?
+The member will be notified and the event will sync to Webflow.`),f(a)):(alert(`Failed to approve event: ${r.error}`),t.disabled=!1,t.textContent="Approve")}catch(o){console.error("Approve error:",o),alert("Error approving event. Please try again."),t.disabled=!1,t.textContent="Approve"}}})}),a.querySelectorAll(".reject-btn").forEach(t=>{t.addEventListener("click",async()=>{const i=t.dataset.eventId,s=t.dataset.eventName,o=prompt(`Reject event "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(o!==null){a.disabled=!0,a.textContent="Rejecting...";try{const l=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({eventId:i,action:"reject",rejectionReason:o||void 0})})).json();l.success?(alert(`Event "${s}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(o!==null){t.disabled=!0,t.textContent="Rejecting...";try{const l=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({eventId:i,action:"reject",rejectionReason:o||void 0})})).json();l.success?(alert(`Event "${s}" has been rejected.
 
-The member will be notified.`),f(t)):(alert(`Failed to reject event: ${l.error}`),a.disabled=!1,a.textContent="Reject")}catch(r){console.error("Reject error:",r),alert("Error rejecting event. Please try again."),a.disabled=!1,a.textContent="Reject"}}})}),t.querySelectorAll(".edit-btn").forEach(a=>{a.addEventListener("click",()=>{const i=a.dataset.memberId,s=a.dataset.memberName,o=a.dataset.currentType;F(i,s,o)})}),t.querySelectorAll(".delete-btn").forEach(a=>{a.addEventListener("click",async()=>{const i=a.dataset.memberId,s=a.dataset.memberName;if(confirm(`Delete "${s}"?
+The member will be notified.`),f(a)):(alert(`Failed to reject event: ${l.error}`),t.disabled=!1,t.textContent="Reject")}catch(r){console.error("Reject error:",r),alert("Error rejecting event. Please try again."),t.disabled=!1,t.textContent="Reject"}}})}),a.querySelectorAll(".edit-btn").forEach(t=>{t.addEventListener("click",()=>{const i=t.dataset.memberId,s=t.dataset.memberName,o=t.dataset.currentType;F(i,s,o)})}),a.querySelectorAll(".delete-btn").forEach(t=>{t.addEventListener("click",async()=>{const i=t.dataset.memberId,s=t.dataset.memberName;if(confirm(`Delete "${s}"?
 
-This will remove them from the dashboard and Webflow directory. This action cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const{error:o}=await d.from("members").update({is_deleted:!0,subscription_status:"deleted",updated_at:new Date().toISOString()}).eq("id",i);if(o)throw o;alert(`"${s}" has been deleted.`),f(t)}catch(o){console.error("Delete error:",o),alert("Error deleting member. Please try again."),a.disabled=!1,a.textContent="Delete"}}})})}function W(t){const e=[];t.memberStats.pendingSync>0&&e.push({type:"warning",text:"Members pending Webflow sync",count:t.memberStats.pendingSync});const n=t.incompleteProfiles.filter(a=>(Date.now()-new Date(a.created_at))/864e5>7&&!a.profile_reminder_sent_at);return n.length>0&&e.push({type:"info",text:"Incomplete profiles (7+ days, no reminder sent)",count:n.length}),t.eventStats.pending>0&&e.push({type:"info",text:"Events pending review",count:t.eventStats.pending}),t.memberStats.lapsed>0&&e.push({type:"error",text:"Lapsed subscriptions",count:t.memberStats.lapsed}),e.length===0?`
+This will remove them from the dashboard and Webflow directory. This action cannot be undone.`)){t.disabled=!0,t.textContent="Deleting...";try{const{error:o}=await d.from("members").update({is_deleted:!0,subscription_status:"deleted",updated_at:new Date().toISOString()}).eq("id",i);if(o)throw o;alert(`"${s}" has been deleted.`),f(a)}catch(o){console.error("Delete error:",o),alert("Error deleting member. Please try again."),t.disabled=!1,t.textContent="Delete"}}})})}function W(a){const e=[];a.memberStats.pendingSync>0&&e.push({type:"warning",text:"Members pending Webflow sync",count:a.memberStats.pendingSync});const n=a.incompleteProfiles.filter(t=>(Date.now()-new Date(t.created_at))/864e5>7&&!t.profile_reminder_sent_at);return n.length>0&&e.push({type:"info",text:"Incomplete profiles (7+ days, no reminder sent)",count:n.length}),a.eventStats.pending>0&&e.push({type:"info",text:"Events pending review",count:a.eventStats.pending}),a.memberStats.lapsed>0&&e.push({type:"error",text:"Lapsed subscriptions",count:a.memberStats.lapsed}),e.length===0?`
         <div class="admin-section">
           <div class="section-header">
             <h2 class="section-title">System Status</h2>
@@ -946,16 +946,16 @@ This will remove them from the dashboard and Webflow directory. This action cann
           <span class="section-badge alert">${e.length} Issue${e.length>1?"s":""}</span>
         </div>
         <div class="issues-list">
-          ${e.map(a=>`
+          ${e.map(t=>`
             <div class="issue-item">
-              <div class="issue-icon ${a.type}"></div>
-              <div class="issue-text">${a.text}</div>
-              <div class="issue-count">${a.count}</div>
+              <div class="issue-icon ${t.type}"></div>
+              <div class="issue-text">${t.text}</div>
+              <div class="issue-count">${t.count}</div>
             </div>
           `).join("")}
         </div>
       </div>
-    `}function B(t){return t.length===0?'<div class="empty-state">No members found</div>':`
+    `}function B(a){return a.length===0?'<div class="empty-state">No members found</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -968,7 +968,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tr>
         </thead>
         <tbody>
-          ${t.map(e=>{var n;return`
+          ${a.map(e=>{var n;return`
             <tr>
               <td>
                 <div class="name-cell">${e.name||e.first_name||"No name"}</div>
@@ -1001,7 +1001,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           `}).join("")}
         </tbody>
       </table>
-    `}function H(t){return t.length===0?'<div class="empty-state">All active members have complete profiles</div>':`
+    `}function H(a){return a.length===0?'<div class="empty-state">All active members have complete profiles</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1013,7 +1013,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tr>
         </thead>
         <tbody>
-          ${t.map(e=>{const n=_(e);return`
+          ${a.map(e=>{const n=_(e);return`
               <tr>
                 <td>
                   <div class="name-cell">${e.name||e.first_name||"No name"}</div>
@@ -1021,7 +1021,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
                 </td>
                 <td>
                   <div class="missing-fields">
-                    ${n.slice(0,3).map(a=>`<span class="missing-field">${a}</span>`).join("")}
+                    ${n.slice(0,3).map(t=>`<span class="missing-field">${t}</span>`).join("")}
                     ${n.length>3?`<span class="missing-field">+${n.length-3}</span>`:""}
                   </div>
                 </td>
@@ -1045,7 +1045,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
             `}).join("")}
         </tbody>
       </table>
-    `}function J(t){return t.length===0?'<div class="empty-state">No failed signups found</div>':`
+    `}function J(a){return a.length===0?'<div class="empty-state">No failed signups found</div>':`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 12px; color: #666;">
         Members who started signup but never completed payment (not active, not lapsed)
       </div>
@@ -1059,7 +1059,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tr>
         </thead>
         <tbody>
-          ${t.map(e=>`
+          ${a.map(e=>`
             <tr>
               <td>
                 <div class="name-cell">${e.name||e.first_name||"No name"}</div>
@@ -1085,12 +1085,12 @@ This will remove them from the dashboard and Webflow directory. This action cann
           `).join("")}
         </tbody>
       </table>
-    `}function V(t,e){return`
+    `}function V(a,e){return`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
         <span style="margin-right: 24px;"><strong style="color: #f59f00;">${e.pending}</strong> Pending</span>
         <span><strong style="color: #1a1a1a;">${e.published}</strong> Published</span>
       </div>
-      ${t.length===0?'<div class="empty-state">No events found</div>':`
+      ${a.length===0?'<div class="empty-state">No events found</div>':`
         <table class="admin-table">
           <thead>
             <tr>
@@ -1102,15 +1102,15 @@ This will remove them from the dashboard and Webflow directory. This action cann
             </tr>
           </thead>
           <tbody>
-            ${t.map(n=>{let a="draft";return n.is_archived?a="archived":n.is_draft?a="pending":a="published",`
+            ${a.map(n=>{let t="draft";return n.is_archived?t="archived":n.is_draft?t="pending":t="published",`
                 <tr>
                   <td>
                     <div class="name-cell">${n.name||"Untitled"}</div>
                     <div class="email-cell">${n.member_contact_email||"--"}</div>
                   </td>
                   <td>
-                    <span class="status ${a==="published"?"complete":a==="pending"?"pending":"draft"}">
-                      ${a}
+                    <span class="status ${t==="published"?"complete":t==="pending"?"pending":"draft"}">
+                      ${t}
                     </span>
                   </td>
                   <td>
@@ -1121,7 +1121,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
                   <td class="time-cell">${c(n.created_at)}</td>
                   <td>
                     <div class="action-btns">
-                      ${a==="pending"?`
+                      ${t==="pending"?`
                         <button class="action-btn approve-btn" data-event-id="${n.id}" data-event-name="${n.name}">Approve</button>
                         <button class="action-btn reject-btn" data-event-id="${n.id}" data-event-name="${n.name}">Reject</button>
                       `:""}
@@ -1135,7 +1135,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tbody>
         </table>
       `}
-    `}function G(t){return t.length===0?'<div class="empty-state">No projects found</div>':`
+    `}function G(a){return a.length===0?'<div class="empty-state">No projects found</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1146,7 +1146,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tr>
         </thead>
         <tbody>
-          ${t.map(e=>`
+          ${a.map(e=>`
             <tr>
               <td>
                 <div class="name-cell">${e.name||"Untitled"}</div>
@@ -1166,23 +1166,23 @@ This will remove them from the dashboard and Webflow directory. This action cann
           `).join("")}
         </tbody>
       </table>
-    `}function Y(t){if(!t||t.length===0)return'<div class="empty-state">No recent activity</div>';const e=a=>a==="profile_update"?{class:"profile",icon:"👤"}:a.startsWith("project_")?{class:"project",icon:"📁"}:a.startsWith("event_")?{class:"event",icon:"📅"}:a==="subscription_canceled"?{class:"canceled",icon:"🚫"}:a==="subscription_reactivated"?{class:"reactivated",icon:"✅"}:{class:"",icon:"📝"},n=a=>a.entity_webflow_url?a.entity_webflow_url:a.member_webflow_url?a.member_webflow_url:null;return`
+    `}function Y(a){if(!a||a.length===0)return'<div class="empty-state">No recent activity</div>';const e=t=>t==="member_signup"?{class:"signup",icon:"🎉"}:t==="profile_update"?{class:"profile",icon:"👤"}:t.startsWith("project_")?{class:"project",icon:"📁"}:t.startsWith("event_")?{class:"event",icon:"📅"}:t==="subscription_canceled"?{class:"canceled",icon:"🚫"}:t==="subscription_reactivated"?{class:"reactivated",icon:"✅"}:{class:"",icon:"📝"},n=t=>t.entity_webflow_url?t.entity_webflow_url:t.member_webflow_url?t.member_webflow_url:null;return`
       <div class="activity-feed">
-        ${t.map(a=>{const i=e(a.activity_type),s=n(a);return`
+        ${a.map(t=>{const i=e(t.activity_type),s=n(t);return`
             <div class="activity-item">
-              ${a.member_profile_image?`
+              ${t.member_profile_image?`
                 <div class="activity-avatar">
-                  <img src="${a.member_profile_image}" alt="${a.member_name}">
+                  <img src="${t.member_profile_image}" alt="${t.member_name}">
                 </div>
               `:`
                 <div class="activity-icon ${i.class}">${i.icon}</div>
               `}
               <div class="activity-content">
                 <div class="activity-text">
-                  <strong>${a.member_name}</strong> ${a.description}
+                  <strong>${t.member_name}</strong> ${t.description}
                 </div>
                 <div class="activity-meta">
-                  <span class="activity-time">${c(a.created_at)}</span>
+                  <span class="activity-time">${c(t.created_at)}</span>
                 </div>
               </div>
               <div class="activity-action">
@@ -1193,20 +1193,20 @@ This will remove them from the dashboard and Webflow directory. This action cann
             </div>
           `}).join("")}
       </div>
-    `}async function f(t){const e=t.querySelector("#refresh-btn");e&&(e.disabled=!0,e.textContent="Loading...");try{y=await w(),$(t,y)}catch(n){console.error("Error refreshing dashboard:",n),e&&(e.disabled=!1,e.textContent="Refresh")}}async function S(){const t=document.querySelector(".dashboard-feed");if(!t){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){t.innerHTML=`
+    `}async function f(a){const e=a.querySelector("#refresh-btn");e&&(e.disabled=!0,e.textContent="Loading...");try{y=await w(),$(a,y)}catch(n){console.error("Error refreshing dashboard:",n),e&&(e.disabled=!1,e.textContent="Refresh")}}async function S(){const a=document.querySelector(".dashboard-feed");if(!a){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){a.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error: Supabase library not loaded</div>
           </div>
         </div>
-      `;return}if(d=window.supabase.createClient(v,g),!document.querySelector("#admin-dashboard-styles")){const e=document.createElement("style");e.id="admin-dashboard-styles",e.textContent=j,document.head.appendChild(e)}t.innerHTML=`
+      `;return}if(d=window.supabase.createClient(v,g),!document.querySelector("#admin-dashboard-styles")){const e=document.createElement("style");e.id="admin-dashboard-styles",e.textContent=j,document.head.appendChild(e)}a.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-loading">
           <div class="loader"></div>
           <div class="loading-text">Loading system data...</div>
         </div>
       </div>
-    `;try{y=await w(),$(t,y)}catch(e){console.error("Error loading dashboard:",e),t.innerHTML=`
+    `;try{y=await w(),$(a,y)}catch(e){console.error("Error loading dashboard:",e),a.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error loading dashboard</div>

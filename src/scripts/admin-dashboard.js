@@ -1886,6 +1886,7 @@ MTNS MADE Team`;
     }
 
     const getActivityIcon = (type) => {
+      if (type === 'member_signup') return { class: 'signup', icon: '🎉' };
       if (type === 'profile_update') return { class: 'profile', icon: '👤' };
       if (type.startsWith('project_')) return { class: 'project', icon: '📁' };
       if (type.startsWith('event_')) return { class: 'event', icon: '📅' };
