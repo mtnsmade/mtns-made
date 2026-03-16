@@ -341,7 +341,8 @@ async function publishWebflowItem(itemId: string): Promise<void> {
 }
 
 // Create item in Webflow CMS
-async function createWebflowItem(record: ProjectRecord): Promise<string | null> {
+// Returns { id, slug } where slug is the actual slug assigned by Webflow
+async function createWebflowItem(record: ProjectRecord): Promise<{ id: string; slug: string } | null> {
   const fieldData = await mapToWebflowFields(record);
 
   const response = await fetch(
@@ -369,7 +370,9 @@ async function createWebflowItem(record: ProjectRecord): Promise<string | null> 
 
   const result = await response.json();
   const itemId = result.id;
-  console.log('Webflow item created:', itemId);
+  // Get the actual slug assigned by Webflow (may differ from what we sent)
+  const actualSlug = result.fieldData?.slug || fieldData.slug;
+  console.log('Webflow item created:', itemId, 'slug:', actualSlug);
 
   // Update the item to set portfolio-item-id to its own Webflow ID
   await fetch(
@@ -393,7 +396,7 @@ async function createWebflowItem(record: ProjectRecord): Promise<string | null> 
   // Publish the item
   await publishWebflowItem(itemId);
 
-  return itemId;
+  return { id: itemId, slug: actualSlug };
 }
 
 // Update item in Webflow CMS
@@ -510,13 +513,18 @@ async function updateProjectsWithMemberWebflowId(memberstackId: string, memberWe
   }
 }
 
-// Update Supabase project with Webflow ID
-async function updateSupabaseWithWebflowId(projectId: string, webflowId: string): Promise<void> {
+// Update Supabase project with Webflow ID and actual slug
+async function updateSupabaseWithWebflowId(projectId: string, webflowId: string, actualSlug?: string): Promise<void> {
   const supabase = getSupabaseClient();
+
+  const updateData: { webflow_id: string; slug?: string } = { webflow_id: webflowId };
+  if (actualSlug) {
+    updateData.slug = actualSlug;
+  }
 
   const { error } = await supabase
     .from('projects')
-    .update({ webflow_id: webflowId })
+    .update(updateData)
     .eq('id', projectId);
 
   if (error) {
@@ -524,7 +532,7 @@ async function updateSupabaseWithWebflowId(projectId: string, webflowId: string)
     throw error;
   }
 
-  console.log(`Updated project ${projectId} with Webflow ID: ${webflowId}`);
+  console.log(`Updated project ${projectId} with Webflow ID: ${webflowId}${actualSlug ? `, slug: ${actualSlug}` : ''}`);
 }
 
 // ============================================
@@ -1517,10 +1525,10 @@ serve(async (req: Request) => {
           break;
         }
 
-        const webflowId = await createWebflowItem(record);
+        const webflowResult = await createWebflowItem(record);
 
-        if (webflowId) {
-          await updateSupabaseWithWebflowId(record.id, webflowId);
+        if (webflowResult) {
+          await updateSupabaseWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
         }
 
         break;
@@ -1557,9 +1565,9 @@ serve(async (req: Request) => {
             break;
           }
 
-          const webflowId = await createWebflowItem(record);
-          if (webflowId) {
-            await updateSupabaseWithWebflowId(record.id, webflowId);
+          const webflowResult = await createWebflowItem(record);
+          if (webflowResult) {
+            await updateSupabaseWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
           }
           break;
         }
