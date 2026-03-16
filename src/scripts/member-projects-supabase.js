@@ -2276,6 +2276,9 @@
   // INITIALIZATION
   // ============================================
 
+  // Guard against multiple initializations
+  let isInitialized = false;
+
   function waitForMemberstack() {
     return new Promise((resolve) => {
       if (window.$memberstackDom) {
@@ -2315,11 +2318,26 @@
   }
 
   async function init() {
+    // Prevent multiple initializations
+    if (isInitialized) {
+      console.log('Member projects already initialized, skipping');
+      return;
+    }
+
     const container = document.querySelector('.supabase-project-container');
     if (!container) {
       console.warn('Could not find .supabase-project-container');
       return;
     }
+
+    // Check if already initialized by looking for existing wrapper
+    if (container.querySelector('.mp-container')) {
+      console.log('Member projects container already exists, skipping initialization');
+      isInitialized = true;
+      return;
+    }
+
+    isInitialized = true;
 
     // Add styles
     const styleEl = document.createElement('style');
@@ -2375,6 +2393,15 @@
       wrapper.innerHTML = '<div class="mp-loading">Error loading projects. Please refresh the page.</div>';
     }
   }
+
+  // Log any unhandled errors for debugging
+  window.addEventListener('error', (event) => {
+    console.error('Member Projects - Unhandled error:', event.error);
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Member Projects - Unhandled promise rejection:', event.reason);
+  });
 
   // Run when DOM is ready
   if (document.readyState === 'loading') {
