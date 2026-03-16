@@ -1009,7 +1009,7 @@
       // Check if profile meets completion criteria
       const hasProfileImage = !!profileImageUrl;
       const hasFeatureImage = !!featureImageUrl;
-      const hasBio = formData.bio && formData.bio.length >= 50;
+      const hasBio = formData.bio && formData.bio.length >= 20;
       const hasCategories = formData.chosenDirectories.length > 0 ||
                            formData.spaceCategories.length > 0 ||
                            formData.supplierCategories.length > 0;
@@ -1532,8 +1532,8 @@
         showError(errorBanner, 'Please enter a bio');
         return;
       }
-      if (formData.bio.trim().length < 50) {
-        showError(errorBanner, 'Please enter at least 50 characters for your bio');
+      if (formData.bio.trim().length < 20) {
+        showError(errorBanner, 'Please enter at least 20 characters for your bio');
         return;
       }
 

@@ -72,7 +72,7 @@ function getEmailHtml(firstName: string): string {
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                 <tr>
                   <td style="background-color: #1a1a1a; border-radius: 6px;">
-                    <a href="${SITE_URL}/profile/projects" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
+                    <a href="${SITE_URL}/profile/edit-portfolio" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
                       Add Your First Project
                     </a>
                   </td>
@@ -118,7 +118,7 @@ Tips for great projects:
 - Include your role or contribution
 - Add relevant categories to help people find you
 
-Add your first project: ${SITE_URL}/profile/projects
+Add your first project: ${SITE_URL}/profile/edit-portfolio
 
 Questions? Just reply to this email - we're here to help!
 

@@ -454,6 +454,62 @@ async function deleteWebflowItem(webflowId: string): Promise<void> {
   console.log('Webflow item deleted:', webflowId);
 }
 
+// Update member reference on all existing projects for a member
+async function updateProjectsWithMemberWebflowId(memberstackId: string, memberWebflowId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  // Get all projects for this member that have a webflow_id
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('id, webflow_id, name')
+    .eq('memberstack_id', memberstackId)
+    .not('webflow_id', 'is', null);
+
+  if (error) {
+    console.error('Error fetching member projects:', error);
+    return;
+  }
+
+  if (!projects || projects.length === 0) {
+    console.log('No existing projects to update for member');
+    return;
+  }
+
+  console.log(`Updating ${projects.length} projects with member Webflow ID: ${memberWebflowId}`);
+
+  for (const project of projects) {
+    try {
+      const response = await fetch(
+        `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/${project.webflow_id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fieldData: {
+              'webflow-member-id': memberWebflowId,
+              'member': memberWebflowId,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        console.log(`Updated project "${project.name}" with member reference`);
+        // Re-publish the project
+        await publishWebflowItem(project.webflow_id);
+      } else {
+        const errorText = await response.text();
+        console.error(`Failed to update project "${project.name}":`, errorText);
+      }
+    } catch (err) {
+      console.error(`Error updating project "${project.name}":`, err);
+    }
+  }
+}
+
 // Update Supabase project with Webflow ID
 async function updateSupabaseWithWebflowId(projectId: string, webflowId: string): Promise<void> {
   const supabase = getSupabaseClient();
@@ -1253,6 +1309,8 @@ async function handleMemberWebhook(payload: WebhookPayload): Promise<void> {
         await updateMemberWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
         // Sync Webflow ID and URL back to Memberstack using actual slug
         await updateMemberstack(record.memberstack_id, webflowResult.id, webflowResult.slug);
+        // Update any existing projects to link them to this member
+        await updateProjectsWithMemberWebflowId(record.memberstack_id, webflowResult.id);
       }
 
       break;
@@ -1277,6 +1335,8 @@ async function handleMemberWebhook(payload: WebhookPayload): Promise<void> {
           await updateMemberWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
           // Sync Webflow ID and URL back to Memberstack using actual slug
           await updateMemberstack(record.memberstack_id, webflowResult.id, webflowResult.slug);
+          // Update any existing projects to link them to this member
+          await updateProjectsWithMemberWebflowId(record.memberstack_id, webflowResult.id);
         }
         break;
       }
@@ -1344,6 +1404,20 @@ async function handleEventWebhook(payload: WebhookPayload): Promise<void> {
       }
 
       if (!record.webflow_id) {
+        // Re-check Supabase for webflow_id to prevent duplicates from race conditions
+        const supabase = getSupabaseClient();
+        const { data: currentEvent } = await supabase
+          .from('events')
+          .select('webflow_id')
+          .eq('id', record.id)
+          .single();
+
+        if (currentEvent?.webflow_id) {
+          console.log('Event already has Webflow ID (race condition prevented), updating instead');
+          await updateWebflowEvent(currentEvent.webflow_id, record);
+          break;
+        }
+
         const webflowId = await createWebflowEvent(record);
         if (webflowId) {
           await updateEventWithWebflowId(record.id, webflowId);
@@ -1469,6 +1543,20 @@ serve(async (req: Request) => {
         }
 
         if (!record.webflow_id) {
+          // Re-check Supabase for webflow_id to prevent duplicates from race conditions
+          const supabase = getSupabaseClient();
+          const { data: currentProject } = await supabase
+            .from('projects')
+            .select('webflow_id')
+            .eq('id', record.id)
+            .single();
+
+          if (currentProject?.webflow_id) {
+            console.log('Project already has Webflow ID (race condition prevented), updating instead');
+            await updateWebflowItem(currentProject.webflow_id, record);
+            break;
+          }
+
           const webflowId = await createWebflowItem(record);
           if (webflowId) {
             await updateSupabaseWithWebflowId(record.id, webflowId);

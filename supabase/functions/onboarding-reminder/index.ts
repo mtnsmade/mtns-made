@@ -78,7 +78,7 @@ function getEmailHtml(firstName: string, currentStep: number): string {
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 30px auto;">
                 <tr>
                   <td style="background-color: #1a1a1a; border-radius: 6px;">
-                    <a href="${SITE_URL}/profile/setup" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
+                    <a href="${SITE_URL}/profile/onboarding" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
                       Continue Setup
                     </a>
                   </td>
@@ -134,7 +134,7 @@ Your next step: ${nextStepDesc}
 
 Your progress has been saved, so you can pick up right where you left off.
 
-Continue setup: ${SITE_URL}/profile/setup
+Continue setup: ${SITE_URL}/profile/onboarding
 
 Once complete, your profile will be live in our creative directory where other members and potential clients can find you.
 

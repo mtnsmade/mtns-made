@@ -30,6 +30,7 @@
   let currentMember = null;
   let projects = [];
   let categories = { directories: [], subDirectories: [] };
+  let isProfileComplete = false;
 
   // ============================================
   // STYLES
@@ -103,6 +104,18 @@
       padding: 6px 12px;
       font-size: 12px;
     }
+    a.mp-btn {
+      text-decoration: none !important;
+      display: inline-block;
+    }
+    .mp-view-btn {
+      background: #007bff !important;
+      color: #fff !important;
+      border: none !important;
+    }
+    .mp-view-btn:hover {
+      background: #0056b3 !important;
+    }
     .mp-loading {
       text-align: center;
       padding: 40px;
@@ -120,30 +133,46 @@
       color: #666;
     }
     .mp-project-card {
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      background: #fff;
-      overflow: hidden;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 8px !important;
+      margin-bottom: 12px !important;
+      background: #fff !important;
+      overflow: hidden !important;
+      position: relative !important;
+      box-sizing: border-box !important;
+    }
+    .mp-project-card * {
+      box-sizing: border-box;
     }
     .mp-project-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 20px;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 16px 20px !important;
+      flex-wrap: nowrap !important;
     }
     .mp-project-header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
       cursor: pointer;
+      flex: 1;
+      min-width: 0;
     }
     .mp-project-header-left:hover .mp-project-title {
       color: #555;
     }
     .mp-project-header-actions {
-      display: flex;
-      gap: 8px;
+      display: flex !important;
+      gap: 8px !important;
+      flex-shrink: 0 !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    .mp-project-header-actions button {
+      display: inline-block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
     .mp-toggle-icon {
       font-size: 10px;
@@ -154,10 +183,12 @@
       transform: rotate(90deg);
     }
     .mp-project-title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
+      margin: 0 !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: #333 !important;
+      text-transform: none !important;
+      letter-spacing: normal !important;
     }
     .mp-project-content {
       max-height: 0;
@@ -1303,6 +1334,17 @@
   // ============================================
 
   function renderProjects(wrapper) {
+    // If profile is not complete, show message
+    if (!isProfileComplete) {
+      wrapper.innerHTML = `
+        <div class="mp-empty">
+          <p>Complete your profile to start adding projects to your portfolio.</p>
+          <a href="/profile/onboarding" class="mp-btn">Complete Profile</a>
+        </div>
+      `;
+      return;
+    }
+
     if (projects.length === 0) {
       wrapper.innerHTML = `
         <div class="mp-empty">
@@ -1433,6 +1475,7 @@
             <h3 class="mp-project-title">${project.name || 'Untitled Project'}</h3>
           </div>
           <div class="mp-project-header-actions">
+            ${project.webflow_id ? `<a href="/portfolio/${project.slug}" target="_blank" class="mp-btn mp-btn-secondary mp-btn-small mp-view-btn">View</a>` : ''}
             <button class="mp-btn mp-btn-secondary mp-btn-small mp-edit-btn">Edit</button>
             <button class="mp-btn mp-btn-danger mp-btn-small mp-delete-btn">Delete</button>
           </div>
@@ -1889,8 +1932,8 @@
           <div class="mp-form-field">
             <label>Project Description <span>*</span></label>
             <textarea class="mp-form-input" id="mp-form-description"></textarea>
-            <div class="mp-input-hint">Minimum 50 words required (<span id="mp-word-count">0</span> words)</div>
-            <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
+            <div class="mp-input-hint">Minimum 20 words required (<span id="mp-word-count">0</span> words)</div>
+            <div class="mp-input-error" id="mp-description-error">Please enter at least 20 words</div>
           </div>
 
           ${createCategorySelector(selectedCategories)}
@@ -1934,7 +1977,7 @@
       const text = descriptionInput.value.trim();
       const count = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
       wordCountEl.textContent = count;
-      wordCountEl.style.color = count >= 50 ? '#28a745' : '#666';
+      wordCountEl.style.color = count >= 20 ? '#28a745' : '#666';
       modal.querySelector('#mp-description-error').style.display = 'none';
     };
     descriptionInput.addEventListener('input', updateWordCount);
@@ -1957,7 +2000,7 @@
         return;
       }
 
-      if (wordCount < 50) {
+      if (wordCount < 20) {
         const errorEl = modal.querySelector('#mp-description-error');
         if (errorEl) errorEl.style.display = 'block';
         modal.querySelector('#mp-form-description').focus();
@@ -2042,8 +2085,8 @@
           <div class="mp-form-field">
             <label>Project Description <span>*</span></label>
             <textarea class="mp-form-input" id="mp-form-description">${project.description || ''}</textarea>
-            <div class="mp-input-hint">Minimum 50 words required (<span id="mp-word-count">0</span> words)</div>
-            <div class="mp-input-error" id="mp-description-error">Please enter at least 50 words</div>
+            <div class="mp-input-hint">Minimum 20 words required (<span id="mp-word-count">0</span> words)</div>
+            <div class="mp-input-error" id="mp-description-error">Please enter at least 20 words</div>
           </div>
 
           ${createCategorySelector(selectedCategories)}
@@ -2087,7 +2130,7 @@
       const text = descriptionInput.value.trim();
       const count = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
       wordCountEl.textContent = count;
-      wordCountEl.style.color = count >= 50 ? '#28a745' : '#666';
+      wordCountEl.style.color = count >= 20 ? '#28a745' : '#666';
       modal.querySelector('#mp-description-error').style.display = 'none';
     };
     descriptionInput.addEventListener('input', updateWordCount);
@@ -2110,7 +2153,7 @@
         return;
       }
 
-      if (wordCount < 50) {
+      if (wordCount < 20) {
         const errorEl = modal.querySelector('#mp-description-error');
         if (errorEl) errorEl.style.display = 'block';
         modal.querySelector('#mp-form-description').focus();
@@ -2255,6 +2298,15 @@
       }
       currentMember = member;
       console.log('Current member:', currentMember.id);
+
+      // Check if member's profile is complete
+      const { data: memberData } = await supabase
+        .from('members')
+        .select('profile_complete')
+        .eq('memberstack_id', member.id)
+        .single();
+      isProfileComplete = memberData?.profile_complete || false;
+      console.log('Profile complete:', isProfileComplete);
 
       // Load categories from Supabase
       categories = await loadCategories();

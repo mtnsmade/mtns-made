@@ -49,7 +49,7 @@ This larger image appears at the top of your profile page and should showcase yo
 Tell the community about yourself, your practice, and what you do.
 
 **Requirements:**
-- Minimum 50 characters
+- Minimum 20 characters
 - Recommended 100-300 words
 
 **Include:**
@@ -112,7 +112,7 @@ Before you start, make sure you have:
 
 - [ ] Profile photo (square, min 400x400px)
 - [ ] Header image (landscape, min 1200x675px)
-- [ ] Written bio (50+ characters)
+- [ ] Written bio (20+ characters)
 - [ ] Business name (if applicable)
 - [ ] Idea of which categories apply to you
 - [ ] Your suburb
