@@ -1,9 +1,18 @@
 (function(){console.log("Member projects Supabase script loaded");const P="https://epszwomtxkpjegbjbixr.supabase.co",j="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",z="project-images",w=20,V={emerging:2,professional:5,"small-business":5,"not-for-profit":5,"large-business":8,"spaces-suppliers":5};let y=null,v=null,f=[],x={directories:[],subDirectories:[]},q=!1;const W=`
     .mp-container {
       font-family: inherit;
-      width: 100%;
-      box-sizing: border-box;
-      overflow-x: visible;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      overflow-x: visible !important;
+      overflow: visible !important;
+    }
+    .mp-container * {
+      box-sizing: border-box !important;
+    }
+    .mp-projects-list {
+      width: 100% !important;
+      max-width: 100% !important;
     }
     .mp-header {
       display: flex;
@@ -100,9 +109,11 @@
       border-radius: 8px !important;
       margin-bottom: 12px !important;
       background: #fff !important;
-      overflow: hidden !important;
+      overflow: visible !important;
       position: relative !important;
       box-sizing: border-box !important;
+      width: 100% !important;
+      max-width: 100% !important;
     }
     .mp-project-card * {
       box-sizing: border-box;
@@ -131,11 +142,16 @@
       flex-shrink: 0 !important;
       visibility: visible !important;
       opacity: 1 !important;
+      margin-left: auto !important;
+      position: relative !important;
+      z-index: 10 !important;
     }
-    .mp-project-header-actions button {
-      display: inline-block !important;
+    .mp-project-header-actions button,
+    .mp-project-header-actions a {
+      display: inline-flex !important;
       visibility: visible !important;
       opacity: 1 !important;
+      white-space: nowrap !important;
     }
     .mp-toggle-icon {
       font-size: 10px;
@@ -761,7 +777,7 @@
             <h3 class="mp-project-title">${r.name||"Untitled Project"}</h3>
           </div>
           <div class="mp-project-header-actions">
-            ${r.webflow_id?`<a href="/portfolio/${r.slug}" target="_blank" class="mp-btn mp-btn-secondary mp-btn-small mp-view-btn">View</a>`:""}
+            ${r.webflow_id?`<a href="/projects/${r.slug}" target="_blank" class="mp-btn mp-btn-secondary mp-btn-small mp-view-btn">View</a>`:""}
             <button class="mp-btn mp-btn-secondary mp-btn-small mp-edit-btn">Edit</button>
             <button class="mp-btn mp-btn-danger mp-btn-small mp-delete-btn">Delete</button>
           </div>
