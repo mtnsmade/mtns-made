@@ -257,11 +257,16 @@ async function getCategoryWebflowIds(projectId: string): Promise<string[]> {
 }
 
 // Map Supabase project record to Webflow field data
-async function mapToWebflowFields(record: ProjectRecord): Promise<Record<string, unknown>> {
+// includeSlug: only include slug on create, not update (to avoid creating redirects/aliases)
+async function mapToWebflowFields(record: ProjectRecord, includeSlug: boolean = true): Promise<Record<string, unknown>> {
   const fieldData: Record<string, unknown> = {
     name: record.name,
-    slug: record.slug,
   };
+
+  // Only include slug on create (not update) to avoid duplicate slug issues
+  if (includeSlug) {
+    fieldData.slug = record.slug;
+  }
 
   // Description
   if (record.description) {
@@ -343,7 +348,7 @@ async function publishWebflowItem(itemId: string): Promise<void> {
 // Create item in Webflow CMS
 // Returns { id, slug } where slug is the actual slug assigned by Webflow
 async function createWebflowItem(record: ProjectRecord): Promise<{ id: string; slug: string } | null> {
-  const fieldData = await mapToWebflowFields(record);
+  const fieldData = await mapToWebflowFields(record, true); // Include slug on create
 
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items`,
@@ -401,7 +406,7 @@ async function createWebflowItem(record: ProjectRecord): Promise<{ id: string; s
 
 // Update item in Webflow CMS
 async function updateWebflowItem(webflowId: string, record: ProjectRecord): Promise<void> {
-  const fieldData = await mapToWebflowFields(record);
+  const fieldData = await mapToWebflowFields(record, false); // Don't update slug
 
   // Include portfolio-item-id in updates
   fieldData['portfolio-item-id'] = webflowId;
