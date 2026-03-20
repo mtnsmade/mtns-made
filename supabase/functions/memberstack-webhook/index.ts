@@ -298,6 +298,24 @@ async function getMemberByMemberstackId(memberstackId: string) {
   return data;
 }
 
+// Look up suburb Supabase UUID by Webflow ID
+async function getSuburbIdByWebflowId(webflowId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('suburbs')
+    .select('id')
+    .eq('webflow_id', webflowId)
+    .single();
+
+  if (error || !data) {
+    console.warn('Could not find suburb by Webflow ID:', webflowId, error?.message);
+    return null;
+  }
+
+  return data.id;
+}
+
 // Create member in Supabase
 async function createMember(memberData: MemberstackMemberData): Promise<void> {
   const supabase = getSupabaseClient();
@@ -320,6 +338,14 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
   }
   console.log('Setting subscription status for new member:', subscriptionStatus, 'planConnections:', memberData.planConnections);
 
+  // Look up suburb from Memberstack custom fields (stored as Webflow ID)
+  let suburbId: string | null = null;
+  const suburbWebflowId = memberData.customFields?.['suburb-id'];
+  if (suburbWebflowId) {
+    suburbId = await getSuburbIdByWebflowId(suburbWebflowId);
+    console.log('Suburb lookup:', suburbWebflowId, '->', suburbId);
+  }
+
   const { error } = await supabase
     .from('members')
     .insert({
@@ -327,6 +353,7 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
       email: memberData.auth.email,
       first_name: memberData.customFields?.['first-name'] || null,
       last_name: memberData.customFields?.['last-name'] || null,
+      suburb_id: suburbId,
       subscription_status: subscriptionStatus,
       profile_complete: false,
       is_deleted: false,
@@ -337,7 +364,7 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
     throw error;
   }
 
-  console.log('Member created in Supabase:', memberData.id);
+  console.log('Member created in Supabase:', memberData.id, 'with suburb:', suburbId);
 }
 
 // Soft delete member in Supabase
