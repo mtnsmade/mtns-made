@@ -991,10 +991,8 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
     fieldData['header-image'] = { url: record.header_image_url };
   }
 
-  // Business name
-  if (record.business_name) {
-    fieldData['trading-or-business-name'] = record.business_name;
-  }
+  // Business name - always include to allow clearing
+  fieldData['trading-or-business-name'] = record.business_name || '';
 
   // Suburb reference
   if (record.suburb_id) {
