@@ -1528,6 +1528,20 @@ serve(async (req: Request) => {
           break;
         }
 
+        // Re-check Supabase for webflow_id to prevent duplicates from race conditions
+        // (another webhook might have already created the Webflow item)
+        const supabase = getSupabaseClient();
+        const { data: currentProject } = await supabase
+          .from('projects')
+          .select('webflow_id')
+          .eq('id', record.id)
+          .single();
+
+        if (currentProject?.webflow_id) {
+          console.log('Project already has Webflow ID (race condition prevented in INSERT), skipping');
+          break;
+        }
+
         const webflowResult = await createWebflowItem(record);
 
         if (webflowResult) {
