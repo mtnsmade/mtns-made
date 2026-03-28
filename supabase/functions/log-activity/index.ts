@@ -113,10 +113,10 @@ serve(async (req) => {
     // Initialize Supabase client with service role for full access
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Look up member details
+    // Look up member details (include webflow_id to check if profile page exists)
     const { data: member, error: memberError } = await supabase
       .from('members')
-      .select('id, name, slug, first_name, last_name')
+      .select('id, name, slug, first_name, last_name, webflow_id')
       .eq('memberstack_id', body.memberstack_id)
       .single();
 
@@ -128,8 +128,8 @@ serve(async (req) => {
     // Generate description
     const description = generateDescription(body.activity_type, body.entity_name);
 
-    // Get member Webflow URL
-    const memberWebflowUrl = member?.slug ? getMemberWebflowUrl(member.slug) : null;
+    // Get member Webflow URL (only if they have a published Webflow profile)
+    const memberWebflowUrl = (member?.slug && member?.webflow_id) ? getMemberWebflowUrl(member.slug) : null;
 
     // For entity URL, we need to look up the entity's slug
     let entityWebflowUrl: string | null = null;

@@ -20,6 +20,7 @@ const SITE_URL = 'https://www.mtnsmade.com.au';
 // Webflow config
 const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
 const WEBFLOW_MEMBERS_COLLECTION_ID = '64a938756620ae4bee88df34';
+const WEBFLOW_PROJECTS_COLLECTION_ID = '64aa150f02bee661d503cf59';
 
 // Storage bucket for member images
 const MEMBER_IMAGES_BUCKET = 'member-images';
@@ -332,8 +333,11 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
   // Memberstack webhook may not always include planConnections data
   let subscriptionStatus = 'active';
   if (memberData.planConnections && memberData.planConnections.length > 0) {
-    const activePlan = memberData.planConnections.find(p => p.status === 'ACTIVE');
-    // Only set to pending if we have plan data but no active plan
+    // ACTIVE and TRIALING are both valid paying member states
+    const activePlan = memberData.planConnections.find(p =>
+      p.status === 'ACTIVE' || p.status === 'TRIALING'
+    );
+    // Only set to pending if we have plan data but no active/trialing plan
     subscriptionStatus = activePlan ? 'active' : 'pending';
   }
   console.log('Setting subscription status for new member:', subscriptionStatus, 'planConnections:', memberData.planConnections);
@@ -346,13 +350,24 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
     console.log('Suburb lookup:', suburbWebflowId, '->', suburbId);
   }
 
+  // Build display name and slug from custom fields
+  const firstName = memberData.customFields?.['first-name'] || '';
+  const lastName = memberData.customFields?.['last-name'] || '';
+  const displayName = [firstName, lastName].filter(Boolean).join(' ') || null;
+  const slug = memberData.customFields?.['slug'] ||
+    (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
+
+  console.log('Creating member with name:', displayName, 'slug:', slug);
+
   const { error } = await supabase
     .from('members')
     .insert({
       memberstack_id: memberData.id,
       email: memberData.auth.email,
-      first_name: memberData.customFields?.['first-name'] || null,
-      last_name: memberData.customFields?.['last-name'] || null,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      name: displayName,
+      slug: slug,
       suburb_id: suburbId,
       subscription_status: subscriptionStatus,
       profile_complete: false,
@@ -531,6 +546,166 @@ async function publishWebflowMember(webflowId: string): Promise<void> {
   }
 }
 
+// Unarchive all projects for a member when they are reactivated
+async function unarchiveMemberProjects(memberstackId: string): Promise<void> {
+  if (!WEBFLOW_API_TOKEN) {
+    console.log('WEBFLOW_API_TOKEN not configured, skipping project unarchive');
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+
+  // Get all projects for this member that have a Webflow ID
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('id, name, webflow_id')
+    .eq('memberstack_id', memberstackId)
+    .not('webflow_id', 'is', null)
+    .eq('is_deleted', false);
+
+  if (error) {
+    console.error('Error fetching member projects:', error);
+    return;
+  }
+
+  if (!projects || projects.length === 0) {
+    console.log('No projects to unarchive for member:', memberstackId);
+    return;
+  }
+
+  console.log(`Found ${projects.length} projects to unarchive for member:`, memberstackId);
+
+  const projectIdsToPublish: string[] = [];
+
+  for (const project of projects) {
+    try {
+      // Unarchive the project in Webflow
+      const response = await fetch(
+        `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/${project.webflow_id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify({
+            isArchived: false,
+            isDraft: false,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 404) {
+          console.log('Project not found in Webflow:', project.name, project.webflow_id);
+          continue;
+        }
+        console.error('Error unarchiving project:', project.name, response.status, errorText);
+        continue;
+      }
+
+      console.log('Project unarchived:', project.name);
+      projectIdsToPublish.push(project.webflow_id);
+    } catch (err) {
+      console.error('Error unarchiving project:', project.name, err);
+    }
+  }
+
+  // Publish all unarchived projects in one batch
+  if (projectIdsToPublish.length > 0) {
+    try {
+      const publishResponse = await fetch(
+        `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/publish`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify({
+            itemIds: projectIdsToPublish,
+          }),
+        }
+      );
+
+      if (!publishResponse.ok) {
+        const errorText = await publishResponse.text();
+        console.error('Error publishing projects:', publishResponse.status, errorText);
+      } else {
+        console.log(`Published ${projectIdsToPublish.length} projects`);
+      }
+    } catch (err) {
+      console.error('Error publishing projects:', err);
+    }
+  }
+}
+
+// Archive all projects for a member when they lapse
+async function archiveMemberProjects(memberstackId: string): Promise<void> {
+  if (!WEBFLOW_API_TOKEN) {
+    console.log('WEBFLOW_API_TOKEN not configured, skipping project archive');
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+
+  // Get all projects for this member that have a Webflow ID
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('id, name, webflow_id')
+    .eq('memberstack_id', memberstackId)
+    .not('webflow_id', 'is', null)
+    .eq('is_deleted', false);
+
+  if (error) {
+    console.error('Error fetching member projects:', error);
+    return;
+  }
+
+  if (!projects || projects.length === 0) {
+    console.log('No projects to archive for member:', memberstackId);
+    return;
+  }
+
+  console.log(`Found ${projects.length} projects to archive for member:`, memberstackId);
+
+  for (const project of projects) {
+    try {
+      const response = await fetch(
+        `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items/${project.webflow_id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify({
+            isArchived: true,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 404) {
+          console.log('Project not found in Webflow:', project.name, project.webflow_id);
+          continue;
+        }
+        console.error('Error archiving project:', project.name, response.status, errorText);
+        continue;
+      }
+
+      console.log('Project archived:', project.name);
+    } catch (err) {
+      console.error('Error archiving project:', project.name, err);
+    }
+  }
+}
+
 // Delete member images from storage
 async function deleteMemberImages(memberstackId: string): Promise<void> {
   const supabase = getSupabaseClient();
@@ -649,6 +824,10 @@ async function handleMemberPlanCanceled(data: MemberstackMemberData): Promise<vo
       await archiveInWebflow(member.webflow_id);
     }
 
+    // Also archive member's projects
+    console.log('Archiving member projects due to plan cancellation');
+    await archiveMemberProjects(data.id);
+
     // Log to activity feed
     await logActivity(data.id, 'subscription_canceled');
   } else {
@@ -686,18 +865,28 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
         // Member cancelled - archive in Webflow
         console.log('Archiving member in Webflow due to cancellation');
         await archiveInWebflow(member.webflow_id);
+        // Also archive member's projects
+        console.log('Archiving member projects due to cancellation');
+        await archiveMemberProjects(data.id);
         await logActivity(data.id, 'subscription_canceled');
       } else if (newStatus === 'active' && previousStatus === 'lapsed') {
         // Member resubscribed - unarchive in Webflow
         console.log('Unarchiving member in Webflow due to resubscription');
         await unarchiveInWebflow(member.webflow_id);
+        // Also unarchive member's projects
+        console.log('Unarchiving member projects due to resubscription');
+        await unarchiveMemberProjects(data.id);
         await logActivity(data.id, 'subscription_reactivated');
       }
     } else {
-      // No Webflow ID, but still log the activity
+      // No Webflow ID, but still archive/unarchive projects and log activity
       if (newStatus === 'lapsed' && previousStatus === 'active') {
+        console.log('Archiving member projects (no Webflow profile)');
+        await archiveMemberProjects(data.id);
         await logActivity(data.id, 'subscription_canceled');
       } else if (newStatus === 'active' && previousStatus === 'lapsed') {
+        console.log('Unarchiving member projects (no Webflow profile)');
+        await unarchiveMemberProjects(data.id);
         await logActivity(data.id, 'subscription_reactivated');
       }
     }

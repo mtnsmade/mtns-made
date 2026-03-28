@@ -989,18 +989,37 @@
   async function saveProfile() {
     const memberstackId = memberData.id;
 
-    try {
-      // Upload new images if we have files
-      let profileImageUrl = formData.profileImageUrl;
-      let featureImageUrl = formData.featureImageUrl;
+    // Upload new images if we have files
+    let profileImageUrl = formData.profileImageUrl;
+    let featureImageUrl = formData.featureImageUrl;
 
-      if (formData.profileImageFile) {
+    if (formData.profileImageFile) {
+      try {
         profileImageUrl = await uploadImage(formData.profileImageFile, memberstackId, 'profile');
+      } catch (uploadError) {
+        console.error('Profile image upload failed:', uploadError);
+        const errorMsg = uploadError.message || '';
+        if (errorMsg.includes('quota') || errorMsg.includes('storage') || errorMsg.includes('limit')) {
+          throw new Error('STORAGE_QUOTA');
+        }
+        throw new Error('PROFILE_IMAGE_UPLOAD');
       }
+    }
 
-      if (formData.featureImageFile) {
+    if (formData.featureImageFile) {
+      try {
         featureImageUrl = await uploadImage(formData.featureImageFile, memberstackId, 'feature');
+      } catch (uploadError) {
+        console.error('Feature image upload failed:', uploadError);
+        const errorMsg = uploadError.message || '';
+        if (errorMsg.includes('quota') || errorMsg.includes('storage') || errorMsg.includes('limit')) {
+          throw new Error('STORAGE_QUOTA');
+        }
+        throw new Error('FEATURE_IMAGE_UPLOAD');
       }
+    }
+
+    try {
 
       // Generate slug
       const displayName = formData.businessName || `${formData.firstName} ${formData.lastName}`.trim();
@@ -1108,7 +1127,7 @@
       console.log('Profile synced to Webflow successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
-      throw error;
+      throw new Error('DATABASE_SAVE');
     }
   }
 
@@ -1592,7 +1611,21 @@
         saveBtn.disabled = false;
       } catch (error) {
         console.error('Save error:', error);
-        showError(errorBanner, 'An error occurred while saving. Please try again.');
+
+        // Show specific error messages based on error type
+        let errorMessage = 'An error occurred while saving. Please try again.';
+
+        if (error.message === 'STORAGE_QUOTA') {
+          errorMessage = 'Unable to upload images - storage limit reached. Please contact support.';
+        } else if (error.message === 'PROFILE_IMAGE_UPLOAD') {
+          errorMessage = 'Failed to upload profile image. Please try a smaller image or try again.';
+        } else if (error.message === 'FEATURE_IMAGE_UPLOAD') {
+          errorMessage = 'Failed to upload feature image. Please try a smaller image or try again.';
+        } else if (error.message === 'DATABASE_SAVE') {
+          errorMessage = 'Failed to save profile data. Please try again.';
+        }
+
+        showError(errorBanner, errorMessage);
         saveBtn.textContent = 'Save Changes';
         saveBtn.disabled = false;
       }

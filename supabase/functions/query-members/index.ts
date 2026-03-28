@@ -13,6 +13,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
+const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const WEBFLOW_MEMBERS_COLLECTION_ID = '64a938756620ae4bee88df34';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -568,6 +569,141 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, results }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get Memberstack member data
+    if (body.mode === 'get-memberstack' && body.memberstack_id) {
+      if (!MEMBERSTACK_API_KEY) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'MEMBERSTACK_API_KEY not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const response = await fetch(
+        `https://admin.memberstack.com/members/${body.memberstack_id}`,
+        {
+          headers: {
+            'X-API-KEY': MEMBERSTACK_API_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        return new Response(
+          JSON.stringify({ success: false, error: `Memberstack API error: ${error}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const memberstackData = await response.json();
+      return new Response(
+        JSON.stringify({ success: true, memberstack: memberstackData }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create member from Memberstack data (for webhook failures)
+    if (body.mode === 'create-from-memberstack' && body.memberstack_id) {
+      if (!MEMBERSTACK_API_KEY) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'MEMBERSTACK_API_KEY not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if member already exists
+      const { data: existing } = await supabase
+        .from('members')
+        .select('id')
+        .eq('memberstack_id', body.memberstack_id)
+        .single();
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Member already exists in Supabase' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fetch from Memberstack
+      const msResponse = await fetch(
+        `https://admin.memberstack.com/members/${body.memberstack_id}`,
+        {
+          headers: {
+            'X-API-KEY': MEMBERSTACK_API_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!msResponse.ok) {
+        const error = await msResponse.text();
+        return new Response(
+          JSON.stringify({ success: false, error: `Memberstack API error: ${error}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const msData = await msResponse.json();
+      const member = msData.data;
+      const cf = member.customFields || {};
+
+      // Look up suburb ID if suburb name provided
+      let suburbId: string | null = null;
+      if (cf['suburb']) {
+        const { data: suburb } = await supabase
+          .from('suburbs')
+          .select('id')
+          .eq('name', cf['suburb'])
+          .single();
+        suburbId = suburb?.id || null;
+      }
+
+      // Build name and slug
+      const firstName = cf['first-name'] || '';
+      const lastName = cf['last-name'] || '';
+      const displayName = [firstName, lastName].filter(Boolean).join(' ') || null;
+      const slug = cf['slug'] ||
+        (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
+
+      // Determine status (ACTIVE or TRIALING both count as active)
+      const planConnections = member.planConnections || [];
+      const hasActivePlan = planConnections.some(
+        (p: { status: string }) => p.status === 'ACTIVE' || p.status === 'TRIALING'
+      );
+
+      // Create the member
+      const { data: newMember, error: createError } = await supabase
+        .from('members')
+        .insert({
+          memberstack_id: body.memberstack_id,
+          email: member.auth?.email,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          name: displayName,
+          slug: slug,
+          suburb_id: suburbId,
+          subscription_status: hasActivePlan ? 'active' : 'pending',
+          profile_complete: false,
+          is_deleted: false,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        return new Response(
+          JSON.stringify({ success: false, error: createError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, member: newMember }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

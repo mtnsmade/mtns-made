@@ -91,18 +91,38 @@ async function fetchAllWebflowProjects(): Promise<WebflowProject[]> {
   return allProjects;
 }
 
-// Get all Supabase project webflow_ids
-async function getSupabaseProjectIds(): Promise<Set<string>> {
+// Get all Supabase projects (webflow_ids and names for duplicate detection)
+interface SupabaseProjectInfo {
+  webflowIds: Set<string>;
+  projectsByMember: Map<string, Set<string>>; // memberstack_id -> Set of project names
+}
+
+async function getSupabaseProjectInfo(): Promise<SupabaseProjectInfo> {
   const { data, error } = await supabase
     .from('projects')
-    .select('webflow_id')
+    .select('webflow_id, name, memberstack_id')
     .not('webflow_id', 'is', null);
 
   if (error) {
     throw new Error(`Supabase query error: ${error.message}`);
   }
 
-  return new Set(data.map(p => p.webflow_id));
+  const webflowIds = new Set<string>();
+  const projectsByMember = new Map<string, Set<string>>();
+
+  for (const p of data || []) {
+    if (p.webflow_id) {
+      webflowIds.add(p.webflow_id);
+    }
+    if (p.memberstack_id && p.name) {
+      if (!projectsByMember.has(p.memberstack_id)) {
+        projectsByMember.set(p.memberstack_id, new Set());
+      }
+      projectsByMember.get(p.memberstack_id)!.add(p.name.toLowerCase());
+    }
+  }
+
+  return { webflowIds, projectsByMember };
 }
 
 // Get member status by memberstack_id
@@ -212,18 +232,25 @@ serve(async (req) => {
     const webflowProjects = await fetchAllWebflowProjects();
     result.webflowTotal = webflowProjects.length;
 
-    console.log('Fetching Supabase project IDs...');
-    const supabaseProjectIds = await getSupabaseProjectIds();
-    result.supabaseTotal = supabaseProjectIds.size;
+    console.log('Fetching Supabase project info...');
+    const supabaseInfo = await getSupabaseProjectInfo();
+    result.supabaseTotal = supabaseInfo.webflowIds.size;
 
     console.log('Fetching member statuses...');
     const memberStatuses = await getMemberStatuses();
 
-    // Find orphaned projects (in Webflow but not Supabase)
-    const orphanedProjects = webflowProjects.filter(p => !supabaseProjectIds.has(p.id));
+    // Find orphaned projects (in Webflow but not Supabase by webflow_id)
+    const orphanedProjects = webflowProjects.filter(p => !supabaseInfo.webflowIds.has(p.id));
     result.orphanedProjects = orphanedProjects.length;
 
     console.log(`Found ${orphanedProjects.length} orphaned projects`);
+
+    // Helper to check if project is a duplicate (same name exists for member in Supabase)
+    const isDuplicate = (memberstackId: string, projectName: string): boolean => {
+      const memberProjects = supabaseInfo.projectsByMember.get(memberstackId);
+      if (!memberProjects) return false;
+      return memberProjects.has(projectName.toLowerCase());
+    };
 
     // Categorize orphaned projects
     for (const project of orphanedProjects) {
@@ -257,6 +284,17 @@ serve(async (req) => {
           id: project.id,
           name: project.fieldData.name,
           reason: 'member_deleted',
+          memberName: memberInfo.name,
+        });
+        continue;
+      }
+
+      // Check if this is a duplicate (same project name already exists with different webflow_id)
+      if (isDuplicate(memberstackId, project.fieldData.name)) {
+        result.toDelete.push({
+          id: project.id,
+          name: project.fieldData.name,
+          reason: 'duplicate_webflow_item',
           memberName: memberInfo.name,
         });
         continue;

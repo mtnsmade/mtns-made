@@ -552,6 +552,11 @@
       color: #2e7d32;
     }
 
+    .activity-icon.signup {
+      background: #fff8e1;
+      color: #ff8f00;
+    }
+
     .activity-avatar {
       width: 32px;
       height: 32px;
@@ -1896,6 +1901,8 @@ MTNS MADE Team`;
     };
 
     const getViewUrl = (activity) => {
+      // Don't show View for new signups - they won't have a profile until onboarding completes
+      if (activity.activity_type === 'member_signup') return null;
       if (activity.entity_webflow_url) return activity.entity_webflow_url;
       if (activity.member_webflow_url) return activity.member_webflow_url;
       return null;
