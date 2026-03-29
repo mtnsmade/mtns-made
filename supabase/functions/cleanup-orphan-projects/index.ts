@@ -43,7 +43,7 @@ interface CleanupResult {
   webflowTotal: number;
   supabaseTotal: number;
   orphanedProjects: number;
-  toDelete: Array<{ id: string; name: string; reason: string; memberName?: string }>;
+  toDelete: Array<{ id: string; name: string; reason: string; memberName?: string; correctWebflowId?: string }>;
   toImport: Array<{ id: string; name: string; memberName: string }>;
   deleted: number;
   imported: number;
@@ -95,6 +95,7 @@ async function fetchAllWebflowProjects(): Promise<WebflowProject[]> {
 interface SupabaseProjectInfo {
   webflowIds: Set<string>;
   projectsByMember: Map<string, Set<string>>; // memberstack_id -> Set of project names
+  projectWebflowIds: Map<string, string>; // "memberstack_id:name" -> correct webflow_id
 }
 
 async function getSupabaseProjectInfo(): Promise<SupabaseProjectInfo> {
@@ -109,6 +110,7 @@ async function getSupabaseProjectInfo(): Promise<SupabaseProjectInfo> {
 
   const webflowIds = new Set<string>();
   const projectsByMember = new Map<string, Set<string>>();
+  const projectWebflowIds = new Map<string, string>(); // key: "memberstack_id:name" -> webflow_id
 
   for (const p of data || []) {
     if (p.webflow_id) {
@@ -119,10 +121,13 @@ async function getSupabaseProjectInfo(): Promise<SupabaseProjectInfo> {
         projectsByMember.set(p.memberstack_id, new Set());
       }
       projectsByMember.get(p.memberstack_id)!.add(p.name.toLowerCase());
+      // Store the correct webflow_id for this project
+      const key = `${p.memberstack_id}:${p.name.toLowerCase()}`;
+      projectWebflowIds.set(key, p.webflow_id);
     }
   }
 
-  return { webflowIds, projectsByMember };
+  return { webflowIds, projectsByMember, projectWebflowIds };
 }
 
 // Get member status by memberstack_id
@@ -150,8 +155,110 @@ async function getMemberStatuses(): Promise<Map<string, { status: string; name: 
   return statusMap;
 }
 
-// Delete project from Webflow
-async function deleteWebflowProject(projectId: string): Promise<boolean> {
+// Remove reference to a project from a referring item
+async function removeProjectReference(
+  refItemId: string,
+  refCollectionId: string,
+  projectIdToRemove: string,
+  replacementProjectId?: string
+): Promise<{ success: boolean; error?: string }> {
+  // First, get the current item to see its references
+  const getResponse = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${refCollectionId}/items/${refItemId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'accept': 'application/json',
+      },
+    }
+  );
+
+  if (!getResponse.ok) {
+    const errText = await getResponse.text();
+    console.error(`Failed to fetch referring item ${refItemId}: ${errText}`);
+    return { success: false, error: `Failed to fetch item: ${errText}` };
+  }
+
+  const item = await getResponse.json();
+  const fieldData = item.fieldData || {};
+
+  console.log(`DEBUG: Item fieldData keys: ${Object.keys(fieldData).join(', ')}`);
+  console.log(`DEBUG: Looking for reference to ${projectIdToRemove}`);
+
+  // Find fields that contain the project reference (could be in any multi-ref field)
+  const updatedFieldData: Record<string, unknown> = {};
+  let foundReference = false;
+
+  for (const [key, value] of Object.entries(fieldData)) {
+    console.log(`DEBUG: Field '${key}' type: ${typeof value}, isArray: ${Array.isArray(value)}, value: ${JSON.stringify(value).substring(0, 200)}`);
+
+    if (Array.isArray(value)) {
+      // Check if any element contains the projectIdToRemove (could be string or object)
+      const hasRef = value.some((v: unknown) => {
+        if (typeof v === 'string') return v === projectIdToRemove;
+        if (typeof v === 'object' && v !== null && 'id' in v) return (v as {id: string}).id === projectIdToRemove;
+        return false;
+      });
+
+      if (hasRef) {
+        foundReference = true;
+        // For conflict resolution, clear the entire multi-reference field
+        // This is safer than trying to validate each remaining reference
+        console.log(`Found reference to ${projectIdToRemove} in field '${key}', clearing field to resolve conflict`);
+        updatedFieldData[key] = [];
+      }
+    }
+  }
+
+  if (!foundReference) {
+    console.log(`No reference found to ${projectIdToRemove} in item ${refItemId} - checking single-ref fields`);
+    // Maybe it's a single reference field, not multi-ref
+    for (const [key, value] of Object.entries(fieldData)) {
+      if (typeof value === 'string' && value === projectIdToRemove) {
+        foundReference = true;
+        updatedFieldData[key] = null;
+        console.log(`Found single ref in field '${key}', clearing to null`);
+      }
+    }
+  }
+
+  if (!foundReference) {
+    const fieldKeys = Object.keys(fieldData).join(', ');
+    console.log(`Still no reference found to ${projectIdToRemove} in item ${refItemId}. Fields: ${fieldKeys}`);
+    return { success: false, error: `No reference found in fields: ${fieldKeys}` };
+  }
+
+  console.log(`DEBUG: Updating with fieldData: ${JSON.stringify(updatedFieldData)}`);
+
+  // Update the item to remove/replace the reference
+  const updateResponse = await fetch(
+    `${WEBFLOW_API_BASE}/collections/${refCollectionId}/items/${refItemId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({ fieldData: updatedFieldData }),
+    }
+  );
+
+  if (!updateResponse.ok) {
+    const errorText = await updateResponse.text();
+    console.error(`Failed to update referring item: ${errorText}`);
+    return { success: false, error: `Failed to update: ${errorText}` };
+  }
+
+  console.log(`Successfully updated referring item ${refItemId}`);
+  return { success: true };
+}
+
+// Delete project from Webflow (handles reference conflicts)
+async function deleteWebflowProject(
+  projectId: string,
+  correctProjectId?: string // The correct version to replace references with
+): Promise<{ success: boolean; error?: string }> {
   const response = await fetch(
     `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION}/items/${projectId}`,
     {
@@ -163,7 +270,59 @@ async function deleteWebflowProject(projectId: string): Promise<boolean> {
     }
   );
 
-  return response.ok;
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    // Check if it's a conflict error due to references
+    if (response.status === 409) {
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.details && errorData.details[0]?.conflicts) {
+          // Handle each conflict
+          for (const conflict of errorData.details[0].conflicts) {
+            if (conflict.type === 'item_ref' && conflict.ref) {
+              console.log(`Removing reference from ${conflict.ref.name} (${conflict.ref.collectionId})`);
+              const removeResult = await removeProjectReference(
+                conflict.ref.id,
+                conflict.ref.collectionId,
+                projectId,
+                correctProjectId
+              );
+              if (!removeResult.success) {
+                return { success: false, error: `Failed to remove reference from ${conflict.ref.name}: ${removeResult.error}` };
+              }
+            }
+          }
+
+          // Retry delete after removing references
+          console.log('Retrying delete after removing references...');
+          const retryResponse = await fetch(
+            `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION}/items/${projectId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+                'accept': 'application/json',
+              },
+            }
+          );
+
+          if (retryResponse.ok) {
+            return { success: true };
+          }
+          const retryError = await retryResponse.text();
+          return { success: false, error: `Retry failed: ${retryError}` };
+        }
+      } catch (e) {
+        // Couldn't parse conflict details
+      }
+    }
+
+    console.error(`Delete failed for ${projectId}: ${response.status} - ${errorText}`);
+    return { success: false, error: `${response.status}: ${errorText}` };
+  }
+
+  return { success: true };
 }
 
 // Import project from Webflow to Supabase
@@ -252,6 +411,12 @@ serve(async (req) => {
       return memberProjects.has(projectName.toLowerCase());
     };
 
+    // Helper to get the correct webflow_id for a project
+    const getCorrectWebflowId = (memberstackId: string, projectName: string): string | undefined => {
+      const key = `${memberstackId}:${projectName.toLowerCase()}`;
+      return supabaseInfo.projectWebflowIds.get(key);
+    };
+
     // Categorize orphaned projects
     for (const project of orphanedProjects) {
       const memberstackId = project.fieldData['memberstack-id'];
@@ -291,11 +456,13 @@ serve(async (req) => {
 
       // Check if this is a duplicate (same project name already exists with different webflow_id)
       if (isDuplicate(memberstackId, project.fieldData.name)) {
+        const correctId = getCorrectWebflowId(memberstackId, project.fieldData.name);
         result.toDelete.push({
           id: project.id,
           name: project.fieldData.name,
           reason: 'duplicate_webflow_item',
           memberName: memberInfo.name,
+          correctWebflowId: correctId, // The correct version to replace references with
         });
         continue;
       }
@@ -328,12 +495,13 @@ serve(async (req) => {
       // Delete projects
       for (const project of result.toDelete) {
         try {
-          const success = await deleteWebflowProject(project.id);
-          if (success) {
+          // Pass correctWebflowId for duplicates so references can be updated
+          const deleteResult = await deleteWebflowProject(project.id, project.correctWebflowId);
+          if (deleteResult.success) {
             result.deleted++;
             console.log(`Deleted: ${project.name}`);
           } else {
-            result.errors.push(`Failed to delete: ${project.name}`);
+            result.errors.push(`Failed to delete ${project.name}: ${deleteResult.error}`);
           }
         } catch (err) {
           result.errors.push(`Error deleting ${project.name}: ${err.message}`);
