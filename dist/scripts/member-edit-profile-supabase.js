@@ -1,65 +1,4 @@
-// Member Edit Profile Script - Supabase Version
-// Single-page form for editing member profile information
-// Uses Supabase for data storage and image uploads
-// Replaces Memberstack JSON, Zapier, and Uploadcare
-
-(function() {
-  console.log('Member edit profile Supabase script loaded');
-
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
-  const STORAGE_BUCKET = 'member-images';
-
-  // Membership type classifications
-  const BUSINESS_TYPES = ['small-business', 'large-business', 'not-for-profit', 'spaces-suppliers'];
-  const SPACES_SUPPLIERS_TYPE = 'spaces-suppliers';
-  const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-  // ============================================
-  // STATE
-  // ============================================
-  let supabase = null;
-  let memberData = null;  // Memberstack data
-  let supabaseMember = null;  // Supabase member record
-  let categories = { directories: [], subDirectories: [], spaceCategories: [], supplierCategories: [] };
-  let suburbs = [];
-  let formData = {
-    firstName: '',
-    lastName: '',
-    email: '',
-    profileImageUrl: '',
-    profileImageFile: null,
-    featureImageUrl: '',
-    featureImageFile: null,
-    bio: '',
-    businessName: '',
-    suburb: null,
-    businessAddress: '',
-    displayAddress: false,
-    openingHours: {
-      monday: '', tuesday: '', wednesday: '', thursday: '',
-      friday: '', saturday: '', sunday: ''
-    },
-    displayOpeningHours: false,
-    spaceOrSupplier: null,
-    chosenDirectories: [],
-    spaceCategories: [],
-    supplierCategories: [],
-    website: '',
-    instagram: '',
-    facebook: '',
-    linkedin: '',
-    tiktok: '',
-    youtube: ''
-  };
-
-  // ============================================
-  // STYLES
-  // ============================================
-  const styles = `
+(function(){console.log("Member edit profile Supabase script loaded");const I="https://epszwomtxkpjegbjbixr.supabase.co",w="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",_="member-images",M=["small-business","large-business","not-for-profit","spaces-suppliers"],H="spaces-suppliers",A=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];let d=null,x=null,P=null,y={directories:[],subDirectories:[],spaceCategories:[],supplierCategories:[]},E=[],e={firstName:"",lastName:"",email:"",profileImageUrl:"",profileImageFile:null,featureImageUrl:"",featureImageFile:null,bio:"",businessName:"",suburb:null,businessAddress:"",displayAddress:!1,openingHours:{monday:"",tuesday:"",wednesday:"",thursday:"",friday:"",saturday:"",sunday:""},displayOpeningHours:!1,spaceOrSupplier:null,chosenDirectories:[],spaceCategories:[],supplierCategories:[],website:"",instagram:"",facebook:"",linkedin:"",tiktok:"",youtube:""};const B=`
     .ep-container {
       font-family: inherit;
       width: 100%;
@@ -562,671 +501,16 @@
     .ep-suburb-option:hover {
       background: #f5f5f5;
     }
-  `;
-
-  // ============================================
-  // UTILITY FUNCTIONS
-  // ============================================
-
-  function waitForDependencies() {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      const maxAttempts = 50;
-      const check = setInterval(() => {
-        attempts++;
-        if (window.$memberstackDom && window.supabase) {
-          clearInterval(check);
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(check);
-          reject(new Error('Dependencies not loaded'));
-        }
-      }, 100);
-    });
-  }
-
-  function isBusinessType(type) {
-    return BUSINESS_TYPES.includes(type);
-  }
-
-  function isSpacesSuppliers(type) {
-    return type === SPACES_SUPPLIERS_TYPE;
-  }
-
-  // Social media URL normalization
-  const SOCIAL_PLATFORMS = {
-    instagram: {
-      baseUrl: 'https://www.instagram.com/',
-      patterns: [/instagram\.com\/([^\/\?]+)/i, /^@?([a-zA-Z0-9._]+)$/]
-    },
-    facebook: {
-      baseUrl: 'https://www.facebook.com/',
-      patterns: [/facebook\.com\/([^\/\?]+)/i, /^([a-zA-Z0-9.]+)$/]
-    },
-    linkedin: {
-      baseUrl: 'https://www.linkedin.com/in/',
-      patterns: [/linkedin\.com\/(in|company)\/([^\/\?]+)/i, /^([a-zA-Z0-9-]+)$/]
-    },
-    tiktok: {
-      baseUrl: 'https://www.tiktok.com/@',
-      patterns: [/tiktok\.com\/@?([^\/\?]+)/i, /^@?([a-zA-Z0-9._]+)$/]
-    },
-    youtube: {
-      baseUrl: 'https://www.youtube.com/',
-      patterns: [/youtube\.com\/(channel|c|user|@)\/([^\/\?]+)/i, /youtube\.com\/([^\/\?]+)/i, /^@?([a-zA-Z0-9_-]+)$/]
-    }
-  };
-
-  function normalizeUrl(value, platform = null) {
-    if (!value || !value.trim()) {
-      return { valid: true, url: '' };
-    }
-
-    value = value.trim();
-
-    if (value.includes(' ')) {
-      return { valid: false, error: 'Please enter only one URL (no spaces)' };
-    }
-
-    const httpCount = (value.match(/https?:\/\//gi) || []).length;
-    if (httpCount > 1) {
-      return { valid: false, error: 'Please enter only one URL' };
-    }
-
-    if (/^https?:\/\//i.test(value)) {
-      try {
-        new URL(value);
-        return { valid: true, url: value };
-      } catch {
-        return { valid: false, error: 'Invalid URL format' };
-      }
-    }
-
-    if (platform === 'website') {
-      if (/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}/.test(value)) {
-        return { valid: true, url: 'https://' + value };
-      }
-      return { valid: false, error: 'Please enter a full website URL' };
-    }
-
-    if (platform && SOCIAL_PLATFORMS[platform]) {
-      const config = SOCIAL_PLATFORMS[platform];
-
-      if (value.toLowerCase().includes(platform.toLowerCase() + '.com')) {
-        return { valid: true, url: 'https://' + value.replace(/^(https?:\/\/)?/i, '') };
-      }
-
-      for (const pattern of config.patterns) {
-        const match = value.match(pattern);
-        if (match) {
-          const username = match[match.length - 1];
-          if (username.toLowerCase() === platform.toLowerCase()) {
-            return { valid: false, error: `Please enter your ${platform} profile URL or username` };
-          }
-          return { valid: true, url: config.baseUrl + username.replace(/^@/, '') };
-        }
-      }
-
-      return { valid: false, error: `Please enter a valid ${platform} URL or username` };
-    }
-
-    return { valid: false, error: 'Invalid URL' };
-  }
-
-  function validateSocialLinks() {
-    const errors = [];
-    const platforms = ['website', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
-
-    platforms.forEach(platform => {
-      const value = formData[platform];
-      if (value && value.trim()) {
-        const result = normalizeUrl(value, platform);
-        if (!result.valid) {
-          errors.push({ platform, error: result.error });
-        } else {
-          formData[platform] = result.url;
-        }
-      }
-    });
-
-    return errors;
-  }
-
-  function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // ============================================
-  // SUPABASE OPERATIONS
-  // ============================================
-
-  async function loadCategories() {
-    try {
-      const { data: directories } = await supabase
-        .from('directories')
-        .select('id, name, slug')
-        .order('display_order');
-
-      const { data: subDirectories } = await supabase
-        .from('sub_directories')
-        .select('id, name, slug, directory_id')
-        .order('name');
-
-      const { data: spaceCategories } = await supabase
-        .from('creative_space_categories')
-        .select('id, name, slug')
-        .order('name');
-
-      const { data: supplierCategories } = await supabase
-        .from('supplier_categories')
-        .select('id, name, slug')
-        .order('name');
-
-      categories = {
-        directories: directories || [],
-        subDirectories: subDirectories || [],
-        spaceCategories: spaceCategories || [],
-        supplierCategories: supplierCategories || []
-      };
-
-      return categories;
-    } catch (error) {
-      console.error('Error loading categories:', error);
-      throw error;
-    }
-  }
-
-  async function loadAllSuburbs() {
-    try {
-      const { data, error } = await supabase
-        .from('suburbs')
-        .select('id, name')
-        .order('name');
-
-      if (error) throw error;
-
-      suburbs = data || [];
-      return suburbs;
-    } catch (error) {
-      console.error('Error loading suburbs:', error);
-      return [];
-    }
-  }
-
-  async function loadMemberData(memberstackId) {
-    try {
-      // Load member
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('*')
-        .eq('memberstack_id', memberstackId)
-        .single();
-
-      console.log('Loaded member data:', member, error);
-
-      if (error) {
-        console.error('Error loading member:', error);
-        throw error;
-      }
-
-      if (error) throw error;
-      if (!member) return null;
-
-      supabaseMember = member;
-
-      // Load member's sub-directories
-      const { data: memberSubDirs } = await supabase
-        .from('member_sub_directories')
-        .select('sub_directory_id')
-        .eq('member_id', member.id);
-
-      // Load member's space categories
-      const { data: memberSpaceCats } = await supabase
-        .from('member_space_categories')
-        .select('space_category_id')
-        .eq('member_id', member.id);
-
-      // Load member's supplier categories
-      const { data: memberSupplierCats } = await supabase
-        .from('member_supplier_categories')
-        .select('supplier_category_id')
-        .eq('member_id', member.id);
-
-      // Populate formData
-      formData.firstName = member.first_name || '';
-      formData.lastName = member.last_name || '';
-      formData.email = member.email || '';
-      formData.profileImageUrl = member.profile_image_url || '';
-      formData.featureImageUrl = member.header_image_url || '';
-      formData.bio = member.bio || '';
-      formData.businessName = member.business_name || '';
-      formData.businessAddress = member.business_address || '';
-      formData.displayAddress = member.show_address || false;
-      formData.displayOpeningHours = member.show_opening_hours || false;
-
-      // Suburb - find from loaded suburbs list
-      if (member.suburb_id) {
-        const suburb = suburbs.find(s => s.id === member.suburb_id);
-        if (suburb) {
-          formData.suburb = {
-            id: suburb.id,
-            name: suburb.name
-          };
-        }
-      }
-
-      // Opening hours
-      DAYS_OF_WEEK.forEach(day => {
-        formData.openingHours[day.toLowerCase()] = member[`opening_${day.toLowerCase()}`] || '';
-      });
-
-      // Space/Supplier type
-      if (member.is_creative_space) {
-        formData.spaceOrSupplier = 'space';
-      } else if (member.is_supplier) {
-        formData.spaceOrSupplier = 'supplier';
-      }
-
-      // Categories
-      formData.chosenDirectories = (memberSubDirs || []).map(d => d.sub_directory_id);
-      formData.spaceCategories = (memberSpaceCats || []).map(c => c.space_category_id);
-      formData.supplierCategories = (memberSupplierCats || []).map(c => c.supplier_category_id);
-
-      // Links
-      formData.website = member.website || '';
-      formData.instagram = member.instagram || '';
-      formData.facebook = member.facebook || '';
-      formData.linkedin = member.linkedin || '';
-      formData.tiktok = member.tiktok || '';
-      formData.youtube = member.youtube || '';
-
-      return member;
-    } catch (error) {
-      console.error('Error loading member data:', error);
-      return null;
-    }
-  }
-
-  // Compress image to fit under Webflow's 4MB limit
-  const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB (safe margin under 4MB limit)
-  const MAX_DIMENSION = 2000; // Max width/height in pixels
-
-  function updateCompressionStatus(type, message, status) {
-    const statusEl = document.getElementById(`${type}-compression-status`);
-    if (statusEl) {
-      statusEl.textContent = message;
-      statusEl.className = 'ep-compression-status' + (status ? ` ${status}` : '');
-    }
-  }
-
-  async function compressImage(file, type) {
-    const originalSize = (file.size / 1024 / 1024).toFixed(1);
-
-    // Skip if already under size limit
-    if (file.size <= MAX_FILE_SIZE) {
-      console.log(`Image ${file.name} is ${originalSize}MB - no compression needed`);
-      return { file, compressed: false, originalSize, finalSize: originalSize };
-    }
-
-    console.log(`Compressing image ${file.name} from ${originalSize}MB...`);
-    updateCompressionStatus(type, `Compressing image (${originalSize}MB)...`, 'compressing');
-
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      img.onload = () => {
-        let { width, height } = img;
-
-        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-          const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const tryCompress = (quality) => {
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error('Failed to compress image'));
-                return;
-              }
-
-              const finalSize = (blob.size / 1024 / 1024).toFixed(1);
-              console.log(`Compressed to ${finalSize}MB at quality ${quality}`);
-
-              if (blob.size <= MAX_FILE_SIZE || quality <= 0.3) {
-                const compressedFile = new File([blob], file.name, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now(),
-                });
-                resolve({ file: compressedFile, compressed: true, originalSize, finalSize });
-              } else {
-                tryCompress(quality - 0.1);
-              }
-            },
-            'image/jpeg',
-            quality
-          );
-        };
-
-        tryCompress(0.8);
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image for compression'));
-      img.src = URL.createObjectURL(file);
-    });
-  }
-
-  async function uploadImage(file, memberstackId, type) {
-    try {
-      // Compress image if needed (Webflow has 4MB limit)
-      const { file: compressedFile, compressed, originalSize, finalSize } = await compressImage(file, type);
-
-      if (compressed) {
-        updateCompressionStatus(type, `Compressed from ${originalSize}MB to ${finalSize}MB`, 'success');
-      } else {
-        updateCompressionStatus(type, '', '');
-      }
-
-      // Delete old images of the same type before uploading new one
-      const { data: existingFiles } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .list(memberstackId);
-
-      if (existingFiles && existingFiles.length > 0) {
-        // Find and delete files that start with the type prefix (profile_ or feature_)
-        const oldFiles = existingFiles
-          .filter(f => f.name.startsWith(`${type}_`))
-          .map(f => `${memberstackId}/${f.name}`);
-
-        if (oldFiles.length > 0) {
-          const { error: deleteError } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .remove(oldFiles);
-
-          if (deleteError) {
-            console.warn('Error deleting old images:', deleteError);
-            // Continue with upload even if delete fails
-          } else {
-            console.log(`Deleted ${oldFiles.length} old ${type} image(s)`);
-          }
-        }
-      }
-
-      // Use .jpg extension since we compress to JPEG
-      const fileName = `${type}_${Date.now()}.jpg`;
-      const filePath = `${memberstackId}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, compressedFile, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error) {
-      console.error(`Error uploading ${type} image:`, error);
-      throw error;
-    }
-  }
-
-  async function saveProfile() {
-    const memberstackId = memberData.id;
-
-    // Upload new images if we have files
-    let profileImageUrl = formData.profileImageUrl;
-    let featureImageUrl = formData.featureImageUrl;
-
-    if (formData.profileImageFile) {
-      try {
-        profileImageUrl = await uploadImage(formData.profileImageFile, memberstackId, 'profile');
-      } catch (uploadError) {
-        console.error('Profile image upload failed:', uploadError);
-        const errorMsg = uploadError.message || '';
-        if (errorMsg.includes('quota') || errorMsg.includes('storage') || errorMsg.includes('limit')) {
-          throw new Error('STORAGE_QUOTA');
-        }
-        throw new Error('PROFILE_IMAGE_UPLOAD');
-      }
-    }
-
-    if (formData.featureImageFile) {
-      try {
-        featureImageUrl = await uploadImage(formData.featureImageFile, memberstackId, 'feature');
-      } catch (uploadError) {
-        console.error('Feature image upload failed:', uploadError);
-        const errorMsg = uploadError.message || '';
-        if (errorMsg.includes('quota') || errorMsg.includes('storage') || errorMsg.includes('limit')) {
-          throw new Error('STORAGE_QUOTA');
-        }
-        throw new Error('FEATURE_IMAGE_UPLOAD');
-      }
-    }
-
-    try {
-
-      // Generate slug
-      const displayName = formData.businessName || `${formData.firstName} ${formData.lastName}`.trim();
-      const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-      // Check if profile meets completion criteria
-      const hasProfileImage = !!profileImageUrl;
-      const hasFeatureImage = !!featureImageUrl;
-      const hasBio = formData.bio && formData.bio.length >= 20;
-      const hasCategories = formData.chosenDirectories.length > 0 ||
-                           formData.spaceCategories.length > 0 ||
-                           formData.supplierCategories.length > 0;
-      const hasLocation = !!formData.suburb?.id;
-
-      const isProfileComplete = hasProfileImage && hasFeatureImage && hasBio && hasCategories && hasLocation;
-
-      console.log('Profile completion check:', {
-        hasProfileImage,
-        hasFeatureImage,
-        hasBio,
-        hasCategories,
-        hasLocation,
-        isProfileComplete
-      });
-
-      // Build update data
-      const updateData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        name: displayName,
-        slug: slug,
-        profile_image_url: profileImageUrl,
-        header_image_url: featureImageUrl,
-        bio: formData.bio,
-        business_name: formData.businessName || null,
-        suburb_id: formData.suburb?.id || null,
-        show_address: formData.displayAddress,
-        show_opening_hours: formData.displayOpeningHours,
-        opening_monday: formData.openingHours.monday || null,
-        opening_tuesday: formData.openingHours.tuesday || null,
-        opening_wednesday: formData.openingHours.wednesday || null,
-        opening_thursday: formData.openingHours.thursday || null,
-        opening_friday: formData.openingHours.friday || null,
-        opening_saturday: formData.openingHours.saturday || null,
-        opening_sunday: formData.openingHours.sunday || null,
-        website: formData.website || null,
-        instagram: formData.instagram || null,
-        facebook: formData.facebook || null,
-        linkedin: formData.linkedin || null,
-        tiktok: formData.tiktok || null,
-        youtube: formData.youtube || null,
-        is_creative_space: formData.spaceOrSupplier === 'space',
-        is_supplier: formData.spaceOrSupplier === 'supplier',
-        profile_complete: isProfileComplete
-      };
-
-      // Update member
-      const { error: updateError } = await supabase
-        .from('members')
-        .update(updateData)
-        .eq('memberstack_id', memberstackId);
-
-      if (updateError) throw updateError;
-
-      // Update category associations
-      const memberId = supabaseMember.id;
-
-      // Delete existing
-      await supabase.from('member_sub_directories').delete().eq('member_id', memberId);
-      await supabase.from('member_space_categories').delete().eq('member_id', memberId);
-      await supabase.from('member_supplier_categories').delete().eq('member_id', memberId);
-
-      // Insert new sub-directories
-      if (formData.chosenDirectories.length > 0) {
-        const inserts = formData.chosenDirectories.map(subDirId => ({
-          member_id: memberId,
-          sub_directory_id: subDirId
-        }));
-        await supabase.from('member_sub_directories').insert(inserts);
-      }
-
-      // Insert space categories
-      if (formData.spaceCategories.length > 0) {
-        const inserts = formData.spaceCategories.map(catId => ({
-          member_id: memberId,
-          space_category_id: catId
-        }));
-        await supabase.from('member_space_categories').insert(inserts);
-      }
-
-      // Insert supplier categories
-      if (formData.supplierCategories.length > 0) {
-        const inserts = formData.supplierCategories.map(catId => ({
-          member_id: memberId,
-          supplier_category_id: catId
-        }));
-        await supabase.from('member_supplier_categories').insert(inserts);
-      }
-
-      console.log('Profile saved to Supabase successfully');
-
-      // Trigger sync to Webflow
-      await syncToWebflow(memberId);
-
-      console.log('Profile synced to Webflow successfully');
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      throw new Error('DATABASE_SAVE');
-    }
-  }
-
-  // Sync member data to Webflow via Edge Function
-  async function syncToWebflow(memberId) {
-    try {
-      // Get the full member record to send to the webhook
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('*')
-        .eq('id', memberId)
-        .single();
-
-      if (error) {
-        console.warn('Failed to fetch member for Webflow sync:', error);
-        return;
-      }
-
-      // Call the sync-to-webflow edge function directly
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/sync-to-webflow`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          type: 'UPDATE',
-          table: 'members',
-          schema: 'public',
-          record: member,
-          old_record: null,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn('Webflow sync returned error:', response.status, errorText);
-        // Don't throw - profile was saved, sync failure shouldn't break the flow
-      } else {
-        console.log('Webflow sync completed');
-      }
-    } catch (error) {
-      // Log error but don't fail - profile was already saved to Supabase
-      console.warn('Failed to sync to Webflow:', error);
-    }
-  }
-
-  // ============================================
-  // ACTIVITY LOGGING
-  // ============================================
-
-  async function logActivity(activityType, entity = null) {
-    try {
-      const payload = {
-        memberstack_id: memberData.id,
-        activity_type: activityType,
-      };
-
-      if (entity) {
-        payload.entity_type = entity.type || null;
-        payload.entity_id = entity.id || null;
-        payload.entity_name = entity.name || null;
-      }
-
-      await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      // Log error but don't fail the main operation
-      console.warn('Failed to log activity:', error);
-    }
-  }
-
-  // ============================================
-  // RENDER FUNCTIONS
-  // ============================================
-
-  function renderEditForm(container) {
-    const membershipType = memberData?.customFields?.['membership-type'];
-    const isBusinessMember = isBusinessType(membershipType);
-    const isSpaceSupplier = isSpacesSuppliers(membershipType);
-
-    container.innerHTML = `
+  `;function R(){return new Promise((r,t)=>{let i=0;const s=50,n=setInterval(()=>{i++,window.$memberstackDom&&window.supabase?(clearInterval(n),r()):i>=s&&(clearInterval(n),t(new Error("Dependencies not loaded")))},100)})}function j(r){return M.includes(r)}function W(r){return r===H}const q={instagram:{baseUrl:"https://www.instagram.com/",patterns:[/instagram\.com\/([^\/\?]+)/i,/^@?([a-zA-Z0-9._]+)$/]},facebook:{baseUrl:"https://www.facebook.com/",patterns:[/facebook\.com\/([^\/\?]+)/i,/^([a-zA-Z0-9.]+)$/]},linkedin:{baseUrl:"https://www.linkedin.com/in/",patterns:[/linkedin\.com\/(in|company)\/([^\/\?]+)/i,/^([a-zA-Z0-9-]+)$/]},tiktok:{baseUrl:"https://www.tiktok.com/@",patterns:[/tiktok\.com\/@?([^\/\?]+)/i,/^@?([a-zA-Z0-9._]+)$/]},youtube:{baseUrl:"https://www.youtube.com/",patterns:[/youtube\.com\/(channel|c|user|@)\/([^\/\?]+)/i,/youtube\.com\/([^\/\?]+)/i,/^@?([a-zA-Z0-9_-]+)$/]}};function O(r,t=null){if(!r||!r.trim())return{valid:!0,url:""};if(r=r.trim(),r.includes(" "))return{valid:!1,error:"Please enter only one URL (no spaces)"};if((r.match(/https?:\/\//gi)||[]).length>1)return{valid:!1,error:"Please enter only one URL"};if(/^https?:\/\//i.test(r))try{return new URL(r),{valid:!0,url:r}}catch{return{valid:!1,error:"Invalid URL format"}}if(t==="website")return/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}/.test(r)?{valid:!0,url:"https://"+r}:{valid:!1,error:"Please enter a full website URL"};if(t&&q[t]){const s=q[t];if(r.toLowerCase().includes(t.toLowerCase()+".com"))return{valid:!0,url:"https://"+r.replace(/^(https?:\/\/)?/i,"")};for(const n of s.patterns){const a=r.match(n);if(a){const o=a[a.length-1];return o.toLowerCase()===t.toLowerCase()?{valid:!1,error:`Please enter your ${t} profile URL or username`}:{valid:!0,url:s.baseUrl+o.replace(/^@/,"")}}}return{valid:!1,error:`Please enter a valid ${t} URL or username`}}return{valid:!1,error:"Invalid URL"}}function Z(){const r=[];return["website","instagram","facebook","linkedin","tiktok","youtube"].forEach(i=>{const s=e[i];if(s&&s.trim()){const n=O(s,i);n.valid?e[i]=n.url:r.push({platform:i,error:n.error})}}),r}function f(r){if(!r)return"";const t=document.createElement("div");return t.textContent=r,t.innerHTML}async function G(){try{const{data:r}=await d.from("directories").select("id, name, slug").order("display_order"),{data:t}=await d.from("sub_directories").select("id, name, slug, directory_id").order("name"),{data:i}=await d.from("creative_space_categories").select("id, name, slug").order("name"),{data:s}=await d.from("supplier_categories").select("id, name, slug").order("name");return y={directories:r||[],subDirectories:t||[],spaceCategories:i||[],supplierCategories:s||[]},y}catch(r){throw console.error("Error loading categories:",r),r}}async function Y(){try{const{data:r,error:t}=await d.from("suburbs").select("id, name").order("name");if(t)throw t;return E=r||[],E}catch(r){return console.error("Error loading suburbs:",r),[]}}async function V(r){try{const{data:t,error:i}=await d.from("members").select("*").eq("memberstack_id",r).single();if(console.log("Loaded member data:",t,i),i)throw console.error("Error loading member:",i),i;if(i)throw i;if(!t)return null;P=t;const{data:s}=await d.from("member_sub_directories").select("sub_directory_id").eq("member_id",t.id),{data:n}=await d.from("member_space_categories").select("space_category_id").eq("member_id",t.id),{data:a}=await d.from("member_supplier_categories").select("supplier_category_id").eq("member_id",t.id);if(e.firstName=t.first_name||"",e.lastName=t.last_name||"",e.email=t.email||"",e.profileImageUrl=t.profile_image_url||"",e.featureImageUrl=t.header_image_url||"",e.bio=t.bio||"",e.businessName=t.business_name||"",e.businessAddress=t.business_address||"",e.displayAddress=t.show_address||!1,e.displayOpeningHours=t.show_opening_hours||!1,t.suburb_id){const o=E.find(l=>l.id===t.suburb_id);o&&(e.suburb={id:o.id,name:o.name})}return A.forEach(o=>{e.openingHours[o.toLowerCase()]=t[`opening_${o.toLowerCase()}`]||""}),t.is_creative_space?e.spaceOrSupplier="space":t.is_supplier&&(e.spaceOrSupplier="supplier"),e.chosenDirectories=(s||[]).map(o=>o.sub_directory_id),e.spaceCategories=(n||[]).map(o=>o.space_category_id),e.supplierCategories=(a||[]).map(o=>o.supplier_category_id),e.website=t.website||"",e.instagram=t.instagram||"",e.facebook=t.facebook||"",e.linkedin=t.linkedin||"",e.tiktok=t.tiktok||"",e.youtube=t.youtube||"",t}catch(t){return console.error("Error loading member data:",t),null}}const z=3*1024*1024,L=2e3;function U(r,t,i){const s=document.getElementById(`${r}-compression-status`);s&&(s.textContent=t,s.className="ep-compression-status"+(i?` ${i}`:""))}async function Q(r,t){const i=(r.size/1024/1024).toFixed(1);return r.size<=z?(console.log(`Image ${r.name} is ${i}MB - no compression needed`),{file:r,compressed:!1,originalSize:i,finalSize:i}):(console.log(`Compressing image ${r.name} from ${i}MB...`),U(t,`Compressing image (${i}MB)...`,"compressing"),new Promise((s,n)=>{const a=new Image,o=document.createElement("canvas"),l=o.getContext("2d");a.onload=()=>{let{width:c,height:p}=a;if(c>L||p>L){const m=Math.min(L/c,L/p);c=Math.round(c*m),p=Math.round(p*m)}o.width=c,o.height=p,l.drawImage(a,0,0,c,p);const u=m=>{o.toBlob(b=>{if(!b){n(new Error("Failed to compress image"));return}const h=(b.size/1024/1024).toFixed(1);if(console.log(`Compressed to ${h}MB at quality ${m}`),b.size<=z||m<=.3){const $=new File([b],r.name,{type:"image/jpeg",lastModified:Date.now()});s({file:$,compressed:!0,originalSize:i,finalSize:h})}else u(m-.1)},"image/jpeg",m)};u(.8)},a.onerror=()=>n(new Error("Failed to load image for compression")),a.src=URL.createObjectURL(r)}))}async function D(r,t,i){try{const{file:s,compressed:n,originalSize:a,finalSize:o}=await Q(r,i);n?U(i,`Compressed from ${a}MB to ${o}MB`,"success"):U(i,"","");const{data:l}=await d.storage.from(_).list(t);if(l&&l.length>0){const b=l.filter(h=>h.name.startsWith(`${i}_`)).map(h=>`${t}/${h.name}`);if(b.length>0){const{error:h}=await d.storage.from(_).remove(b);h?console.warn("Error deleting old images:",h):console.log(`Deleted ${b.length} old ${i} image(s)`)}}const c=`${i}_${Date.now()}.jpg`,p=`${t}/${c}`,{error:u}=await d.storage.from(_).upload(p,s,{cacheControl:"3600",upsert:!0});if(u)throw u;const{data:{publicUrl:m}}=d.storage.from(_).getPublicUrl(p);return m}catch(s){throw console.error(`Error uploading ${i} image:`,s),s}}async function X(){var s,n;const r=x.id;let t=e.profileImageUrl,i=e.featureImageUrl;if(e.profileImageFile)try{t=await D(e.profileImageFile,r,"profile")}catch(a){console.error("Profile image upload failed:",a);const o=a.message||"";throw o.includes("quota")||o.includes("storage")||o.includes("limit")?new Error("STORAGE_QUOTA"):new Error("PROFILE_IMAGE_UPLOAD")}if(e.featureImageFile)try{i=await D(e.featureImageFile,r,"feature")}catch(a){console.error("Feature image upload failed:",a);const o=a.message||"";throw o.includes("quota")||o.includes("storage")||o.includes("limit")?new Error("STORAGE_QUOTA"):new Error("FEATURE_IMAGE_UPLOAD")}try{const a=e.businessName||`${e.firstName} ${e.lastName}`.trim(),o=a.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),l=!!t,c=!!i,p=e.bio&&e.bio.length>=20,u=e.chosenDirectories.length>0||e.spaceCategories.length>0||e.supplierCategories.length>0,m=!!((s=e.suburb)!=null&&s.id),b=l&&c&&p&&u&&m;console.log("Profile completion check:",{hasProfileImage:l,hasFeatureImage:c,hasBio:p,hasCategories:u,hasLocation:m,isProfileComplete:b});const h={first_name:e.firstName,last_name:e.lastName,name:a,slug:o,profile_image_url:t,header_image_url:i,bio:e.bio,business_name:e.businessName||null,suburb_id:((n=e.suburb)==null?void 0:n.id)||null,show_address:e.displayAddress,show_opening_hours:e.displayOpeningHours,opening_monday:e.openingHours.monday||null,opening_tuesday:e.openingHours.tuesday||null,opening_wednesday:e.openingHours.wednesday||null,opening_thursday:e.openingHours.thursday||null,opening_friday:e.openingHours.friday||null,opening_saturday:e.openingHours.saturday||null,opening_sunday:e.openingHours.sunday||null,website:e.website||null,instagram:e.instagram||null,facebook:e.facebook||null,linkedin:e.linkedin||null,tiktok:e.tiktok||null,youtube:e.youtube||null,is_creative_space:e.spaceOrSupplier==="space",is_supplier:e.spaceOrSupplier==="supplier",profile_complete:b},{error:$}=await d.from("members").update(h).eq("memberstack_id",r);if($)throw $;const v=P.id;if(await d.from("member_sub_directories").delete().eq("member_id",v),await d.from("member_space_categories").delete().eq("member_id",v),await d.from("member_supplier_categories").delete().eq("member_id",v),e.chosenDirectories.length>0){const k=e.chosenDirectories.map(S=>({member_id:v,sub_directory_id:S}));await d.from("member_sub_directories").insert(k)}if(e.spaceCategories.length>0){const k=e.spaceCategories.map(S=>({member_id:v,space_category_id:S}));await d.from("member_space_categories").insert(k)}if(e.supplierCategories.length>0){const k=e.supplierCategories.map(S=>({member_id:v,supplier_category_id:S}));await d.from("member_supplier_categories").insert(k)}console.log("Profile saved to Supabase successfully"),await J(v),console.log("Profile synced to Webflow successfully")}catch(a){throw console.error("Error saving profile:",a),new Error("DATABASE_SAVE")}}async function J(r){try{const{data:t,error:i}=await d.from("members").select("*").eq("id",r).single();if(i){console.warn("Failed to fetch member for Webflow sync:",i);return}const s=await fetch(`${I}/functions/v1/sync-to-webflow`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${w}`,apikey:w},body:JSON.stringify({type:"UPDATE",table:"members",schema:"public",record:t,old_record:null})});if(s.ok)console.log("Webflow sync completed");else{const n=await s.text();console.warn("Webflow sync returned error:",s.status,n)}}catch(t){console.warn("Failed to sync to Webflow:",t)}}async function K(r,t=null){try{const i={memberstack_id:x.id,activity_type:r};t&&(i.entity_type=t.type||null,i.entity_id=t.id||null,i.entity_name=t.name||null),await fetch(`${I}/functions/v1/log-activity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${w}`,apikey:w},body:JSON.stringify(i)})}catch(i){console.warn("Failed to log activity:",i)}}function ee(r){var n;const t=(n=x==null?void 0:x.customFields)==null?void 0:n["membership-type"],i=j(t),s=W(t);r.innerHTML=`
       <div class="ep-container">
         <div class="ep-form">
           <div class="ep-error-banner" id="ep-error-banner" style="display: none;"></div>
           <div class="ep-success-banner" id="ep-success-banner" style="display: none;"></div>
 
-          ${renderAboutYouSection()}
-          ${isBusinessMember ? renderBusinessDetailsSection() : ''}
-          ${renderCategoriesSection(isSpaceSupplier)}
-          ${renderLinksSection()}
+          ${re()}
+          ${i?te():""}
+          ${ie(s)}
+          ${ne()}
 
           <div class="ep-btn-row">
             <a href="/profile/start" class="ep-btn ep-btn-secondary" style="text-decoration: none; text-align: center;">Cancel</a>
@@ -1234,13 +518,7 @@
           </div>
         </div>
       </div>
-    `;
-
-    setupFormHandlers(container, isBusinessMember, isSpaceSupplier);
-  }
-
-  function renderAboutYouSection() {
-    return `
+    `,le(r,i,s)}function re(){return`
       <div class="ep-section">
         <h3 class="ep-section-title">About You</h3>
         <p class="ep-section-description">Basic information about you and your creative practice.</p>
@@ -1249,15 +527,12 @@
           <div class="ep-form-field">
             <label>Profile Image <span class="required">*</span></label>
             <div class="ep-image-upload" id="profile-upload">
-              ${formData.profileImageUrl
-                ? `<img src="${formData.profileImageUrl}" class="ep-image-preview profile" alt="Profile preview">
-                   <button type="button" class="ep-image-remove" data-remove="profile">&times;</button>`
-                : `<input type="file" accept="image/*" id="profile-file-input">
+              ${e.profileImageUrl?`<img src="${e.profileImageUrl}" class="ep-image-preview profile" alt="Profile preview">
+                   <button type="button" class="ep-image-remove" data-remove="profile">&times;</button>`:`<input type="file" accept="image/*" id="profile-file-input">
                    <div class="ep-image-upload-text">
                     <strong>Click to upload</strong><br>
                     Square image recommended
-                  </div>`
-              }
+                  </div>`}
             </div>
             <div class="ep-hint">Square image recommended. Large images will be automatically compressed.</div>
             <div class="ep-compression-status" id="profile-compression-status"></div>
@@ -1266,15 +541,12 @@
           <div class="ep-form-field">
             <label>Feature Image <span class="required">*</span></label>
             <div class="ep-image-upload" id="feature-upload">
-              ${formData.featureImageUrl
-                ? `<img src="${formData.featureImageUrl}" class="ep-image-preview" alt="Feature preview">
-                   <button type="button" class="ep-image-remove" data-remove="feature">&times;</button>`
-                : `<input type="file" accept="image/*" id="feature-file-input">
+              ${e.featureImageUrl?`<img src="${e.featureImageUrl}" class="ep-image-preview" alt="Feature preview">
+                   <button type="button" class="ep-image-remove" data-remove="feature">&times;</button>`:`<input type="file" accept="image/*" id="feature-file-input">
                    <div class="ep-image-upload-text">
                     <strong>Click to upload</strong><br>
                     Landscape image recommended
-                  </div>`
-              }
+                  </div>`}
             </div>
             <div class="ep-hint">Landscape image recommended. Large images will be automatically compressed.</div>
             <div class="ep-compression-status" id="feature-compression-status"></div>
@@ -1283,17 +555,17 @@
 
         <div class="ep-form-field">
           <label>First Name <span class="required">*</span></label>
-          <input type="text" class="ep-form-input" id="ep-first-name" value="${escapeHtml(formData.firstName)}" placeholder="Enter your first name">
+          <input type="text" class="ep-form-input" id="ep-first-name" value="${f(e.firstName)}" placeholder="Enter your first name">
         </div>
 
         <div class="ep-form-field">
           <label>Last Name <span class="required">*</span></label>
-          <input type="text" class="ep-form-input" id="ep-last-name" value="${escapeHtml(formData.lastName)}" placeholder="Enter your last name">
+          <input type="text" class="ep-form-input" id="ep-last-name" value="${f(e.lastName)}" placeholder="Enter your last name">
         </div>
 
         <div class="ep-form-field">
           <label>Email Address</label>
-          <input type="email" class="ep-form-input" id="ep-email" value="${escapeHtml(formData.email)}" readonly>
+          <input type="email" class="ep-form-input" id="ep-email" value="${f(e.email)}" readonly>
           <div class="ep-hint">Email cannot be changed here. Contact support if you need to update it.</div>
         </div>
 
@@ -1301,40 +573,36 @@
           <label>Location <span class="required">*</span></label>
           <select class="ep-form-input" id="ep-suburb-select">
             <option value="">Select your suburb...</option>
-            ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+            ${E.map(r=>{var t;return`<option value="${r.id}" ${((t=e.suburb)==null?void 0:t.id)===r.id?"selected":""}>${r.name}</option>`}).join("")}
           </select>
         </div>
 
         <div class="ep-form-field">
           <label>Public Bio <span class="required">*</span></label>
-          <textarea class="ep-form-input" id="ep-bio" maxlength="2000" placeholder="Tell us about your creative practice, skills, and what you offer...">${escapeHtml(formData.bio)}</textarea>
-          <div class="ep-char-count"><span id="ep-bio-count">${formData.bio.length}</span> / 2000 characters</div>
+          <textarea class="ep-form-input" id="ep-bio" maxlength="2000" placeholder="Tell us about your creative practice, skills, and what you offer...">${f(e.bio)}</textarea>
+          <div class="ep-char-count"><span id="ep-bio-count">${e.bio.length}</span> / 2000 characters</div>
         </div>
       </div>
-    `;
-  }
-
-  function renderBusinessDetailsSection() {
-    return `
+    `}function te(){return`
       <div class="ep-section">
         <h3 class="ep-section-title">Business Details</h3>
         <p class="ep-section-description">Information about your business or organization.</p>
 
         <div class="ep-form-field">
           <label>Business / Trading Name <span class="required">*</span></label>
-          <input type="text" class="ep-form-input" id="ep-business-name" value="${escapeHtml(formData.businessName)}" placeholder="Enter your business or trading name">
+          <input type="text" class="ep-form-input" id="ep-business-name" value="${f(e.businessName)}" placeholder="Enter your business or trading name">
         </div>
 
         <div class="ep-form-field">
           <label>Business Address</label>
-          <input type="text" class="ep-form-input" id="ep-address" value="${escapeHtml(formData.businessAddress)}" placeholder="Enter your business address">
+          <input type="text" class="ep-form-input" id="ep-address" value="${f(e.businessAddress)}" placeholder="Enter your business address">
           <div class="ep-hint">This is where customers can find you</div>
         </div>
 
         <div class="ep-toggle-field">
           <span class="ep-toggle-label">Display address publicly on my profile</span>
           <label class="ep-toggle">
-            <input type="checkbox" id="ep-display-address" ${formData.displayAddress ? 'checked' : ''}>
+            <input type="checkbox" id="ep-display-address" ${e.displayAddress?"checked":""}>
             <span class="ep-toggle-slider"></span>
           </label>
         </div>
@@ -1342,134 +610,70 @@
         <div class="ep-form-field">
           <label>Opening Hours</label>
           <div class="ep-hours-grid">
-            ${DAYS_OF_WEEK.map(day => `
+            ${A.map(r=>`
               <div class="ep-hours-row">
-                <span class="ep-hours-day">${day}</span>
-                <input type="text" class="ep-hours-input" id="ep-hours-${day.toLowerCase()}"
-                  value="${escapeHtml(formData.openingHours[day.toLowerCase()])}"
+                <span class="ep-hours-day">${r}</span>
+                <input type="text" class="ep-hours-input" id="ep-hours-${r.toLowerCase()}"
+                  value="${f(e.openingHours[r.toLowerCase()])}"
                   placeholder="e.g., 9am - 5pm or Closed">
               </div>
-            `).join('')}
+            `).join("")}
           </div>
         </div>
 
         <div class="ep-toggle-field">
           <span class="ep-toggle-label">Display opening hours publicly on my profile</span>
           <label class="ep-toggle">
-            <input type="checkbox" id="ep-display-hours" ${formData.displayOpeningHours ? 'checked' : ''}>
+            <input type="checkbox" id="ep-display-hours" ${e.displayOpeningHours?"checked":""}>
             <span class="ep-toggle-slider"></span>
           </label>
         </div>
       </div>
-    `;
-  }
-
-  function renderCategoriesSection(isSpaceSupplier) {
-    return `
+    `}function ie(r){return`
       <div class="ep-section">
         <h3 class="ep-section-title">Categories</h3>
         <p class="ep-section-description">Select the categories that best describe your work.</p>
 
         <div id="categories-container">
-          ${isSpaceSupplier ? renderSpaceSupplierSelector() : renderDirectoriesSelector()}
+          ${r?se():ae()}
         </div>
       </div>
-    `;
-  }
-
-  function renderSpaceSupplierSelector() {
-    return `
+    `}function se(){return`
       <div class="ep-form-field">
         <label>What type of listing are you? <span class="required">*</span></label>
         <div class="ep-radio-group">
-          <label class="ep-radio-item ${formData.spaceOrSupplier === 'space' ? 'selected' : ''}" id="radio-space">
-            <input type="radio" name="space-supplier" value="space" ${formData.spaceOrSupplier === 'space' ? 'checked' : ''}>
+          <label class="ep-radio-item ${e.spaceOrSupplier==="space"?"selected":""}" id="radio-space">
+            <input type="radio" name="space-supplier" value="space" ${e.spaceOrSupplier==="space"?"checked":""}>
             <div class="ep-radio-item-title">Creative Space</div>
             <div class="ep-radio-item-desc">Studios, venues, galleries, etc.</div>
           </label>
-          <label class="ep-radio-item ${formData.spaceOrSupplier === 'supplier' ? 'selected' : ''}" id="radio-supplier">
-            <input type="radio" name="space-supplier" value="supplier" ${formData.spaceOrSupplier === 'supplier' ? 'checked' : ''}>
+          <label class="ep-radio-item ${e.spaceOrSupplier==="supplier"?"selected":""}" id="radio-supplier">
+            <input type="radio" name="space-supplier" value="supplier" ${e.spaceOrSupplier==="supplier"?"checked":""}>
             <div class="ep-radio-item-title">Supplier</div>
             <div class="ep-radio-item-desc">Materials, services, equipment, etc.</div>
           </label>
         </div>
       </div>
-      <div id="space-supplier-categories" style="${formData.spaceOrSupplier ? '' : 'display: none;'}">
-        ${formData.spaceOrSupplier === 'space' ? renderSpaceCategories() : ''}
-        ${formData.spaceOrSupplier === 'supplier' ? renderSupplierCategories() : ''}
+      <div id="space-supplier-categories" style="${e.spaceOrSupplier?"":"display: none;"}">
+        ${e.spaceOrSupplier==="space"?T():""}
+        ${e.spaceOrSupplier==="supplier"?F():""}
       </div>
-    `;
-  }
-
-  function renderSpaceCategories() {
-    let html = '<div class="ep-category-section"><div style="font-weight:600;margin-bottom:12px;">Select Space Categories</div><div class="ep-category-grid">';
-    categories.spaceCategories.forEach(cat => {
-      const selected = formData.spaceCategories.includes(cat.id);
-      html += `
-        <label class="ep-category-item ${selected ? 'selected' : ''}" data-id="${cat.id}">
-          <input type="checkbox" value="${cat.id}" ${selected ? 'checked' : ''}>
-          ${cat.name}
+    `}function T(){let r='<div class="ep-category-section"><div style="font-weight:600;margin-bottom:12px;">Select Space Categories</div><div class="ep-category-grid">';return y.spaceCategories.forEach(t=>{const i=e.spaceCategories.includes(t.id);r+=`
+        <label class="ep-category-item ${i?"selected":""}" data-id="${t.id}">
+          <input type="checkbox" value="${t.id}" ${i?"checked":""}>
+          ${t.name}
         </label>
-      `;
-    });
-    html += '</div><div class="ep-selected-count"><span id="space-count">' + formData.spaceCategories.length + '</span> selected</div></div>';
-    return html;
-  }
-
-  function renderSupplierCategories() {
-    let html = '<div class="ep-category-section"><div style="font-weight:600;margin-bottom:12px;">Select Supplier Categories</div><div class="ep-category-grid">';
-    categories.supplierCategories.forEach(cat => {
-      const selected = formData.supplierCategories.includes(cat.id);
-      html += `
-        <label class="ep-category-item ${selected ? 'selected' : ''}" data-id="${cat.id}">
-          <input type="checkbox" value="${cat.id}" ${selected ? 'checked' : ''}>
-          ${cat.name}
+      `}),r+='</div><div class="ep-selected-count"><span id="space-count">'+e.spaceCategories.length+"</span> selected</div></div>",r}function F(){let r='<div class="ep-category-section"><div style="font-weight:600;margin-bottom:12px;">Select Supplier Categories</div><div class="ep-category-grid">';return y.supplierCategories.forEach(t=>{const i=e.supplierCategories.includes(t.id);r+=`
+        <label class="ep-category-item ${i?"selected":""}" data-id="${t.id}">
+          <input type="checkbox" value="${t.id}" ${i?"checked":""}>
+          ${t.name}
         </label>
-      `;
-    });
-    html += '</div><div class="ep-selected-count"><span id="supplier-count">' + formData.supplierCategories.length + '</span> selected</div></div>';
-    return html;
-  }
-
-  function getCategoryName(id) {
-    const dir = categories.subDirectories.find(d => d.id === id);
-    return dir ? dir.name : id;
-  }
-
-  function renderDirectoriesSelector() {
-    let html = '<div class="ep-category-selector">';
-
-    // Parent category buttons
-    html += '<div class="ep-parent-categories">';
-    categories.directories.forEach(parent => {
-      html += `<button type="button" class="ep-parent-btn" data-parent="${parent.id}">${parent.name}</button>`;
-    });
-    html += '</div>';
-
-    // Child category containers
-    categories.directories.forEach(parent => {
-      const subDirs = categories.subDirectories.filter(d => d.directory_id === parent.id);
-      html += `<div class="ep-child-categories" data-parent="${parent.id}">`;
-      subDirs.forEach(dir => {
-        const isSelected = formData.chosenDirectories.includes(dir.id);
-        html += `<button type="button" class="ep-child-btn ${isSelected ? 'selected' : ''}" data-id="${dir.id}">${dir.name}</button>`;
-      });
-      html += '</div>';
-    });
-
-    // Selected categories display
-    html += `
-      <div class="ep-selected-categories" id="ep-selected-section" style="${formData.chosenDirectories.length ? '' : 'display: none;'}">
+      `}),r+='</div><div class="ep-selected-count"><span id="supplier-count">'+e.supplierCategories.length+"</span> selected</div></div>",r}function oe(r){const t=y.subDirectories.find(i=>i.id===r);return t?t.name:r}function ae(){let r='<div class="ep-category-selector">';return r+='<div class="ep-parent-categories">',y.directories.forEach(t=>{r+=`<button type="button" class="ep-parent-btn" data-parent="${t.id}">${t.name}</button>`}),r+="</div>",y.directories.forEach(t=>{const i=y.subDirectories.filter(s=>s.directory_id===t.id);r+=`<div class="ep-child-categories" data-parent="${t.id}">`,i.forEach(s=>{const n=e.chosenDirectories.includes(s.id);r+=`<button type="button" class="ep-child-btn ${n?"selected":""}" data-id="${s.id}">${s.name}</button>`}),r+="</div>"}),r+=`
+      <div class="ep-selected-categories" id="ep-selected-section" style="${e.chosenDirectories.length?"":"display: none;"}">
         <h5>Selected Categories</h5>
         <div class="ep-selected-list" id="ep-selected-list"></div>
       </div>
-    </div>`;
-
-    return html;
-  }
-
-  function renderLinksSection() {
-    return `
+    </div>`,r}function ne(){return`
       <div class="ep-section">
         <h3 class="ep-section-title">External Links</h3>
         <p class="ep-section-description">Add your website and social media links. All fields are optional.</p>
@@ -1477,516 +681,49 @@
         <div class="ep-links-grid">
           <div class="ep-link-field">
             <span class="ep-link-label">Website</span>
-            <input type="url" class="ep-form-input" id="ep-website" value="${escapeHtml(formData.website)}" placeholder="https://yourwebsite.com">
+            <input type="url" class="ep-form-input" id="ep-website" value="${f(e.website)}" placeholder="https://yourwebsite.com">
           </div>
           <div class="ep-link-field">
             <span class="ep-link-label">Instagram</span>
-            <input type="url" class="ep-form-input" id="ep-instagram" value="${escapeHtml(formData.instagram)}" placeholder="https://instagram.com/username">
+            <input type="url" class="ep-form-input" id="ep-instagram" value="${f(e.instagram)}" placeholder="https://instagram.com/username">
           </div>
           <div class="ep-link-field">
             <span class="ep-link-label">Facebook</span>
-            <input type="url" class="ep-form-input" id="ep-facebook" value="${escapeHtml(formData.facebook)}" placeholder="https://facebook.com/page">
+            <input type="url" class="ep-form-input" id="ep-facebook" value="${f(e.facebook)}" placeholder="https://facebook.com/page">
           </div>
           <div class="ep-link-field">
             <span class="ep-link-label">LinkedIn</span>
-            <input type="url" class="ep-form-input" id="ep-linkedin" value="${escapeHtml(formData.linkedin)}" placeholder="https://linkedin.com/in/username">
+            <input type="url" class="ep-form-input" id="ep-linkedin" value="${f(e.linkedin)}" placeholder="https://linkedin.com/in/username">
           </div>
           <div class="ep-link-field">
             <span class="ep-link-label">TikTok</span>
-            <input type="url" class="ep-form-input" id="ep-tiktok" value="${escapeHtml(formData.tiktok)}" placeholder="https://tiktok.com/@username">
+            <input type="url" class="ep-form-input" id="ep-tiktok" value="${f(e.tiktok)}" placeholder="https://tiktok.com/@username">
           </div>
           <div class="ep-link-field">
             <span class="ep-link-label">YouTube</span>
-            <input type="url" class="ep-form-input" id="ep-youtube" value="${escapeHtml(formData.youtube)}" placeholder="https://youtube.com/channel">
+            <input type="url" class="ep-form-input" id="ep-youtube" value="${f(e.youtube)}" placeholder="https://youtube.com/channel">
           </div>
         </div>
       </div>
-    `;
-  }
-
-  // ============================================
-  // SETUP HANDLERS
-  // ============================================
-
-  function setupFormHandlers(container, isBusinessMember, isSpaceSupplier) {
-    const errorBanner = container.querySelector('#ep-error-banner');
-    const successBanner = container.querySelector('#ep-success-banner');
-    const saveBtn = container.querySelector('#ep-save-btn');
-
-    setupAboutYouHandlers(container);
-
-    if (isBusinessMember) {
-      setupBusinessDetailsHandlers(container);
-    }
-
-    setupCategoriesHandlers(container, isSpaceSupplier);
-    setupLinksHandlers(container);
-
-    saveBtn.addEventListener('click', async () => {
-      errorBanner.style.display = 'none';
-      successBanner.style.display = 'none';
-
-      // Validate
-      if (!formData.firstName.trim()) {
-        showError(errorBanner, 'Please enter your first name');
-        return;
-      }
-      if (!formData.lastName.trim()) {
-        showError(errorBanner, 'Please enter your last name');
-        return;
-      }
-      if (!formData.profileImageUrl) {
-        showError(errorBanner, 'Please upload a profile image');
-        return;
-      }
-      if (!formData.featureImageUrl) {
-        showError(errorBanner, 'Please upload a feature image');
-        return;
-      }
-      if (!formData.suburb) {
-        showError(errorBanner, 'Please select your location');
-        return;
-      }
-      if (!formData.bio.trim()) {
-        showError(errorBanner, 'Please enter a bio');
-        return;
-      }
-      if (formData.bio.trim().length < 20) {
-        showError(errorBanner, 'Please enter at least 20 characters for your bio');
-        return;
-      }
-
-      if (isBusinessMember && !formData.businessName.trim()) {
-        showError(errorBanner, 'Please enter your business name');
-        return;
-      }
-
-      if (isSpaceSupplier) {
-        if (!formData.spaceOrSupplier) {
-          showError(errorBanner, 'Please select whether you are a Creative Space or Supplier');
-          return;
-        }
-        const categoryCount = formData.spaceOrSupplier === 'space'
-          ? formData.spaceCategories.length
-          : formData.supplierCategories.length;
-        if (categoryCount === 0) {
-          showError(errorBanner, 'Please select at least one category');
-          return;
-        }
-      } else {
-        if (formData.chosenDirectories.length === 0) {
-          showError(errorBanner, 'Please select at least one category');
-          return;
-        }
-      }
-
-      const linkErrors = validateSocialLinks();
-      if (linkErrors.length > 0) {
-        linkErrors.forEach(({ platform, error }) => {
-          const input = container.querySelector(`#ep-${platform}`);
-          const field = input.closest('.ep-link-field');
-          let errorEl = field.querySelector('.ep-field-error');
-          if (!errorEl) {
-            errorEl = document.createElement('div');
-            errorEl.className = 'ep-field-error';
-            field.appendChild(errorEl);
-          }
-          input.classList.add('error');
-          errorEl.textContent = error;
-        });
-        showError(errorBanner, 'Please fix the highlighted fields before saving');
-        return;
-      }
-
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
-
-      try {
-        await saveProfile();
-        await logActivity('profile_update');
-        successBanner.textContent = 'Profile updated successfully!';
-        successBanner.style.display = 'block';
-        successBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        saveBtn.textContent = 'Save Changes';
-        saveBtn.disabled = false;
-      } catch (error) {
-        console.error('Save error:', error);
-
-        // Show specific error messages based on error type
-        let errorMessage = 'An error occurred while saving. Please try again.';
-
-        if (error.message === 'STORAGE_QUOTA') {
-          errorMessage = 'Unable to upload images - storage limit reached. Please contact support.';
-        } else if (error.message === 'PROFILE_IMAGE_UPLOAD') {
-          errorMessage = 'Failed to upload profile image. Please try a smaller image or try again.';
-        } else if (error.message === 'FEATURE_IMAGE_UPLOAD') {
-          errorMessage = 'Failed to upload feature image. Please try a smaller image or try again.';
-        } else if (error.message === 'DATABASE_SAVE') {
-          errorMessage = 'Failed to save profile data. Please try again.';
-        }
-
-        showError(errorBanner, errorMessage);
-        saveBtn.textContent = 'Save Changes';
-        saveBtn.disabled = false;
-      }
-    });
-  }
-
-  function setupAboutYouHandlers(container) {
-    const firstNameInput = container.querySelector('#ep-first-name');
-    const lastNameInput = container.querySelector('#ep-last-name');
-    const bioInput = container.querySelector('#ep-bio');
-    const bioCount = container.querySelector('#ep-bio-count');
-    const suburbSelect = container.querySelector('#ep-suburb-select');
-
-    firstNameInput.addEventListener('input', () => {
-      formData.firstName = firstNameInput.value;
-    });
-
-    lastNameInput.addEventListener('input', () => {
-      formData.lastName = lastNameInput.value;
-    });
-
-    bioInput.addEventListener('input', () => {
-      formData.bio = bioInput.value;
-      bioCount.textContent = bioInput.value.length;
-    });
-
-    // Suburb dropdown
-    suburbSelect.addEventListener('change', () => {
-      const selectedOption = suburbSelect.options[suburbSelect.selectedIndex];
-      if (selectedOption.value) {
-        formData.suburb = {
-          id: selectedOption.value,
-          name: selectedOption.text.split(',')[0].trim()
-        };
-      } else {
-        formData.suburb = null;
-      }
-    });
-
-    // Image uploads
-    setupImageUploadHandlers(container);
-  }
-
-  function setupImageUploadHandlers(container) {
-    const profileUpload = container.querySelector('#profile-upload');
-    const featureUpload = container.querySelector('#feature-upload');
-
-    function renderProfileState() {
-      if (formData.profileImageUrl) {
-        profileUpload.innerHTML = `
-          <img src="${formData.profileImageUrl}" class="ep-image-preview profile" alt="Profile preview">
+    `}function le(r,t,i){const s=r.querySelector("#ep-error-banner"),n=r.querySelector("#ep-success-banner"),a=r.querySelector("#ep-save-btn");pe(r),t&&de(r),ue(r,i),fe(r),a.addEventListener("click",async()=>{if(s.style.display="none",n.style.display="none",!e.firstName.trim()){g(s,"Please enter your first name");return}if(!e.lastName.trim()){g(s,"Please enter your last name");return}if(!e.profileImageUrl){g(s,"Please upload a profile image");return}if(!e.featureImageUrl){g(s,"Please upload a feature image");return}if(!e.suburb){g(s,"Please select your location");return}if(!e.bio.trim()){g(s,"Please enter a bio");return}if(e.bio.trim().length<20){g(s,"Please enter at least 20 characters for your bio");return}if(t&&!e.businessName.trim()){g(s,"Please enter your business name");return}if(i){if(!e.spaceOrSupplier){g(s,"Please select whether you are a Creative Space or Supplier");return}if((e.spaceOrSupplier==="space"?e.spaceCategories.length:e.supplierCategories.length)===0){g(s,"Please select at least one category");return}}else if(e.chosenDirectories.length===0){g(s,"Please select at least one category");return}const o=Z();if(o.length>0){o.forEach(({platform:l,error:c})=>{const p=r.querySelector(`#ep-${l}`),u=p.closest(".ep-link-field");let m=u.querySelector(".ep-field-error");m||(m=document.createElement("div"),m.className="ep-field-error",u.appendChild(m)),p.classList.add("error"),m.textContent=c}),g(s,"Please fix the highlighted fields before saving");return}a.disabled=!0,a.textContent="Saving...";try{await X(),await K("profile_update"),n.textContent="Profile updated successfully!",n.style.display="block",n.scrollIntoView({behavior:"smooth",block:"center"}),a.textContent="Save Changes",a.disabled=!1}catch(l){console.error("Save error:",l);let c="An error occurred while saving. Please try again.";l.message==="STORAGE_QUOTA"?c="Unable to upload images - storage limit reached. Please contact support.":l.message==="PROFILE_IMAGE_UPLOAD"?c="Failed to upload profile image. Please try a smaller image or try again.":l.message==="FEATURE_IMAGE_UPLOAD"?c="Failed to upload feature image. Please try a smaller image or try again.":l.message==="DATABASE_SAVE"&&(c="Failed to save profile data. Please try again."),g(s,c),a.textContent="Save Changes",a.disabled=!1}})}function pe(r){const t=r.querySelector("#ep-first-name"),i=r.querySelector("#ep-last-name"),s=r.querySelector("#ep-bio"),n=r.querySelector("#ep-bio-count"),a=r.querySelector("#ep-suburb-select");t.addEventListener("input",()=>{e.firstName=t.value}),i.addEventListener("input",()=>{e.lastName=i.value}),s.addEventListener("input",()=>{e.bio=s.value,n.textContent=s.value.length}),a.addEventListener("change",()=>{const o=a.options[a.selectedIndex];o.value?e.suburb={id:o.value,name:o.text.split(",")[0].trim()}:e.suburb=null}),ce(r)}function ce(r){const t=r.querySelector("#profile-upload"),i=r.querySelector("#feature-upload");function s(){e.profileImageUrl?(t.innerHTML=`
+          <img src="${e.profileImageUrl}" class="ep-image-preview profile" alt="Profile preview">
           <button type="button" class="ep-image-remove" data-remove="profile">&times;</button>
-        `;
-        profileUpload.classList.add('has-image');
-      } else {
-        profileUpload.innerHTML = `
+        `,t.classList.add("has-image")):(t.innerHTML=`
           <input type="file" accept="image/*" id="profile-file-input">
           <div class="ep-image-upload-text">
             <strong>Click to upload</strong><br>
             Square image recommended
           </div>
-        `;
-        profileUpload.classList.remove('has-image');
-        const input = profileUpload.querySelector('#profile-file-input');
-        input.addEventListener('change', handleProfileFileSelect);
-      }
-    }
-
-    function renderFeatureState() {
-      if (formData.featureImageUrl) {
-        featureUpload.innerHTML = `
-          <img src="${formData.featureImageUrl}" class="ep-image-preview" alt="Feature preview">
+        `,t.classList.remove("has-image"),t.querySelector("#profile-file-input").addEventListener("change",a))}function n(){e.featureImageUrl?(i.innerHTML=`
+          <img src="${e.featureImageUrl}" class="ep-image-preview" alt="Feature preview">
           <button type="button" class="ep-image-remove" data-remove="feature">&times;</button>
-        `;
-        featureUpload.classList.add('has-image');
-      } else {
-        featureUpload.innerHTML = `
+        `,i.classList.add("has-image")):(i.innerHTML=`
           <input type="file" accept="image/*" id="feature-file-input">
           <div class="ep-image-upload-text">
             <strong>Click to upload</strong><br>
             Landscape image recommended
           </div>
-        `;
-        featureUpload.classList.remove('has-image');
-        const input = featureUpload.querySelector('#feature-file-input');
-        input.addEventListener('change', handleFeatureFileSelect);
-      }
-    }
-
-    function handleProfileFileSelect(e) {
-      const file = e.target.files[0];
-      if (file) {
-        formData.profileImageFile = file;
-        formData.profileImageUrl = URL.createObjectURL(file);
-        renderProfileState();
-      }
-    }
-
-    function handleFeatureFileSelect(e) {
-      const file = e.target.files[0];
-      if (file) {
-        formData.featureImageFile = file;
-        formData.featureImageUrl = URL.createObjectURL(file);
-        renderFeatureState();
-      }
-    }
-
-    // Initial file input listeners
-    const profileInput = profileUpload.querySelector('#profile-file-input');
-    const featureInput = featureUpload.querySelector('#feature-file-input');
-    if (profileInput) profileInput.addEventListener('change', handleProfileFileSelect);
-    if (featureInput) featureInput.addEventListener('change', handleFeatureFileSelect);
-
-    // Remove button handlers
-    profileUpload.addEventListener('click', (e) => {
-      if (e.target.dataset.remove === 'profile') {
-        e.stopPropagation();
-        formData.profileImageUrl = '';
-        formData.profileImageFile = null;
-        renderProfileState();
-      }
-    });
-
-    featureUpload.addEventListener('click', (e) => {
-      if (e.target.dataset.remove === 'feature') {
-        e.stopPropagation();
-        formData.featureImageUrl = '';
-        formData.featureImageFile = null;
-        renderFeatureState();
-      }
-    });
-  }
-
-  function setupBusinessDetailsHandlers(container) {
-    const businessNameInput = container.querySelector('#ep-business-name');
-    const addressInput = container.querySelector('#ep-address');
-    const displayAddressToggle = container.querySelector('#ep-display-address');
-    const displayHoursToggle = container.querySelector('#ep-display-hours');
-
-    if (businessNameInput) {
-      businessNameInput.addEventListener('input', () => {
-        formData.businessName = businessNameInput.value;
-      });
-    }
-
-    if (addressInput) {
-      addressInput.addEventListener('input', () => {
-        formData.businessAddress = addressInput.value;
-      });
-    }
-
-    if (displayAddressToggle) {
-      displayAddressToggle.addEventListener('change', () => {
-        formData.displayAddress = displayAddressToggle.checked;
-      });
-    }
-
-    if (displayHoursToggle) {
-      displayHoursToggle.addEventListener('change', () => {
-        formData.displayOpeningHours = displayHoursToggle.checked;
-      });
-    }
-
-    DAYS_OF_WEEK.forEach(day => {
-      const input = container.querySelector(`#ep-hours-${day.toLowerCase()}`);
-      if (input) {
-        input.addEventListener('input', () => {
-          formData.openingHours[day.toLowerCase()] = input.value;
-        });
-      }
-    });
-  }
-
-  function setupCategoriesHandlers(container, isSpaceSupplier) {
-    if (isSpaceSupplier) {
-      const radioSpace = container.querySelector('#radio-space');
-      const radioSupplier = container.querySelector('#radio-supplier');
-      const categoriesContainer = container.querySelector('#space-supplier-categories');
-
-      if (radioSpace) {
-        radioSpace.addEventListener('click', () => {
-          formData.spaceOrSupplier = 'space';
-          formData.supplierCategories = [];
-          radioSpace.classList.add('selected');
-          radioSupplier.classList.remove('selected');
-          categoriesContainer.innerHTML = renderSpaceCategories();
-          categoriesContainer.style.display = 'block';
-          setupCategoryCheckboxes(container, 'spaceCategories', 'space-count');
-        });
-      }
-
-      if (radioSupplier) {
-        radioSupplier.addEventListener('click', () => {
-          formData.spaceOrSupplier = 'supplier';
-          formData.spaceCategories = [];
-          radioSupplier.classList.add('selected');
-          radioSpace.classList.remove('selected');
-          categoriesContainer.innerHTML = renderSupplierCategories();
-          categoriesContainer.style.display = 'block';
-          setupCategoryCheckboxes(container, 'supplierCategories', 'supplier-count');
-        });
-      }
-
-      if (formData.spaceOrSupplier === 'space') {
-        setupCategoryCheckboxes(container, 'spaceCategories', 'space-count');
-      } else if (formData.spaceOrSupplier === 'supplier') {
-        setupCategoryCheckboxes(container, 'supplierCategories', 'supplier-count');
-      }
-    } else {
-      setupDirectoryCategorySelector(container);
-    }
-  }
-
-  function setupDirectoryCategorySelector(container) {
-    const parentBtns = container.querySelectorAll('.ep-parent-btn');
-    const childContainers = container.querySelectorAll('.ep-child-categories');
-    const selectedList = container.querySelector('#ep-selected-list');
-    const selectedSection = container.querySelector('#ep-selected-section');
-
-    function updateSelectedDisplay() {
-      if (!selectedList || !selectedSection) return;
-
-      selectedList.innerHTML = formData.chosenDirectories.map(id => {
-        const name = getCategoryName(id);
-        return `<span class="ep-selected-tag">${name}<button type="button" data-id="${id}">&times;</button></span>`;
-      }).join('');
-
-      selectedSection.style.display = formData.chosenDirectories.length ? '' : 'none';
-
-      container.querySelectorAll('.ep-child-btn').forEach(btn => {
-        const id = btn.dataset.id;
-        btn.classList.toggle('selected', formData.chosenDirectories.includes(id));
-      });
-    }
-
-    updateSelectedDisplay();
-
-    parentBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const parentId = btn.dataset.parent;
-        const isActive = btn.classList.contains('active');
-
-        parentBtns.forEach(b => b.classList.remove('active'));
-        childContainers.forEach(c => c.classList.remove('visible'));
-
-        if (!isActive) {
-          btn.classList.add('active');
-          container.querySelector(`.ep-child-categories[data-parent="${parentId}"]`).classList.add('visible');
-        }
-      });
-    });
-
-    container.querySelectorAll('.ep-child-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const index = formData.chosenDirectories.indexOf(id);
-
-        if (index === -1) {
-          formData.chosenDirectories.push(id);
-        } else {
-          formData.chosenDirectories.splice(index, 1);
-        }
-
-        updateSelectedDisplay();
-      });
-    });
-
-    if (selectedList) {
-      selectedList.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-          const id = e.target.dataset.id;
-          const index = formData.chosenDirectories.indexOf(id);
-          if (index !== -1) {
-            formData.chosenDirectories.splice(index, 1);
-            updateSelectedDisplay();
-          }
-        }
-      });
-    }
-  }
-
-  function setupCategoryCheckboxes(container, dataKey, countId) {
-    container.querySelectorAll('.ep-category-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const id = item.dataset.id;
-        if (!id) return;
-
-        const index = formData[dataKey].indexOf(id);
-
-        if (index === -1) {
-          formData[dataKey].push(id);
-          item.classList.add('selected');
-        } else {
-          formData[dataKey].splice(index, 1);
-          item.classList.remove('selected');
-        }
-
-        const countEl = container.querySelector('#' + countId);
-        if (countEl) {
-          countEl.textContent = formData[dataKey].length;
-        }
-      });
-    });
-  }
-
-  function setupLinksHandlers(container) {
-    const linkInputs = ['website', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
-
-    linkInputs.forEach(platform => {
-      const input = container.querySelector(`#ep-${platform}`);
-      if (!input) return;
-
-      const field = input.closest('.ep-link-field');
-
-      let errorEl = field.querySelector('.ep-field-error');
-      if (!errorEl) {
-        errorEl = document.createElement('div');
-        errorEl.className = 'ep-field-error';
-        errorEl.style.cssText = 'grid-column: 2;';
-        field.appendChild(errorEl);
-      }
-
-      input.addEventListener('input', () => {
-        formData[platform] = input.value;
-        input.classList.remove('error');
-        errorEl.textContent = '';
-      });
-
-      input.addEventListener('blur', () => {
-        const value = input.value.trim();
-        if (!value) {
-          input.classList.remove('error');
-          errorEl.textContent = '';
-          return;
-        }
-
-        const result = normalizeUrl(value, platform);
-        if (result.valid) {
-          if (result.url !== value) {
-            input.value = result.url;
-            formData[platform] = result.url;
-          }
-          input.classList.remove('error');
-          errorEl.textContent = '';
-        } else {
-          input.classList.add('error');
-          errorEl.textContent = result.error;
-        }
-      });
-    });
-  }
-
-  function showError(banner, message) {
-    banner.textContent = message;
-    banner.style.display = 'block';
-    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  function renderNotLoggedIn(container) {
-    container.innerHTML = `
+        `,i.classList.remove("has-image"),i.querySelector("#feature-file-input").addEventListener("change",o))}function a(p){const u=p.target.files[0];u&&(e.profileImageFile=u,e.profileImageUrl=URL.createObjectURL(u),s())}function o(p){const u=p.target.files[0];u&&(e.featureImageFile=u,e.featureImageUrl=URL.createObjectURL(u),n())}const l=t.querySelector("#profile-file-input"),c=i.querySelector("#feature-file-input");l&&l.addEventListener("change",a),c&&c.addEventListener("change",o),t.addEventListener("click",p=>{p.target.dataset.remove==="profile"&&(p.stopPropagation(),e.profileImageUrl="",e.profileImageFile=null,s())}),i.addEventListener("click",p=>{p.target.dataset.remove==="feature"&&(p.stopPropagation(),e.featureImageUrl="",e.featureImageFile=null,n())})}function de(r){const t=r.querySelector("#ep-business-name"),i=r.querySelector("#ep-address"),s=r.querySelector("#ep-display-address"),n=r.querySelector("#ep-display-hours");t&&t.addEventListener("input",()=>{e.businessName=t.value}),i&&i.addEventListener("input",()=>{e.businessAddress=i.value}),s&&s.addEventListener("change",()=>{e.displayAddress=s.checked}),n&&n.addEventListener("change",()=>{e.displayOpeningHours=n.checked}),A.forEach(a=>{const o=r.querySelector(`#ep-hours-${a.toLowerCase()}`);o&&o.addEventListener("input",()=>{e.openingHours[a.toLowerCase()]=o.value})})}function ue(r,t){if(t){const i=r.querySelector("#radio-space"),s=r.querySelector("#radio-supplier"),n=r.querySelector("#space-supplier-categories");i&&i.addEventListener("click",()=>{e.spaceOrSupplier="space",e.supplierCategories=[],i.classList.add("selected"),s.classList.remove("selected"),n.innerHTML=T(),n.style.display="block",C(r,"spaceCategories","space-count")}),s&&s.addEventListener("click",()=>{e.spaceOrSupplier="supplier",e.spaceCategories=[],s.classList.add("selected"),i.classList.remove("selected"),n.innerHTML=F(),n.style.display="block",C(r,"supplierCategories","supplier-count")}),e.spaceOrSupplier==="space"?C(r,"spaceCategories","space-count"):e.spaceOrSupplier==="supplier"&&C(r,"supplierCategories","supplier-count")}else me(r)}function me(r){const t=r.querySelectorAll(".ep-parent-btn"),i=r.querySelectorAll(".ep-child-categories"),s=r.querySelector("#ep-selected-list"),n=r.querySelector("#ep-selected-section");function a(){!s||!n||(s.innerHTML=e.chosenDirectories.map(o=>`<span class="ep-selected-tag">${oe(o)}<button type="button" data-id="${o}">&times;</button></span>`).join(""),n.style.display=e.chosenDirectories.length?"":"none",r.querySelectorAll(".ep-child-btn").forEach(o=>{const l=o.dataset.id;o.classList.toggle("selected",e.chosenDirectories.includes(l))}))}a(),t.forEach(o=>{o.addEventListener("click",()=>{const l=o.dataset.parent,c=o.classList.contains("active");t.forEach(p=>p.classList.remove("active")),i.forEach(p=>p.classList.remove("visible")),c||(o.classList.add("active"),r.querySelector(`.ep-child-categories[data-parent="${l}"]`).classList.add("visible"))})}),r.querySelectorAll(".ep-child-btn").forEach(o=>{o.addEventListener("click",()=>{const l=o.dataset.id,c=e.chosenDirectories.indexOf(l);c===-1?e.chosenDirectories.push(l):e.chosenDirectories.splice(c,1),a()})}),s&&s.addEventListener("click",o=>{if(o.target.tagName==="BUTTON"){const l=o.target.dataset.id,c=e.chosenDirectories.indexOf(l);c!==-1&&(e.chosenDirectories.splice(c,1),a())}})}function C(r,t,i){r.querySelectorAll(".ep-category-item").forEach(s=>{s.addEventListener("click",n=>{n.preventDefault();const a=s.dataset.id;if(!a)return;const o=e[t].indexOf(a);o===-1?(e[t].push(a),s.classList.add("selected")):(e[t].splice(o,1),s.classList.remove("selected"));const l=r.querySelector("#"+i);l&&(l.textContent=e[t].length)})})}function fe(r){["website","instagram","facebook","linkedin","tiktok","youtube"].forEach(i=>{const s=r.querySelector(`#ep-${i}`);if(!s)return;const n=s.closest(".ep-link-field");let a=n.querySelector(".ep-field-error");a||(a=document.createElement("div"),a.className="ep-field-error",a.style.cssText="grid-column: 2;",n.appendChild(a)),s.addEventListener("input",()=>{e[i]=s.value,s.classList.remove("error"),a.textContent=""}),s.addEventListener("blur",()=>{const o=s.value.trim();if(!o){s.classList.remove("error"),a.textContent="";return}const l=O(o,i);l.valid?(l.url!==o&&(s.value=l.url,e[i]=l.url),s.classList.remove("error"),a.textContent=""):(s.classList.add("error"),a.textContent=l.error)})})}function g(r,t){r.textContent=t,r.style.display="block",r.scrollIntoView({behavior:"smooth",block:"center"})}function ge(r){r.innerHTML=`
       <div class="ep-container">
         <div class="ep-form">
           <div class="ep-error-banner" style="display: block;">
@@ -1997,69 +734,10 @@
           </p>
         </div>
       </div>
-    `;
-  }
-
-  function renderError(container, message) {
-    container.innerHTML = `
+    `}function be(r,t){r.innerHTML=`
       <div class="ep-container">
         <div class="ep-form">
-          <div class="ep-error-banner" style="display: block;">${message}</div>
+          <div class="ep-error-banner" style="display: block;">${t}</div>
         </div>
       </div>
-    `;
-  }
-
-  // ============================================
-  // INITIALIZATION
-  // ============================================
-
-  async function init() {
-    const container = document.querySelector('.all-types-profile-edit') || document.querySelector('.supabase-edit-profile-container');
-    if (!container) {
-      console.warn('Could not find edit profile container');
-      return;
-    }
-
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    document.head.appendChild(styleEl);
-
-    container.innerHTML = '<div class="ep-loading">Loading your profile...</div>';
-
-    try {
-      await waitForDependencies();
-
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-      const { data: member } = await window.$memberstackDom.getCurrentMember();
-
-      if (!member) {
-        renderNotLoggedIn(container);
-        return;
-      }
-
-      memberData = member;
-
-      // Load categories and suburbs
-      await loadCategories();
-      await loadAllSuburbs();
-
-      // Load member data from Supabase
-      await loadMemberData(member.id);
-
-      // Render form
-      renderEditForm(container);
-
-    } catch (error) {
-      console.error('Init error:', error);
-      renderError(container, 'Error loading profile. Please refresh the page.');
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+    `}async function N(){const r=document.querySelector(".all-types-profile-edit")||document.querySelector(".supabase-edit-profile-container");if(!r){console.warn("Could not find edit profile container");return}const t=document.createElement("style");t.textContent=B,document.head.appendChild(t),r.innerHTML='<div class="ep-loading">Loading your profile...</div>';try{await R(),d=window.supabase.createClient(I,w);const{data:i}=await window.$memberstackDom.getCurrentMember();if(!i){ge(r);return}x=i,await G(),await Y(),await V(i.id),ee(r)}catch(i){console.error("Init error:",i),be(r,"Error loading profile. Please refresh the page.")}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",N):N()})();
