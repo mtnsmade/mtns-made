@@ -607,6 +607,108 @@ serve(async (req) => {
       );
     }
 
+    // Find and create missing members from Memberstack (by email)
+    if (body.mode === 'create-missing-members' && body.emails && Array.isArray(body.emails)) {
+      if (!MEMBERSTACK_API_KEY) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'MEMBERSTACK_API_KEY not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const results: Array<{ email: string; status: string; memberstackId?: string }> = [];
+
+      // Fetch all Memberstack members (paginated)
+      const allMsMembers: Array<{ id: string; auth: { email: string }; customFields?: Record<string, string>; planConnections?: Array<{ status: string }> }> = [];
+      let hasNextPage = true;
+      let endCursor: string | undefined;
+
+      while (hasNextPage) {
+        const url = new URL('https://admin.memberstack.com/members');
+        url.searchParams.set('limit', '100');
+        if (endCursor) url.searchParams.set('after', endCursor);
+
+        const resp = await fetch(url.toString(), {
+          headers: { 'X-API-KEY': MEMBERSTACK_API_KEY, 'Content-Type': 'application/json' }
+        });
+
+        if (!resp.ok) break;
+        const data = await resp.json();
+        allMsMembers.push(...(data.data || []));
+        if (data.hasNextPage && data.data?.length > 0) {
+          endCursor = data.endCursor || data.data[data.data.length - 1].id;
+        } else {
+          hasNextPage = false;
+        }
+      }
+
+      // Find requested emails in Memberstack
+      const emailsLower = body.emails.map((e: string) => e.toLowerCase());
+      const msMembers = allMsMembers.filter(m => emailsLower.includes(m.auth.email.toLowerCase()));
+
+      for (const msMember of msMembers) {
+        // Check if already in Supabase
+        const { data: existing } = await supabase
+          .from('members')
+          .select('id')
+          .eq('memberstack_id', msMember.id)
+          .single();
+
+        if (existing) {
+          results.push({ email: msMember.auth.email, status: 'Already exists', memberstackId: msMember.id });
+          continue;
+        }
+
+        // Create the member
+        const cf = msMember.customFields || {};
+        const firstName = cf['first-name'] || '';
+        const lastName = cf['last-name'] || '';
+        const displayName = [firstName, lastName].filter(Boolean).join(' ') || null;
+        const slug = cf['slug'] || (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
+
+        let suburbId: string | null = null;
+        if (cf['suburb']) {
+          const { data: suburb } = await supabase.from('suburbs').select('id').eq('name', cf['suburb']).single();
+          suburbId = suburb?.id || null;
+        }
+
+        const hasActivePlan = (msMember.planConnections || []).some(
+          (p: { status: string }) => p.status === 'ACTIVE' || p.status === 'TRIALING'
+        );
+
+        const { error: createError } = await supabase.from('members').insert({
+          memberstack_id: msMember.id,
+          email: msMember.auth.email,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          name: displayName,
+          slug: slug,
+          suburb_id: suburbId,
+          subscription_status: hasActivePlan ? 'active' : 'pending',
+          profile_complete: false,
+          is_deleted: false,
+        });
+
+        if (createError) {
+          results.push({ email: msMember.auth.email, status: `Error: ${createError.message}`, memberstackId: msMember.id });
+        } else {
+          results.push({ email: msMember.auth.email, status: 'Created', memberstackId: msMember.id });
+        }
+      }
+
+      // Report emails not found in Memberstack
+      for (const email of body.emails) {
+        if (!msMembers.some(m => m.auth.email.toLowerCase() === email.toLowerCase())) {
+          results.push({ email, status: 'Not found in Memberstack' });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, results }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create member from Memberstack data (for webhook failures)
     if (body.mode === 'create-from-memberstack' && body.memberstack_id) {
       if (!MEMBERSTACK_API_KEY) {
