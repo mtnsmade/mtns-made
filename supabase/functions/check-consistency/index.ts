@@ -233,12 +233,13 @@ async function fetchWebflowMembers(): Promise<WebflowMember[]> {
   return allItems;
 }
 
-// Check if a Memberstack member is active (has active plan)
+// Check if a Memberstack member is active (has active or trialing plan)
 function isMemberstackActive(member: MemberstackMember): boolean {
   if (!member.planConnections || member.planConnections.length === 0) {
     return false;
   }
-  return member.planConnections.some(p => p.status === 'ACTIVE');
+  // ACTIVE = paying member, TRIALING = in trial period (both are active subscriptions)
+  return member.planConnections.some(p => p.status === 'ACTIVE' || p.status === 'TRIALING');
 }
 
 // Run consistency check

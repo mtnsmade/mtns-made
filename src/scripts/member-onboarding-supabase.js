@@ -1007,6 +1007,37 @@
     }
   }
 
+  // Generate a unique slug, appending -2, -3, etc. if needed
+  async function generateUniqueSlug(baseSlug, currentMemberstackId) {
+    if (!baseSlug) return null;
+
+    let slug = baseSlug;
+    let suffix = 1;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('members')
+        .select('memberstack_id')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking slug:', error);
+        return slug; // Return as-is, let the upsert handle any conflict
+      }
+
+      // Slug is available (no member has it) or belongs to current member
+      if (!data || data.memberstack_id === currentMemberstackId) {
+        return slug;
+      }
+
+      // Slug taken by another member, try with suffix
+      suffix++;
+      slug = `${baseSlug}-${suffix}`;
+      console.log(`Slug conflict, trying: ${slug}`);
+    }
+  }
+
   // Compress image to fit under Webflow's 4MB limit
   const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB (safe margin under 4MB limit)
   const MAX_DIMENSION = 2000; // Max width/height in pixels
@@ -1297,7 +1328,8 @@
 
       // Generate slug from business name or member name
       const displayName = formData.businessName || `${memberData.customFields?.['first-name'] || ''} ${memberData.customFields?.['last-name'] || ''}`.trim();
-      const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const baseSlug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const slug = await generateUniqueSlug(baseSlug, memberstackId);
 
       // Look up membership type from Memberstack plan
       const membershipType = memberData?.customFields?.['membership-type'];
