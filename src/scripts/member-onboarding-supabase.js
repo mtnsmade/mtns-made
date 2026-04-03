@@ -1629,23 +1629,47 @@
       }
     }
 
-    function handleProfileFileSelect(e) {
+    async function handleProfileFileSelect(e) {
       const file = e.target.files[0];
       if (file) {
         formData.profileImageFile = file;
         formData.profileImageUrl = URL.createObjectURL(file);
         renderProfileState();
         errorBanner.style.display = 'none';
+        // Auto-save: upload image immediately and save progress
+        try {
+          const uploadedUrl = await uploadImage(file, memberData.id, 'profile');
+          formData.profileImageUrl = uploadedUrl;
+          formData.profileImageFile = null; // Clear file after upload
+          renderProfileState();
+          await saveProgress(1); // Mark step 1 as started
+          console.log('Profile image auto-saved');
+        } catch (err) {
+          console.error('Auto-save profile image failed:', err);
+          // Keep the blob URL for preview, will retry on Next click
+        }
       }
     }
 
-    function handleFeatureFileSelect(e) {
+    async function handleFeatureFileSelect(e) {
       const file = e.target.files[0];
       if (file) {
         formData.featureImageFile = file;
         formData.featureImageUrl = URL.createObjectURL(file);
         renderFeatureState();
         errorBanner.style.display = 'none';
+        // Auto-save: upload image immediately and save progress
+        try {
+          const uploadedUrl = await uploadImage(file, memberData.id, 'feature');
+          formData.featureImageUrl = uploadedUrl;
+          formData.featureImageFile = null; // Clear file after upload
+          renderFeatureState();
+          await saveProgress(1); // Mark step 1 as started
+          console.log('Feature image auto-saved');
+        } catch (err) {
+          console.error('Auto-save feature image failed:', err);
+          // Keep the blob URL for preview, will retry on Next click
+        }
       }
     }
 
