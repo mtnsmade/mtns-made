@@ -345,9 +345,62 @@ async function publishWebflowItem(itemId: string): Promise<void> {
   }
 }
 
+// Check if a Webflow item with the same supabase-id already exists
+// This is the ultimate duplicate prevention - checks Webflow directly
+async function findExistingWebflowItem(supabaseId: string): Promise<{ id: string; slug: string } | null> {
+  try {
+    // Search Webflow for items with this supabase-id
+    // We need to fetch items and filter since Webflow doesn't support direct field queries
+    const response = await fetch(
+      `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items?limit=100`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+          'accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Error checking for existing Webflow item:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const existingItem = data.items?.find((item: { fieldData: { 'supabase-id'?: string } }) =>
+      item.fieldData?.['supabase-id'] === supabaseId
+    );
+
+    if (existingItem) {
+      console.log(`Found existing Webflow item for supabase-id ${supabaseId}: ${existingItem.id}`);
+      return { id: existingItem.id, slug: existingItem.fieldData?.slug };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error in findExistingWebflowItem:', error);
+    return null;
+  }
+}
+
 // Create item in Webflow CMS
 // Returns { id, slug } where slug is the actual slug assigned by Webflow
 async function createWebflowItem(record: ProjectRecord): Promise<{ id: string; slug: string } | null> {
+  // DUPLICATE PREVENTION: Check Webflow directly for existing item
+  const existingItem = await findExistingWebflowItem(record.id);
+  if (existingItem) {
+    console.log(`Duplicate prevention: Webflow item already exists for project ${record.id}, returning existing`);
+    // Update Supabase with the existing Webflow ID if it doesn't have it
+    const supabase = getSupabaseClient();
+    await supabase
+      .from('projects')
+      .update({ webflow_id: existingItem.id })
+      .eq('id', record.id)
+      .is('webflow_id', null);
+    return existingItem;
+  }
+
   const fieldData = await mapToWebflowFields(record, true); // Include slug on create
 
   const response = await fetch(

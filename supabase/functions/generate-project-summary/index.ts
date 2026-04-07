@@ -16,7 +16,7 @@ const ANTHROPIC_API_KEY = Deno.env.get('CLAUDE') || Deno.env.get('ANTHROPIC_API_
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 
 const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
-const WEBFLOW_PROJECTS_COLLECTION_ID = '64e707a6e743e15e48a76b24';
+const WEBFLOW_PROJECTS_COLLECTION_ID = '64aa150f02bee661d503cf59';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
