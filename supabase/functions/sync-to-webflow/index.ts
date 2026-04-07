@@ -575,11 +575,13 @@ async function mapEventToWebflowFields(record: EventRecord): Promise<Record<stri
   }
 
   // Short description (auto-generate if not provided)
+  // Must be single-line for Webflow - strip newlines
   if (record.short_description) {
-    fieldData['short-description'] = record.short_description;
+    fieldData['short-description'] = record.short_description.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
   } else if (record.description) {
-    // Auto-generate: first 150 chars
-    fieldData['short-description'] = record.description.substring(0, 150) + (record.description.length > 150 ? '...' : '');
+    // Auto-generate: strip newlines, take first 150 chars
+    const cleanDesc = record.description.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+    fieldData['short-description'] = cleanDesc.substring(0, 150) + (cleanDesc.length > 150 ? '...' : '');
   }
 
   // Date & Time
