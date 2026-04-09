@@ -683,6 +683,12 @@ async function mapEventToWebflowFields(record: EventRecord): Promise<Record<stri
   // Memberstack ID
   if (record.memberstack_id) {
     fieldData['memberstack-id'] = record.memberstack_id;
+
+    // Get the submitting member's Webflow ID for members-mentioned
+    const memberWebflowId = await getMemberWebflowId(record.memberstack_id);
+    if (memberWebflowId) {
+      fieldData['members-mentioned'] = [memberWebflowId];
+    }
   }
 
   // Member contact email
