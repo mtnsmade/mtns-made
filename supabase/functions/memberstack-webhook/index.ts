@@ -317,16 +317,62 @@ async function getSuburbIdByWebflowId(webflowId: string): Promise<string | null>
   return data.id;
 }
 
+// Send failed signup alert to admin
+async function sendFailedSignupAlert(email: string, memberstackId: string, error: unknown): Promise<void> {
+  if (!RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured, skipping failed signup alert');
+    return;
+  }
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: [ADMIN_EMAIL],
+        subject: `⚠️ Failed Signup: ${email}`,
+        html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background: #cc0000; color: #fff; padding: 20px; text-align: center;">
+    <h1 style="margin: 0; font-size: 20px;">⚠️ Member Signup Failed</h1>
+  </div>
+  <div style="padding: 30px; background: #f9f9f9;">
+    <p style="margin: 0 0 20px 0; color: #333;">
+      A new member signed up but their Supabase record could not be created. They will not be able to complete onboarding until this is resolved.
+    </p>
+    <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+      <p style="margin: 0 0 10px 0; color: #333;"><strong>Email:</strong> ${email}</p>
+      <p style="margin: 0 0 10px 0; color: #333;"><strong>Memberstack ID:</strong> ${memberstackId}</p>
+      <p style="margin: 0; color: #cc0000;"><strong>Error:</strong> ${errorMessage}</p>
+    </div>
+    <p style="margin: 0; color: #666; font-size: 14px;">
+      To fix: manually create a Supabase record for this member using their Memberstack ID and email.
+    </p>
+  </div>
+</div>`,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('Failed signup alert send error:', err);
+    } else {
+      console.log('Failed signup alert sent to admin for:', email);
+    }
+  } catch (err) {
+    console.error('Error sending failed signup alert:', err);
+  }
+}
+
 // Create member in Supabase
 async function createMember(memberData: MemberstackMemberData): Promise<void> {
   const supabase = getSupabaseClient();
-
-  // Check if member already exists
-  const existing = await getMemberByMemberstackId(memberData.id);
-  if (existing) {
-    console.log('Member already exists in Supabase:', memberData.id);
-    return;
-  }
 
   // Determine subscription status from plan connections
   // Default to 'active' since members must pay to complete signup
@@ -359,9 +405,12 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
 
   console.log('Creating member with name:', displayName, 'slug:', slug);
 
+  // Use upsert so webhook retries are idempotent — if Memberstack retries after a
+  // transient failure, the second attempt updates rather than hitting a duplicate key error.
+  // ignoreDuplicates: false ensures we update if the record somehow already exists.
   const { error } = await supabase
     .from('members')
-    .insert({
+    .upsert({
       memberstack_id: memberData.id,
       email: memberData.auth.email,
       first_name: firstName || null,
@@ -372,7 +421,7 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
       subscription_status: subscriptionStatus,
       profile_complete: false,
       is_deleted: false,
-    });
+    }, { onConflict: 'memberstack_id', ignoreDuplicates: false });
 
   if (error) {
     console.error('Error creating member:', error);
@@ -767,7 +816,15 @@ async function updateSubscriptionStatus(memberstackId: string, status: string): 
 // Handle member.created event
 async function handleMemberCreated(data: MemberstackMemberData): Promise<void> {
   console.log('Handling member.created:', data.id);
-  await createMember(data);
+
+  try {
+    await createMember(data);
+  } catch (error) {
+    // Alert admin immediately — don't wait for the daily consistency check
+    console.error('Failed to create member in Supabase, sending alert:', data.id);
+    await sendFailedSignupAlert(data.auth.email, data.id, error);
+    throw error; // Re-throw so Memberstack receives a 500 and will retry
+  }
 
   // Log the signup to activity feed
   await logActivity(data.id, 'member_signup');
