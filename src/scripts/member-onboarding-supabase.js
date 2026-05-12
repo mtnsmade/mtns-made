@@ -1326,20 +1326,28 @@
         featureImageUrl = await uploadImage(formData.featureImageFile, memberstackId, 'feature');
       }
 
-      // Generate slug from business name or member name
-      const displayName = formData.businessName || `${memberData.customFields?.['first-name'] || ''} ${memberData.customFields?.['last-name'] || ''}`.trim();
-      const baseSlug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const slug = await generateUniqueSlug(baseSlug, memberstackId);
-
-      // Look up membership type from Memberstack plan
+      // Look up membership type from Memberstack plan (needed for slug generation)
       const membershipType = memberData?.customFields?.['membership-type'];
       const membershipTypeId = await getMembershipTypeId(membershipType);
       console.log('Membership type:', membershipType, '-> ID:', membershipTypeId);
 
+      // Generate slug based on membership type:
+      // - Business types (small-business, large-business, not-for-profit, partner, spaces-suppliers): use business name
+      // - Individual types (emerging, professional): use first name + last name
+      const businessMembershipTypes = ['small-business', 'large-business', 'not-for-profit', 'partner', 'spaces-suppliers'];
+      const membershipSlug = membershipType?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
+      const useBusinessName = businessMembershipTypes.includes(membershipSlug) && formData.businessName;
+
+      const personalName = `${memberData.customFields?.['first-name'] || ''} ${memberData.customFields?.['last-name'] || ''}`.trim();
+      const displayName = useBusinessName ? formData.businessName : (personalName || formData.businessName || 'member');
+      const baseSlug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const slug = await generateUniqueSlug(baseSlug, memberstackId);
+      console.log('Slug generation:', { membershipType, useBusinessName, displayName, slug });
+
       // Check if profile meets completion criteria
       const hasProfileImage = !!profileImageUrl;
       const hasFeatureImage = !!featureImageUrl;
-      const hasBio = formData.bio && formData.bio.length >= 20;
+      const hasBio = formData.bio && formData.bio.length >= 50;
       const hasCategories = formData.chosenDirectories.length > 0 ||
                            formData.spaceCategories.length > 0 ||
                            formData.supplierCategories.length > 0;
@@ -1515,7 +1523,7 @@
 
   function renderProgress(container) {
     const membershipType = memberData?.customFields?.['membership-type'];
-    totalSteps = isBusinessType(membershipType) ? 5 : 4;
+    totalSteps = 5;
 
     let html = '<div class="ms-progress">';
     for (let i = 1; i <= totalSteps; i++) {
@@ -1746,7 +1754,7 @@
           <div class="ms-form-field">
             <label>Bio <span class="required">*</span></label>
             <textarea class="ms-form-input" id="ms-bio" maxlength="2000" placeholder="Tell us about your creative practice, skills, and what you offer...">${formData.bio}</textarea>
-            <div class="ms-char-count"><span id="ms-bio-count">${formData.bio.length}</span> / 2000 characters</div>
+            <div class="ms-char-count"><span id="ms-bio-count">${formData.bio.length}</span> / 2000 characters (minimum 50)</div>
           </div>
 
           <div class="ms-btn-row">
@@ -1868,8 +1876,8 @@
         showError(errorBanner, 'Please enter a bio');
         return;
       }
-      if (formData.bio.trim().length < 20) {
-        showError(errorBanner, 'Please enter at least 20 characters for your bio');
+      if (formData.bio.trim().length < 50) {
+        showError(errorBanner, 'Please enter at least 50 characters for your bio');
         return;
       }
       currentStep = 3;
@@ -2068,12 +2076,7 @@
           showError(errorBanner, 'Please select at least one category');
           return;
         }
-        const membershipType = memberData?.customFields?.['membership-type'];
-        if (isBusinessType(membershipType)) {
-          currentStep = 4;
-        } else {
-          currentStep = 5;
-        }
+        currentStep = 4;
         await saveProgress(currentStep); // Auto-save progress
         renderCurrentStep(container);
       });
@@ -2186,18 +2189,25 @@
   }
 
   function renderStep4(container) {
+    const membershipType = memberData?.customFields?.['membership-type'];
+    const showBusinessFields = isBusinessType(membershipType);
+    const stepTitle = showBusinessFields ? 'Step 4: Location & Hours' : 'Step 4: Location';
+    const stepDesc = showBusinessFields
+      ? 'Select your suburb and optionally add address details.'
+      : 'Select your suburb so members can find you in the directory.';
+
     container.innerHTML = `
       <div class="ms-container">
         <div class="ms-header">
           <h2>COMPLETE YOUR PROFILE</h2>
-          <p>Add your business location and hours.</p>
+          <p>${showBusinessFields ? 'Add your business location and hours.' : 'Add your location.'}</p>
         </div>
         ${renderProgress(container)}
         <div class="ms-form">
           <div class="ms-error-banner" id="ms-error-banner" style="display: none;"></div>
 
-          <h3 class="ms-step-title">Step 4: Location & Hours</h3>
-          <p class="ms-step-description">Select your suburb and optionally add address details.</p>
+          <h3 class="ms-step-title">${stepTitle}</h3>
+          <p class="ms-step-description">${stepDesc}</p>
 
           <div class="ms-form-field">
             <label>Suburb <span class="required">*</span></label>
@@ -2208,6 +2218,7 @@
             <div class="ms-hint">This helps members find you in the directory</div>
           </div>
 
+          ${showBusinessFields ? `
           <div class="ms-form-field">
             <label>Business Address</label>
             <input type="text" class="ms-form-input" id="ms-address" value="${formData.businessAddress}" placeholder="Enter your business address (optional)">
@@ -2243,6 +2254,7 @@
               <span class="ms-toggle-slider"></span>
             </label>
           </div>
+          ` : ''}
 
           <div class="ms-btn-row">
             <button type="button" class="ms-btn ms-btn-secondary" id="ms-back-btn">Back</button>
@@ -2276,23 +2288,32 @@
       }
     });
 
-    addressInput.addEventListener('input', () => {
-      formData.businessAddress = addressInput.value;
-    });
+    // Business-specific fields (only present for business membership types)
+    if (addressInput) {
+      addressInput.addEventListener('input', () => {
+        formData.businessAddress = addressInput.value;
+      });
+    }
 
-    displayAddressToggle.addEventListener('change', () => {
-      formData.displayAddress = displayAddressToggle.checked;
-    });
+    if (displayAddressToggle) {
+      displayAddressToggle.addEventListener('change', () => {
+        formData.displayAddress = displayAddressToggle.checked;
+      });
+    }
 
-    displayHoursToggle.addEventListener('change', () => {
-      formData.displayOpeningHours = displayHoursToggle.checked;
-    });
+    if (displayHoursToggle) {
+      displayHoursToggle.addEventListener('change', () => {
+        formData.displayOpeningHours = displayHoursToggle.checked;
+      });
+    }
 
     DAYS_OF_WEEK.forEach(day => {
       const input = container.querySelector(`#ms-hours-${day.toLowerCase()}`);
-      input.addEventListener('input', () => {
-        formData.openingHours[day.toLowerCase()] = input.value;
-      });
+      if (input) {
+        input.addEventListener('input', () => {
+          formData.openingHours[day.toLowerCase()] = input.value;
+        });
+      }
     });
 
     backBtn.addEventListener('click', () => {
@@ -2313,8 +2334,7 @@
   }
 
   function renderStep5(container) {
-    const membershipType = memberData?.customFields?.['membership-type'];
-    const stepNumber = isBusinessType(membershipType) ? 5 : 4;
+    const stepNumber = 5;
 
     container.innerHTML = `
       <div class="ms-container">
@@ -2415,12 +2435,7 @@
     });
 
     backBtn.addEventListener('click', () => {
-      const membershipType = memberData?.customFields?.['membership-type'];
-      if (isBusinessType(membershipType)) {
-        currentStep = 4;
-      } else {
-        currentStep = 3;
-      }
+      currentStep = 4;
       renderCurrentStep(container);
     });
 

@@ -1,5 +1,8 @@
 # MTNS MADE - Project Memory
 
+## Plan Mode Instructions
+When entering plan mode for any task, identify repeatable parts of the plan and build skills for them using the `/skill-creator` skill before executing.
+
 ## Project Overview
 MTNS MADE is a Blue Mountains creative community platform with:
 - **Memberstack** for authentication/payments
