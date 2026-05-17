@@ -384,6 +384,68 @@
       color: #fff;
     }
 
+    .action-btn.preview-btn {
+      background: #fff;
+      color: #555;
+      border-color: #bbb;
+    }
+
+    .action-btn.preview-btn:hover {
+      background: #555;
+      color: #fff;
+      border-color: #555;
+    }
+
+    /* Event Preview Modal */
+    .modal-preview {
+      max-width: 680px;
+    }
+
+    .event-preview-image {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      background: #f0f0f0;
+      display: block;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 24px;
+    }
+
+    .preview-field {
+      margin-bottom: 16px;
+    }
+
+    .preview-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .preview-value {
+      font-size: 14px;
+      color: #1a1a1a;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .preview-value a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+
+    .preview-value a:hover {
+      text-decoration: underline;
+    }
+
     .type-cell {
       font-size: 12px;
       color: #666;
@@ -1307,6 +1369,76 @@ MTNS MADE Team`;
     });
   }
 
+  async function showEventPreviewModal(eventId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal modal-preview">
+        <div class="modal-header">
+          <h3 class="modal-title">Event Preview</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="admin-loading" style="padding: 40px 0;">
+            <div class="loader"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    const { data: event, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .single();
+
+    if (error || !event) {
+      modal.querySelector('.modal-body').innerHTML = '<div style="padding: 24px; color: #dc3545;">Failed to load event details.</div>';
+      return;
+    }
+
+    const formatDate = (d) => d
+      ? new Date(d).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : '--';
+
+    const location = [event.location_name, event.location_address].filter(Boolean).join(', ') || '--';
+
+    modal.querySelector('.modal-title').textContent = event.name || 'Event Preview';
+    modal.querySelector('.modal-body').innerHTML = `
+      ${event.feature_image_url ? `<img src="${event.feature_image_url}" class="event-preview-image" alt="${event.name}">` : ''}
+      <div class="preview-grid">
+        <div class="preview-field">
+          <div class="preview-label">Start</div>
+          <div class="preview-value">${formatDate(event.date_start)}</div>
+        </div>
+        <div class="preview-field">
+          <div class="preview-label">End</div>
+          <div class="preview-value">${formatDate(event.date_end)}</div>
+        </div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">Location</div>
+        <div class="preview-value">${location}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">Description</div>
+        <div class="preview-value">${event.description || '--'}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">RSVP / Tickets</div>
+        <div class="preview-value">${event.rsvp_link ? `<a href="${event.rsvp_link}" target="_blank">${event.rsvp_link}</a>` : '--'}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">Submitted by</div>
+        <div class="preview-value">${event.member_contact_email || '--'}</div>
+      </div>
+    `;
+  }
+
   // ============================================
   // RENDER FUNCTIONS
   // ============================================
@@ -1504,6 +1636,13 @@ MTNS MADE Team`;
           btn.disabled = false;
           btn.textContent = 'Reject';
         }
+      });
+    });
+
+    // Setup preview buttons
+    container.querySelectorAll('.preview-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        showEventPreviewModal(btn.dataset.eventId);
       });
     });
 
@@ -1829,6 +1968,7 @@ MTNS MADE Team`;
                   <td>
                     <div class="action-btns">
                       ${status === 'pending' ? `
+                        <button class="action-btn preview-btn" data-event-id="${event.id}">Preview</button>
                         <button class="action-btn approve-btn" data-event-id="${event.id}" data-event-name="${event.name}">Approve</button>
                         <button class="action-btn reject-btn" data-event-id="${event.id}" data-event-name="${event.name}">Reject</button>
                       ` : ''}
