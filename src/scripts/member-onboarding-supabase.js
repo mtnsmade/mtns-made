@@ -14,7 +14,7 @@
   const STORAGE_BUCKET = 'member-images';
 
   // Membership type classifications
-  const BUSINESS_TYPES = ['small-business', 'large-business', 'not-for-profit', 'spaces-suppliers'];
+  const BUSINESS_TYPES = ['small-business', 'large-business', 'not-for-profit', 'partner', 'spaces-suppliers'];
   const SPACES_SUPPLIERS_TYPE = 'spaces-suppliers';
 
   // ============================================

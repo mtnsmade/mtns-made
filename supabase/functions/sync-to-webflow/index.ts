@@ -988,6 +988,30 @@ async function getMembershipTypeWebflowId(membershipTypeId: string): Promise<str
   return data.webflow_id;
 }
 
+// Get membership type slug from Supabase
+async function getMembershipTypeSlug(membershipTypeId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('membership_types')
+    .select('slug')
+    .eq('id', membershipTypeId)
+    .single();
+
+  if (error || !data) {
+    console.error('Error fetching membership type slug:', error);
+    return null;
+  }
+
+  return data.slug;
+}
+
+// Check if membership type should use business name for slug
+function isBusinessMembershipType(membershipSlug: string | null): boolean {
+  const businessTypes = ['small-business', 'large-business', 'not-for-profit', 'partner', 'spaces-suppliers'];
+  return membershipSlug ? businessTypes.includes(membershipSlug) : false;
+}
+
 // Map Supabase member record to Webflow field data
 async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boolean = true): Promise<Record<string, unknown>> {
   // Debug: log image URLs
@@ -1002,23 +1026,39 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
 
   // Only include slug on create (not update) to avoid duplicate slug errors
   if (includeSlug) {
-    // Business accounts use business_name, individuals use firstname-lastname
+    // Determine if this is a business membership type
+    // Business types (small-business, large-business, not-for-profit, partner, spaces-suppliers): use business name
+    // Individual types (emerging, professional): use first name + last name
+    const membershipSlug = record.membership_type_id
+      ? await getMembershipTypeSlug(record.membership_type_id)
+      : null;
+    const useBusinessName = isBusinessMembershipType(membershipSlug) && record.business_name;
+
     let baseSlug: string;
-    if (record.business_name) {
-      baseSlug = generateSlug(record.business_name);
+    if (useBusinessName) {
+      baseSlug = generateSlug(record.business_name!);
     } else if (record.slug) {
+      // Use existing slug from Supabase if available
       baseSlug = record.slug;
     } else if (record.first_name && record.last_name) {
       baseSlug = generateSlug(`${record.first_name} ${record.last_name}`);
-    } else if (record.name) {
-      baseSlug = generateSlug(record.name);
+    } else if (record.first_name) {
+      // Partial name — use first name only rather than falling back to business name
+      baseSlug = generateSlug(record.first_name);
     } else {
-      baseSlug = 'member';
+      // No personal name available — use email prefix as a safe fallback.
+      // NOTE: This should be rare. If it happens, the member's profile is incomplete
+      // at sync time. The slug will be based on the email prefix, not the business name.
+      // Do NOT fall back to record.name — for individual types (emerging, professional)
+      // record.name may hold the business name, which creates a misleading slug.
+      const emailPrefix = record.email?.split('@')[0];
+      baseSlug = emailPrefix ? generateSlug(emailPrefix) : 'member';
+      console.warn(`Slug fallback to email prefix for member ${record.id} (${record.email}): first/last name not set at sync time. Membership type: ${membershipSlug}`);
     }
 
     // Find an available slug
     fieldData.slug = await findAvailableSlug(baseSlug);
-    console.log(`Generated slug: ${fieldData.slug} (base: ${baseSlug})`);
+    console.log(`Generated slug: ${fieldData.slug} (base: ${baseSlug}, membershipType: ${membershipSlug}, useBusinessName: ${useBusinessName})`);
   }
 
   // Memberstack ID

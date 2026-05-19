@@ -14,7 +14,7 @@
   const STORAGE_BUCKET = 'member-images';
 
   // Membership type classifications
-  const BUSINESS_TYPES = ['small-business', 'large-business', 'not-for-profit', 'spaces-suppliers'];
+  const BUSINESS_TYPES = ['small-business', 'large-business', 'not-for-profit', 'partner', 'spaces-suppliers'];
   const SPACES_SUPPLIERS_TYPE = 'spaces-suppliers';
   const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -1021,9 +1021,14 @@
 
     try {
 
-      // Generate slug
-      const displayName = formData.businessName || `${formData.firstName} ${formData.lastName}`.trim();
-      const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      // Display name for the name field (membership-type-aware)
+      const membershipType = supabaseMember?.membership_type?.slug || '';
+      const isBusinessMember = isBusinessType(membershipType);
+      const displayName = isBusinessMember
+        ? (formData.businessName || `${formData.firstName} ${formData.lastName}`.trim())
+        : `${formData.firstName} ${formData.lastName}`.trim();
+      // Slug is intentionally NOT regenerated here — it is set once at onboarding and
+      // must stay in sync with the Webflow CMS slug (which never updates after creation).
 
       // Check if profile meets completion criteria
       const hasProfileImage = !!profileImageUrl;
@@ -1050,7 +1055,6 @@
         first_name: formData.firstName,
         last_name: formData.lastName,
         name: displayName,
-        slug: slug,
         profile_image_url: profileImageUrl,
         header_image_url: featureImageUrl,
         bio: formData.bio,
