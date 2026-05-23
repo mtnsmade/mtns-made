@@ -16,7 +16,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 
 const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
-const ADMIN_EMAIL = 'support@mtnsmade.com.au';
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'hello@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);

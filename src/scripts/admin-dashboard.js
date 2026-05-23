@@ -331,7 +331,8 @@
     .action-btns {
       display: flex;
       gap: 6px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      align-items: center;
     }
 
     /* Approve/Reject buttons */
@@ -820,6 +821,11 @@
   // HELPER FUNCTIONS
   // ============================================
 
+  async function getAdminToken() {
+    const result = await window.$memberstackDom.getMemberToken();
+    return result?.data?.token || result?.data || '';
+  }
+
   function timeAgo(dateString) {
     if (!dateString) return '--';
     const date = new Date(dateString);
@@ -885,6 +891,8 @@ MTNS MADE Team`;
       failedSignups,
       recentEvents,
       eventStats,
+      recentOpportunities,
+      opportunityStats,
       recentProjects,
       messageStats,
       recentActivity,
@@ -896,6 +904,8 @@ MTNS MADE Team`;
       loadFailedSignups(),
       loadRecentEvents(),
       loadEventStats(),
+      loadRecentOpportunities(),
+      loadOpportunityStats(),
       loadRecentProjects(),
       loadMessageStats(),
       loadRecentActivity(),
@@ -912,6 +922,8 @@ MTNS MADE Team`;
       failedSignups,
       recentEvents,
       eventStats,
+      recentOpportunities,
+      opportunityStats,
       recentProjects,
       messageStats,
       recentActivity,
@@ -1043,8 +1055,9 @@ MTNS MADE Team`;
     const { data, error } = await supabase
       .from('events')
       .select('id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at')
+      .order('is_draft', { ascending: false })  // pending (is_draft=true) first
       .order('created_at', { ascending: false })
-      .limit(15);
+      .limit(50);
 
     if (error) {
       console.error('Error loading recent events:', error);
@@ -1061,6 +1074,33 @@ MTNS MADE Team`;
     const total = all?.length || 0;
     const pending = all?.filter(e => e.is_draft && !e.is_archived).length || 0;
     const published = all?.filter(e => !e.is_draft && !e.is_archived).length || 0;
+
+    return { total, pending, published };
+  }
+
+  async function loadRecentOpportunities() {
+    const { data, error } = await supabase
+      .from('opportunities')
+      .select('id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at')
+      .order('is_draft', { ascending: false })  // pending (is_draft=true) first
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Error loading recent opportunities:', error);
+      return [];
+    }
+    return data || [];
+  }
+
+  async function loadOpportunityStats() {
+    const { data: all } = await supabase
+      .from('opportunities')
+      .select('id, is_draft, is_archived');
+
+    const total = all?.length || 0;
+    const pending = all?.filter(o => o.is_draft && !o.is_archived).length || 0;
+    const published = all?.filter(o => !o.is_draft && !o.is_archived).length || 0;
 
     return { total, pending, published };
   }
@@ -1439,6 +1479,81 @@ MTNS MADE Team`;
     `;
   }
 
+  async function showOpportunityPreviewModal(opportunityId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal modal-preview">
+        <div class="modal-header">
+          <h3 class="modal-title">Opportunity Preview</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="admin-loading" style="padding: 40px 0;">
+            <div class="loader"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    const { data: opp, error } = await supabase
+      .from('opportunities')
+      .select('*')
+      .eq('id', opportunityId)
+      .single();
+
+    if (error || !opp) {
+      modal.querySelector('.modal-body').innerHTML = '<div style="padding: 24px; color: #dc3545;">Failed to load opportunity details.</div>';
+      return;
+    }
+
+    const formatDate = (d) => d
+      ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '--';
+
+    modal.querySelector('.modal-title').textContent = opp.name || 'Opportunity Preview';
+    modal.querySelector('.modal-body').innerHTML = `
+      <div class="preview-grid">
+        <div class="preview-field">
+          <div class="preview-label">Type</div>
+          <div class="preview-value">${opp.opportunity_type || '--'}</div>
+        </div>
+        <div class="preview-field">
+          <div class="preview-label">Closes</div>
+          <div class="preview-value">${formatDate(opp.closing_date)}</div>
+        </div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">Organisation</div>
+        <div class="preview-value">${opp.organization || '--'}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">Description</div>
+        <div class="preview-value">${opp.description || '--'}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">How to Apply</div>
+        <div class="preview-value">${opp.how_to_apply || '--'}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">URL</div>
+        <div class="preview-value">${opp.opportunity_url ? `<a href="${opp.opportunity_url}" target="_blank">${opp.opportunity_url}</a>` : '--'}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">Remote</div>
+        <div class="preview-value">${opp.is_remote ? 'Yes' : 'No'}</div>
+      </div>
+      <div class="preview-field">
+        <div class="preview-label">Submitted by</div>
+        <div class="preview-value">${opp.member_contact_email || '--'}</div>
+      </div>
+    `;
+  }
+
   // ============================================
   // RENDER FUNCTIONS
   // ============================================
@@ -1446,6 +1561,7 @@ MTNS MADE Team`;
   function renderDashboard(container, data) {
     const incompleteCount = data.incompleteProfiles.length;
     const pendingEvents = data.eventStats.pending;
+    const pendingOpportunities = data.opportunityStats.pending;
 
     container.innerHTML = `
       <div class="admin-dashboard">
@@ -1487,7 +1603,8 @@ MTNS MADE Team`;
             <button class="tab-btn" data-tab="members">Recent Members</button>
             <button class="tab-btn" data-tab="incomplete">Incomplete (${incompleteCount})</button>
             <button class="tab-btn" data-tab="failed">Failed Signups (${data.failedSignups.length})</button>
-            <button class="tab-btn" data-tab="events">Events</button>
+            <button class="tab-btn" data-tab="events">Events ${pendingEvents > 0 ? `(${pendingEvents})` : ''}</button>
+            <button class="tab-btn" data-tab="opportunities">Opportunities ${pendingOpportunities > 0 ? `(${pendingOpportunities})` : ''}</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
           </div>
 
@@ -1509,6 +1626,10 @@ MTNS MADE Team`;
 
           <div class="tab-content" id="tab-events">
             ${renderEventsTable(data.recentEvents, data.eventStats)}
+          </div>
+
+          <div class="tab-content" id="tab-opportunities">
+            ${renderOpportunitiesTable(data.recentOpportunities, data.opportunityStats)}
           </div>
 
           <div class="tab-content" id="tab-projects">
@@ -1558,12 +1679,14 @@ MTNS MADE Team`;
         btn.textContent = 'Approving...';
 
         try {
+          const adminToken = await getAdminToken();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
+              'X-Member-Token': adminToken,
             },
             body: JSON.stringify({
               eventId: eventId,
@@ -1606,12 +1729,14 @@ MTNS MADE Team`;
         btn.textContent = 'Rejecting...';
 
         try {
+          const adminToken = await getAdminToken();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
+              'X-Member-Token': adminToken,
             },
             body: JSON.stringify({
               eventId: eventId,
@@ -1643,6 +1768,109 @@ MTNS MADE Team`;
     container.querySelectorAll('.preview-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         showEventPreviewModal(btn.dataset.eventId);
+      });
+    });
+
+    // Setup opportunity preview buttons
+    container.querySelectorAll('.preview-opp-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        showOpportunityPreviewModal(btn.dataset.oppId);
+      });
+    });
+
+    // Setup opportunity approve buttons
+    container.querySelectorAll('.approve-opp-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const oppId = btn.dataset.oppId;
+        const oppName = btn.dataset.oppName;
+
+        if (!confirm(`Approve opportunity "${oppName}"?\n\nThis will publish it and notify the member.`)) {
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Approving...';
+
+        try {
+          const adminToken = await getAdminToken();
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'apikey': SUPABASE_ANON_KEY,
+              'X-Member-Token': adminToken,
+            },
+            body: JSON.stringify({ opportunityId: oppId, action: 'approve' }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            alert(`Opportunity "${oppName}" has been approved!\n\nThe member will be notified.`);
+            refreshDashboard(container);
+          } else {
+            alert(`Failed to approve opportunity: ${result.error}`);
+            btn.disabled = false;
+            btn.textContent = 'Approve';
+          }
+        } catch (error) {
+          console.error('Opportunity approve error:', error);
+          alert('Error approving opportunity. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Approve';
+        }
+      });
+    });
+
+    // Setup opportunity reject buttons
+    container.querySelectorAll('.reject-opp-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const oppId = btn.dataset.oppId;
+        const oppName = btn.dataset.oppName;
+
+        const reason = prompt(`Reject opportunity "${oppName}"?\n\nOptionally enter a reason (or leave blank):`);
+
+        if (reason === null) {
+          return; // User cancelled
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Rejecting...';
+
+        try {
+          const adminToken = await getAdminToken();
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'apikey': SUPABASE_ANON_KEY,
+              'X-Member-Token': adminToken,
+            },
+            body: JSON.stringify({
+              opportunityId: oppId,
+              action: 'reject',
+              rejectionReason: reason || undefined,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            alert(`Opportunity "${oppName}" has been rejected.\n\nThe member will be notified.`);
+            refreshDashboard(container);
+          } else {
+            alert(`Failed to reject opportunity: ${result.error}`);
+            btn.disabled = false;
+            btn.textContent = 'Reject';
+          }
+        } catch (error) {
+          console.error('Opportunity reject error:', error);
+          alert('Error rejecting opportunity. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Reject';
+        }
       });
     });
 
@@ -1725,6 +1953,14 @@ MTNS MADE Team`;
         type: 'info',
         text: 'Events pending review',
         count: data.eventStats.pending
+      });
+    }
+
+    if (data.opportunityStats.pending > 0) {
+      issues.push({
+        type: 'info',
+        text: 'Opportunities pending review',
+        count: data.opportunityStats.pending
       });
     }
 
@@ -1986,6 +2222,66 @@ MTNS MADE Team`;
     `;
   }
 
+  function renderOpportunitiesTable(opportunities, stats) {
+    return `
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
+        <span style="margin-right: 24px;"><strong style="color: #f59f00;">${stats.pending}</strong> Pending</span>
+        <span><strong style="color: #1a1a1a;">${stats.published}</strong> Published</span>
+      </div>
+      ${opportunities.length === 0 ? '<div class="empty-state">No opportunities found</div>' : `
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Opportunity</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${opportunities.map(opp => {
+              let status = 'draft';
+              if (opp.is_archived) status = 'archived';
+              else if (!opp.is_draft) status = 'published';
+              else status = 'pending';
+
+              return `
+                <tr>
+                  <td>
+                    <div class="name-cell">${opp.name || 'Untitled'}</div>
+                    <div class="email-cell">${opp.member_contact_email || '--'}</div>
+                  </td>
+                  <td>
+                    <span class="type-cell">${opp.opportunity_type || '--'}</span>
+                  </td>
+                  <td>
+                    <span class="status ${status === 'published' ? 'complete' : status === 'pending' ? 'pending' : 'draft'}">
+                      ${status}
+                    </span>
+                  </td>
+                  <td class="time-cell">${timeAgo(opp.created_at)}</td>
+                  <td>
+                    <div class="action-btns">
+                      ${status === 'pending' ? `
+                        <button class="action-btn preview-opp-btn" data-opp-id="${opp.id}">Preview</button>
+                        <button class="action-btn approve-opp-btn" data-opp-id="${opp.id}" data-opp-name="${opp.name}">Approve</button>
+                        <button class="action-btn reject-opp-btn" data-opp-id="${opp.id}" data-opp-name="${opp.name}">Reject</button>
+                      ` : ''}
+                      ${opp.webflow_id && opp.slug ? `
+                        <a href="${SITE_URL}/opportunities/${opp.slug}" target="_blank" class="action-btn view-btn">View</a>
+                      ` : ''}
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `}
+    `;
+  }
+
   function renderProjectsTable(projects) {
     if (projects.length === 0) {
       return '<div class="empty-state">No projects found</div>';
@@ -2035,6 +2331,7 @@ MTNS MADE Team`;
       if (type === 'profile_update') return { class: 'profile', icon: '👤' };
       if (type.startsWith('project_')) return { class: 'project', icon: '📁' };
       if (type.startsWith('event_')) return { class: 'event', icon: '📅' };
+      if (type.startsWith('opportunity_')) return { class: 'event', icon: '💼' };
       if (type === 'subscription_canceled') return { class: 'canceled', icon: '🚫' };
       if (type === 'subscription_reactivated') return { class: 'reactivated', icon: '✅' };
       return { class: '', icon: '📝' };

@@ -28,7 +28,7 @@
     DRAFT: 'draft',
     PENDING_REVIEW: 'pending_review',
     PUBLISHED: 'published',
-    CHANGES_REQUESTED: 'changes_requested'
+    REJECTED: 'rejected'
   };
 
   // Styles
@@ -166,7 +166,7 @@
       background: #28a745;
       color: #fff;
     }
-    .me-status-changes_requested {
+    .me-status-rejected {
       background: #dc3545;
       color: #fff;
     }
@@ -602,13 +602,16 @@
       [STATUS.DRAFT]: 'Draft',
       [STATUS.PENDING_REVIEW]: 'Pending Review',
       [STATUS.PUBLISHED]: 'Published',
-      [STATUS.CHANGES_REQUESTED]: 'Changes Requested'
+      [STATUS.REJECTED]: 'Not Approved'
     };
     return labels[status] || status || 'Draft';
   }
 
   function getEventStatus(event) {
-    if (event.is_draft === false && event.is_archived === false) {
+    if (event.is_archived === true) {
+      return STATUS.REJECTED;
+    }
+    if (event.is_draft === false) {
       return STATUS.PUBLISHED;
     }
     if (event.is_draft === true) {
@@ -707,6 +710,25 @@
   }
 
   async function deleteEvent(eventId) {
+    // Archive in Webflow first if the event was synced (so it's removed from the live site)
+    const event = events.find(e => e.id === eventId);
+    if (event?.webflow_id) {
+      try {
+        await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
+            'X-Member-Token': (await window.$memberstackDom.getMemberToken())?.data?.token || '',
+          },
+          body: JSON.stringify({ eventId, action: 'reject' }),
+        });
+      } catch (err) {
+        console.warn('Webflow cleanup failed, proceeding with delete:', err);
+      }
+    }
+
     const { error } = await supabase
       .from('events')
       .delete()
@@ -1081,7 +1103,8 @@
 
     const status = isEdit ? getEventStatus(event) : STATUS.DRAFT;
     const wasPublished = status === STATUS.PUBLISHED;
-    const showReviewWarning = isEdit && wasPublished;
+    const wasRejected = status === STATUS.REJECTED;
+    const showReviewWarning = isEdit && (wasPublished || wasRejected);
 
     const modal = document.createElement('div');
     modal.className = 'me-modal-overlay';
@@ -1099,7 +1122,10 @@
 
           ${showReviewWarning ? `
             <div class="me-info-box warning">
-              <p><strong>Note:</strong> This event is currently published. Any changes you make will require re-approval and the event will be temporarily unpublished until reviewed.</p>
+              <p><strong>Note:</strong> ${wasRejected
+                ? 'This event was not approved. You can edit and resubmit it for review.'
+                : 'This event is currently published. Any changes you make will require re-approval.'
+              }</p>
             </div>
           ` : ''}
 
@@ -1190,7 +1216,7 @@
             <button class="me-btn me-btn-secondary" id="me-modal-save-draft">Save Draft</button>
           ` : ''}
           <button class="me-btn me-btn-success" id="me-modal-submit">
-            ${isEdit ? (wasPublished ? 'Submit for Re-Review' : 'Update & Submit') : 'Submit for Review'}
+            ${isEdit ? (wasPublished || wasRejected ? 'Submit for Re-Review' : 'Update & Submit') : 'Submit for Review'}
           </button>
         </div>
       </div>
@@ -1349,8 +1375,8 @@
         feature_image_url: finalImageUrl || null,
         rsvp_link: formatUrl(rsvpLink) || null,
         eventbrite_id: modal.querySelector('#me-form-eventbrite').value.trim() || null,
-        is_draft: submitForReview ? true : true, // Always draft until admin approves
-        is_archived: false
+        is_draft: true,       // Always draft until admin approves
+        is_archived: false    // Clear rejection state if member resubmits
       };
 
       showProgressOverlay('Saving to database...', 'Please wait');

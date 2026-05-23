@@ -131,6 +131,27 @@ function getSupabaseClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
+// Delete a single event image by extracting its storage path from the public URL.
+// More precise than deleting the whole member folder — avoids wiping images from
+// other events belonging to the same member.
+async function deleteEventImageByUrl(imageUrl: string): Promise<void> {
+  if (!imageUrl) return;
+  const supabase = getSupabaseClient();
+  const marker = `/storage/v1/object/public/${EVENT_IMAGES_BUCKET}/`;
+  const idx = imageUrl.indexOf(marker);
+  if (idx === -1) {
+    console.warn('Could not extract storage path from URL:', imageUrl);
+    return;
+  }
+  const filePath = decodeURIComponent(imageUrl.substring(idx + marker.length));
+  const { error } = await supabase.storage.from(EVENT_IMAGES_BUCKET).remove([filePath]);
+  if (error) {
+    console.error('Error deleting event image:', filePath, error);
+  } else {
+    console.log('Deleted event image:', filePath);
+  }
+}
+
 // Delete all images from storage
 async function deleteImagesFromStorage(bucket: string, folderPath: string): Promise<void> {
   const supabase = getSupabaseClient();
@@ -687,7 +708,7 @@ async function mapEventToWebflowFields(record: EventRecord): Promise<Record<stri
     // Get the submitting member's Webflow ID for members-mentioned
     const memberWebflowId = await getMemberWebflowId(record.memberstack_id);
     if (memberWebflowId) {
-      fieldData['members-mentioned'] = [memberWebflowId];
+      fieldData['members-involved-in-this-event'] = [memberWebflowId];
     }
   }
 
@@ -812,12 +833,21 @@ async function publishWebflowEvent(itemId: string): Promise<void> {
     }
   );
 
+  const result = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Webflow publish event error:', response.status, errorText);
-  } else {
-    console.log('Webflow event published:', itemId);
+    console.error('Webflow publish event HTTP error:', response.status, result);
+    throw new Error(`Webflow publish failed (HTTP ${response.status})`);
   }
+
+  // The publish endpoint returns 202 even for validation errors — check the body
+  const errors: string[] = (result as { errors?: string[] }).errors ?? [];
+  if (errors.length > 0) {
+    console.error('Webflow publish event validation errors:', errors, 'itemId:', itemId);
+    throw new Error(`Webflow publish validation error: ${errors.join(', ')}`);
+  }
+
+  console.log('Webflow event published:', itemId);
 }
 
 // Update Supabase event with Webflow ID
@@ -1020,8 +1050,12 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
     header_image_url: record.header_image_url,
   });
 
+  const displayName = [record.first_name, record.last_name].filter(Boolean).join(' ')
+    || record.name
+    || record.email?.split('@')[0]
+    || 'Member';
   const fieldData: Record<string, unknown> = {
-    name: record.name || record.email?.split('@')[0] || 'Member',
+    name: displayName,
   };
 
   // Only include slug on create (not update) to avoid duplicate slug errors
@@ -1507,9 +1541,9 @@ async function handleEventWebhook(payload: WebhookPayload): Promise<void> {
       if (record.is_archived && record.webflow_id) {
         await deleteWebflowEvent(record.webflow_id);
 
-        // Delete images from storage
-        if (record.memberstack_id) {
-          await deleteImagesFromStorage(EVENT_IMAGES_BUCKET, record.memberstack_id);
+        // Delete only this event's image (not the entire member folder)
+        if (record.feature_image_url) {
+          await deleteEventImageByUrl(record.feature_image_url);
         }
 
         break;
@@ -1546,9 +1580,9 @@ async function handleEventWebhook(payload: WebhookPayload): Promise<void> {
         await deleteWebflowEvent(oldRecord.webflow_id);
       }
 
-      // Delete images from storage
-      if (oldRecord?.memberstack_id) {
-        await deleteImagesFromStorage(EVENT_IMAGES_BUCKET, oldRecord.memberstack_id);
+      // Delete only this event's image (not the entire member folder)
+      if (oldRecord?.feature_image_url) {
+        await deleteEventImageByUrl(oldRecord.feature_image_url);
       }
 
       break;

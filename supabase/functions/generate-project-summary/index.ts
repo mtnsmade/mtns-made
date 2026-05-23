@@ -5,6 +5,7 @@
  * Modes:
  * - POST { project_id } - Generate for single project
  * - POST { mode: 'backfill', limit: 10 } - Backfill projects without short descriptions
+ * - POST { mode: 'debug' } - Check env vars and test Claude API key
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -28,16 +29,14 @@ function getSupabaseClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
-// Generate short description using Claude
-async function generateShortDescription(description: string): Promise<string | null> {
+// Generate short description using Claude - returns { text, error }
+async function generateShortDescription(description: string): Promise<{ text: string | null; error?: string }> {
   if (!ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY not configured');
-    return null;
+    return { text: null, error: 'ANTHROPIC_API_KEY (CLAUDE env var) not configured' };
   }
 
   if (!description || description.trim().length < 20) {
-    console.log('Description too short to summarize');
-    return null;
+    return { text: null, error: 'Description too short to summarize' };
   }
 
   try {
@@ -49,7 +48,7 @@ async function generateShortDescription(description: string): Promise<string | n
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 100,
         messages: [
           {
@@ -66,24 +65,23 @@ Respond with ONLY the short description, nothing else.`,
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('Claude API error:', response.status, error);
-      return null;
+      const errorText = await response.text();
+      console.error('Claude API error:', response.status, errorText);
+      return { text: null, error: `Claude API ${response.status}: ${errorText}` };
     }
 
     const result = await response.json();
-    let shortDesc = result.content?.[0]?.text?.trim() || null;
+    let shortDesc: string | null = result.content?.[0]?.text?.trim() || null;
 
     // Ensure it's under 160 characters
     if (shortDesc && shortDesc.length > 160) {
-      // Truncate at last complete word under 157 chars, add ellipsis
       shortDesc = shortDesc.substring(0, 157).replace(/\s+\S*$/, '') + '...';
     }
 
-    return shortDesc;
+    return { text: shortDesc };
   } catch (error) {
     console.error('Error calling Claude API:', error);
-    return null;
+    return { text: null, error: String(error) };
   }
 }
 
@@ -123,7 +121,6 @@ async function updateWebflowProject(webflowId: string, shortDescription: string)
 async function processProject(projectId: string): Promise<{ success: boolean; shortDescription?: string; error?: string }> {
   const supabase = getSupabaseClient();
 
-  // Get project
   const { data: project, error: fetchError } = await supabase
     .from('projects')
     .select('id, name, description, short_description, webflow_id')
@@ -138,14 +135,12 @@ async function processProject(projectId: string): Promise<{ success: boolean; sh
     return { success: false, error: 'No description to summarize' };
   }
 
-  // Generate short description
-  const shortDescription = await generateShortDescription(project.description);
+  const { text: shortDescription, error: genError } = await generateShortDescription(project.description);
 
   if (!shortDescription) {
-    return { success: false, error: 'Failed to generate short description' };
+    return { success: false, error: genError || 'Failed to generate short description' };
   }
 
-  // Update Supabase
   const { error: updateError } = await supabase
     .from('projects')
     .update({ short_description: shortDescription })
@@ -157,7 +152,6 @@ async function processProject(projectId: string): Promise<{ success: boolean; sh
 
   console.log(`Updated project ${project.name}: "${shortDescription}"`);
 
-  // Update Webflow if project has webflow_id
   if (project.webflow_id) {
     await updateWebflowProject(project.webflow_id, shortDescription);
   }
@@ -169,7 +163,6 @@ async function processProject(projectId: string): Promise<{ success: boolean; sh
 async function backfillProjects(limit: number): Promise<{ processed: number; success: number; failed: number; results: Array<{ name: string; result: string }> }> {
   const supabase = getSupabaseClient();
 
-  // Get projects without short descriptions
   const { data: projects, error } = await supabase
     .from('projects')
     .select('id, name, description, webflow_id')
@@ -188,15 +181,13 @@ async function backfillProjects(limit: number): Promise<{ processed: number; suc
   let failed = 0;
 
   for (const project of projects) {
-    // Rate limit: Claude has generous limits but let's be safe
     if (results.length > 0) {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    const shortDescription = await generateShortDescription(project.description);
+    const { text: shortDescription, error: genError } = await generateShortDescription(project.description);
 
     if (shortDescription) {
-      // Update Supabase
       const { error: updateError } = await supabase
         .from('projects')
         .update({ short_description: shortDescription })
@@ -206,18 +197,17 @@ async function backfillProjects(limit: number): Promise<{ processed: number; suc
         success++;
         results.push({ name: project.name, result: shortDescription });
 
-        // Update Webflow
         if (project.webflow_id) {
           await updateWebflowProject(project.webflow_id, shortDescription);
-          await new Promise(resolve => setTimeout(resolve, 100)); // Webflow rate limit
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       } else {
         failed++;
-        results.push({ name: project.name, result: `Error: ${updateError.message}` });
+        results.push({ name: project.name, result: `DB error: ${updateError.message}` });
       }
     } else {
       failed++;
-      results.push({ name: project.name, result: 'Failed to generate' });
+      results.push({ name: project.name, result: genError || 'Failed to generate' });
     }
   }
 
@@ -236,24 +226,36 @@ serve(async (req) => {
     );
   }
 
-  // Check API key
-  if (!ANTHROPIC_API_KEY) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'ANTHROPIC_API_KEY not configured' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
   try {
     const body = await req.json().catch(() => ({}));
+
+    // Debug mode - check config and test Claude
+    if (body.mode === 'debug') {
+      const hasAnthropicKey = !!ANTHROPIC_API_KEY;
+      const hasWebflowToken = !!WEBFLOW_API_TOKEN;
+      const hasSupabaseUrl = !!SUPABASE_URL;
+
+      // Test Claude API with minimal call
+      let claudeStatus = 'not tested';
+      if (hasAnthropicKey) {
+        const testResult = await generateShortDescription('A beautiful handmade ceramic bowl crafted with traditional Japanese techniques.');
+        claudeStatus = testResult.text ? `OK: "${testResult.text}"` : `ERROR: ${testResult.error}`;
+      }
+
+      return new Response(
+        JSON.stringify({
+          env: { hasAnthropicKey, hasWebflowToken, hasSupabaseUrl },
+          claudeStatus,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Backfill mode
     if (body.mode === 'backfill') {
       const limit = body.limit || 10;
       console.log(`Backfilling ${limit} projects...`);
-
       const result = await backfillProjects(limit);
-
       return new Response(
         JSON.stringify({ success: true, ...result }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -263,7 +265,6 @@ serve(async (req) => {
     // Single project mode
     if (body.project_id) {
       const result = await processProject(body.project_id);
-
       return new Response(
         JSON.stringify(result),
         { status: result.success ? 200 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -272,7 +273,6 @@ serve(async (req) => {
 
     // Trigger mode (from database trigger via pg_net)
     if (body.record?.id && body.record?.description) {
-      // Only generate if short_description is null or empty
       if (!body.record.short_description) {
         const result = await processProject(body.record.id);
         return new Response(

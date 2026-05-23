@@ -9,6 +9,15 @@ MTNS MADE is a Blue Mountains creative community platform with:
 - **Supabase** for database and storage
 - **Webflow** for CMS and frontend
 
+## Credentials
+All API keys and tokens are in `cred.env` (gitignored). **Always read this file first** before searching elsewhere for keys, URLs, or tokens:
+```
+/Users/paulmosig/Desktop/MTNS MADE TEMP/warp/mtns-made/cred.env
+```
+Contains: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WEBFLOW_API_TOKEN`, `WEBFLOW_*_COLLECTION_ID`, `WEBFLOW_SITE_ID`, `MAILCHIMP_*`.
+Anthropic API key is in `scripts/populate-subdirectories/.env` — model must be from the Claude 4 series (key has no access to Claude 3).
+Supabase Management API personal access token is in macOS keychain (`security find-generic-password -s "Supabase CLI" -w | sed 's/go-keyring-base64://' | base64 -d`).
+
 ## Key Files
 - `supabase/functions/memberstack-webhook/index.ts` - Member lifecycle events
 - `supabase/functions/sync-member/index.ts` - Sync member to Webflow

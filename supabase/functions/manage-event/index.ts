@@ -11,6 +11,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 const SITE_URL = 'https://www.mtnsmade.com.au';
@@ -30,6 +31,56 @@ const corsHeaders = {
 
 function getSupabaseClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+}
+
+async function logActivity(memberstackId: string, activityType: string, entityId: string, entityName: string): Promise<void> {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/log-activity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberstack_id: memberstackId,
+        activity_type: activityType,
+        entity_type: 'event',
+        entity_id: entityId,
+        entity_name: entityName,
+      }),
+    });
+  } catch (err) {
+    console.warn('Failed to log activity:', err);
+  }
+}
+
+// Verify the caller is an admin by checking their Memberstack token
+async function verifyAdmin(memberToken: string): Promise<boolean> {
+  if (!MEMBERSTACK_API_KEY) {
+    console.error('MEMBERSTACK_API_KEY not configured — cannot verify admin');
+    return false;
+  }
+
+  const response = await fetch('https://admin.memberstack.com/members/tokenized', {
+    headers: {
+      'x-api-key': MEMBERSTACK_API_KEY,
+      'Authorization': `Bearer ${memberToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    console.warn('Memberstack token verification failed:', response.status);
+    return false;
+  }
+
+  const { data: member } = await response.json();
+  const isAdmin = member?.planConnections?.some(
+    (p: { status: string; plan?: { name?: string } }) =>
+      p.status === 'ACTIVE' && p.plan?.name === 'Admin'
+  ) ?? false;
+
+  if (!isAdmin) {
+    console.warn('Token valid but caller is not an Admin plan member');
+  }
+
+  return isAdmin;
 }
 
 // Send approval email to member
@@ -261,6 +312,23 @@ serve(async (req) => {
     );
   }
 
+  // Verify the caller is an Admin plan member
+  const memberToken = req.headers.get('X-Member-Token') || '';
+  if (!memberToken) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const isAdmin = await verifyAdmin(memberToken);
+  if (!isAdmin) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Forbidden' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const body: ManageEventRequest = await req.json();
 
@@ -283,7 +351,7 @@ serve(async (req) => {
     // Get the event details
     const { data: event, error: fetchError } = await supabase
       .from('events')
-      .select('id, name, slug, member_contact_email, is_draft, is_archived')
+      .select('id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived')
       .eq('id', body.eventId)
       .single();
 
@@ -315,6 +383,10 @@ serve(async (req) => {
 
       console.log('Event approved:', event.name);
 
+      if (event.memberstack_id) {
+        await logActivity(event.memberstack_id, 'event_approved', event.id, event.name);
+      }
+
       // Send approval email to member
       if (event.member_contact_email) {
         await sendApprovalEmail(event.member_contact_email, event.name, event.slug);
@@ -344,6 +416,10 @@ serve(async (req) => {
       }
 
       console.log('Event rejected:', event.name);
+
+      if (event.memberstack_id) {
+        await logActivity(event.memberstack_id, 'event_rejected', event.id, event.name);
+      }
 
       // Send rejection email to member
       if (event.member_contact_email) {
