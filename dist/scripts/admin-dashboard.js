@@ -1,4 +1,4 @@
-(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",b="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",h="https://www.mtnsmade.com.au";let l=null,w=null,x=[];const M=`
+(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",b="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",h="https://www.mtnsmade.com.au";let l=null,w=null,_=[];const M=`
     .admin-dashboard {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
@@ -794,7 +794,7 @@
         overflow-x: auto;
       }
     }
-  `;async function _(){var e;const t=await window.$memberstackDom.getMemberToken();return((e=t==null?void 0:t.data)==null?void 0:e.token)||(t==null?void 0:t.data)||""}function u(t){if(!t)return"--";const e=new Date(t),i=Math.floor((new Date-e)/1e3);return i<60?"now":i<3600?`${Math.floor(i/60)}m`:i<86400?`${Math.floor(i/3600)}h`:i<604800?`${Math.floor(i/86400)}d`:e.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function A(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function $(t){const e=[];return t.profile_image_url||e.push("Profile Image"),t.header_image_url||e.push("Header Image"),(!t.bio||t.bio.length<50)&&e.push("Bio"),t.suburb_id||e.push("Location"),e}function C(t,e){const a=t.first_name||t.name||"there",i=e.length>0?`
+  `;async function x(){var e;const t=await window.$memberstackDom.getMemberToken();return((e=t==null?void 0:t.data)==null?void 0:e.token)||(t==null?void 0:t.data)||""}function u(t){if(!t)return"--";const e=new Date(t),i=Math.floor((new Date-e)/1e3);return i<60?"now":i<3600?`${Math.floor(i/60)}m`:i<86400?`${Math.floor(i/3600)}h`:i<604800?`${Math.floor(i/86400)}d`:e.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function A(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function $(t){const e=[];return t.profile_image_url||e.push("Profile Image"),t.header_image_url||e.push("Header Image"),(!t.bio||t.bio.length<50)&&e.push("Bio"),t.suburb_id||e.push("Location"),e}function C(t,e){const a=t.first_name||t.name||"there",i=e.length>0?`
 
 To complete your profile, you'll need:
 ${e.map(o=>`- ${o}`).join(`
@@ -808,7 +808,7 @@ Complete your profile here: ${h}/profile/start
 
 Let us know if you need any help!
 
-MTNS MADE Team`}async function S(){const[t,e,a,i,o,n,r,s,d,p,c,m]=await Promise.all([L(),q(),z(),I(),D(),O(),R(),U(),F(),N(),H(),P()]);return x=m,{recentMembers:t,memberStats:e,incompleteProfiles:a,failedSignups:i,recentEvents:o,eventStats:n,recentOpportunities:r,opportunityStats:s,recentProjects:d,messageStats:p,recentActivity:c,membershipTypes:m,loadedAt:new Date}}async function L(){const{data:t,error:e}=await l.from("members").select(`
+MTNS MADE Team`}async function k(){const[t,e,a,i,o,n,r,s,d,p,c,m]=await Promise.all([L(),q(),z(),I(),D(),O(),R(),U(),F(),N(),B(),P()]);return _=m,{recentMembers:t,memberStats:e,incompleteProfiles:a,failedSignups:i,recentEvents:o,eventStats:n,recentOpportunities:r,opportunityStats:s,recentProjects:d,messageStats:p,recentActivity:c,membershipTypes:m,loadedAt:new Date}}async function L(){const{data:t,error:e}=await l.from("members").select(`
         id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
@@ -821,14 +821,14 @@ MTNS MADE Team`}async function S(){const[t,e,a,i,o,n,r,s,d,p,c,m]=await Promise.
       `).eq("profile_complete",!1).eq("subscription_status","active").neq("is_deleted",!0).order("created_at",{ascending:!0});return e?(console.error("Error loading incomplete profiles:",e),[]):t||[]}async function I(){const{data:t,error:e}=await l.from("members").select(`
         id, memberstack_id, name, email, first_name, slug,
         subscription_status, profile_complete, profile_reminder_sent_at, created_at
-      `).not("subscription_status","in",'("active","lapsed","deleted")').neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(30);return e?(console.error("Error loading failed signups:",e),[]):t||[]}async function D(){const{data:t,error:e}=await l.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);return e?(console.error("Error loading recent events:",e),[]):t||[]}async function O(){const{data:t}=await l.from("events").select("id, is_draft, is_archived, webflow_id"),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(o=>o.is_draft&&!o.is_archived).length)||0,i=(t==null?void 0:t.filter(o=>!o.is_draft&&!o.is_archived).length)||0;return{total:e,pending:a,published:i}}async function R(){const{data:t,error:e}=await l.from("opportunities").select("id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);return e?(console.error("Error loading recent opportunities:",e),[]):t||[]}async function U(){const{data:t}=await l.from("opportunities").select("id, is_draft, is_archived"),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(o=>o.is_draft&&!o.is_archived).length)||0,i=(t==null?void 0:t.filter(o=>!o.is_draft&&!o.is_archived).length)||0;return{total:e,pending:a,published:i}}async function F(){const{data:t,error:e}=await l.from("projects").select(`
+      `).not("subscription_status","in",'("active","lapsed","deleted")').neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(30);return e?(console.error("Error loading failed signups:",e),[]):t||[]}async function D(){const{data:t,error:e}=await l.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);return e?(console.error("Error loading recent events:",e),[]):t||[]}async function O(){const{data:t}=await l.from("events").select("id, is_draft, is_archived, webflow_id"),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(o=>o.is_draft&&!o.is_archived).length)||0,i=(t==null?void 0:t.filter(o=>!o.is_draft&&!o.is_archived).length)||0;return{total:e,pending:a,published:i}}async function R(){const{data:t,error:e}=await l.from("opportunities").select("id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);if(e)return console.error("Error loading recent opportunities:",e),[];const a=t||[],i=[...new Set(a.map(o=>o.memberstack_id).filter(Boolean))];if(i.length>0){const{data:o}=await l.from("members").select("memberstack_id, first_name, last_name, name").in("memberstack_id",i);if(o){const n=Object.fromEntries(o.map(r=>[r.memberstack_id,r]));a.forEach(r=>{const s=n[r.memberstack_id];s&&(r.member_name=[s.first_name,s.last_name].filter(Boolean).join(" ")||s.name||null)})}}return a}async function U(){const{data:t}=await l.from("opportunities").select("id, is_draft, is_archived"),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(o=>o.is_draft&&!o.is_archived).length)||0,i=(t==null?void 0:t.filter(o=>!o.is_draft&&!o.is_archived).length)||0;return{total:e,pending:a,published:i}}async function F(){const{data:t,error:e}=await l.from("projects").select(`
         id, name, slug, member_id, webflow_id, is_draft, is_deleted,
         created_at, updated_at
-      `).eq("is_deleted",!1).order("updated_at",{ascending:!1}).limit(15);return e?(console.error("Error loading recent projects:",e),[]):t||[]}async function H(){const{data:t,error:e}=await l.from("activity_log").select(`
+      `).eq("is_deleted",!1).order("updated_at",{ascending:!1}).limit(15);return e?(console.error("Error loading recent projects:",e),[]):t||[]}async function B(){const{data:t,error:e}=await l.from("activity_log").select(`
         id, member_id, memberstack_id, activity_type, description,
         entity_type, entity_id, entity_name,
         member_webflow_url, entity_webflow_url, created_at
-      `).order("created_at",{ascending:!1}).limit(50);if(e)return console.error("Error loading recent activity:",e),[];const a=[...new Set(t.filter(o=>o.member_id).map(o=>o.member_id))];let i={};if(a.length>0){const{data:o}=await l.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",a);o&&o.forEach(n=>{i[n.id]={name:n.name||`${n.first_name||""} ${n.last_name||""}`.trim()||"Unknown Member",profile_image_url:n.profile_image_url||null}})}return t.map(o=>{var n,r;return{...o,member_name:o.member_id&&((n=i[o.member_id])==null?void 0:n.name)||"Unknown Member",member_profile_image:o.member_id&&((r=i[o.member_id])==null?void 0:r.profile_image_url)||null}})}function B(t){const e=$(t),a=C(t,e),i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
+      `).order("created_at",{ascending:!1}).limit(50);if(e)return console.error("Error loading recent activity:",e),[];const a=[...new Set(t.filter(o=>o.member_id).map(o=>o.member_id))];let i={};if(a.length>0){const{data:o}=await l.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",a);o&&o.forEach(n=>{i[n.id]={name:n.name||`${n.first_name||""} ${n.last_name||""}`.trim()||"Unknown Member",profile_image_url:n.profile_image_url||null}})}return t.map(o=>{var n,r;return{...o,member_name:o.member_id&&((n=i[o.member_id])==null?void 0:n.name)||"Unknown Member",member_profile_image:o.member_id&&((r=i[o.member_id])==null?void 0:r.profile_image_url)||null}})}function H(t){const e=$(t),a=C(t,e),i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Contact Member</h3>
@@ -862,7 +862,7 @@ MTNS MADE Team`}async function S(){const[t,e,a,i,o,n,r,s,d,p,c,m]=await Promise.
           <button class="admin-btn primary" id="modal-send">Send Email</button>
         </div>
       </div>
-    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#modal-cancel").addEventListener("click",()=>i.remove()),i.addEventListener("click",o=>{o.target===i&&i.remove()}),i.querySelector("#modal-send").addEventListener("click",async()=>{const o=i.querySelector("#modal-to").value,n=i.querySelector("#modal-subject").value,r=i.querySelector("#modal-body").value;if(!o){alert("No email address available for this member");return}const s=i.querySelector("#modal-send");s.disabled=!0,s.textContent="Sending...";try{const p=await(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:o,subject:n,text:r,html:r.replace(/\n/g,"<br>")})})).json();if(p.success){await l.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",t.id),alert("Email sent successfully!"),i.remove();const c=document.querySelector(".dashboard-feed");c&&f(c)}else alert("Failed to send email: "+(p.error||"Unknown error")),s.disabled=!1,s.textContent="Send Email"}catch(d){console.error("Error sending email:",d),alert("Error sending email. Check console for details."),s.disabled=!1,s.textContent="Send Email"}})}function W(t,e,a){var n;const i=((n=x.find(r=>r.id===a))==null?void 0:n.name)||"Not set",o=document.createElement("div");o.className="modal-overlay",o.innerHTML=`
+    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#modal-cancel").addEventListener("click",()=>i.remove()),i.addEventListener("click",o=>{o.target===i&&i.remove()}),i.querySelector("#modal-send").addEventListener("click",async()=>{const o=i.querySelector("#modal-to").value,n=i.querySelector("#modal-subject").value,r=i.querySelector("#modal-body").value;if(!o){alert("No email address available for this member");return}const s=i.querySelector("#modal-send");s.disabled=!0,s.textContent="Sending...";try{const p=await(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:o,subject:n,text:r,html:r.replace(/\n/g,"<br>")})})).json();if(p.success){await l.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",t.id),alert("Email sent successfully!"),i.remove();const c=document.querySelector(".dashboard-feed");c&&f(c)}else alert("Failed to send email: "+(p.error||"Unknown error")),s.disabled=!1,s.textContent="Send Email"}catch(d){console.error("Error sending email:",d),alert("Error sending email. Check console for details."),s.disabled=!1,s.textContent="Send Email"}})}function W(t,e,a){var n;const i=((n=_.find(r=>r.id===a))==null?void 0:n.name)||"Not set",o=document.createElement("div");o.className="modal-overlay",o.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Edit Member</h3>
@@ -881,7 +881,7 @@ MTNS MADE Team`}async function S(){const[t,e,a,i,o,n,r,s,d,p,c,m]=await Promise.
             <label class="form-label">New Membership Type</label>
             <select class="form-input" id="modal-membership-type">
               <option value="">-- Select New Type --</option>
-              ${x.map(r=>`
+              ${_.map(r=>`
                 <option value="${r.id}" ${r.id===a?"disabled":""}>
                   ${r.name}${r.id===a?" (current)":""}
                 </option>
@@ -910,7 +910,7 @@ MTNS MADE Team`}async function S(){const[t,e,a,i,o,n,r,s,d,p,c,m]=await Promise.
           <button class="admin-btn primary" id="modal-save">Update Membership</button>
         </div>
       </div>
-    `,document.body.appendChild(o),o.querySelector(".modal-close").addEventListener("click",()=>o.remove()),o.querySelector("#modal-cancel").addEventListener("click",()=>o.remove()),o.addEventListener("click",r=>{r.target===o&&o.remove()}),o.querySelector("#modal-save").addEventListener("click",async()=>{var m;const r=o.querySelector("#modal-membership-type").value,s=o.querySelector("#modal-skip-billing").checked;if(!r){alert("Please select a new membership type");return}const d=((m=x.find(g=>g.id===r))==null?void 0:m.name)||"Unknown",p=s?`Change ${e}'s type from "${i}" to "${d}"?
+    `,document.body.appendChild(o),o.querySelector(".modal-close").addEventListener("click",()=>o.remove()),o.querySelector("#modal-cancel").addEventListener("click",()=>o.remove()),o.addEventListener("click",r=>{r.target===o&&o.remove()}),o.querySelector("#modal-save").addEventListener("click",async()=>{var m;const r=o.querySelector("#modal-membership-type").value,s=o.querySelector("#modal-skip-billing").checked;if(!r){alert("Please select a new membership type");return}const d=((m=_.find(g=>g.id===r))==null?void 0:m.name)||"Unknown",p=s?`Change ${e}'s type from "${i}" to "${d}"?
 
 This will update the label only (no billing change).`:`Change ${e}'s type from "${i}" to "${d}"?
 
@@ -1005,9 +1005,9 @@ Warnings:
       </div>
       <div class="preview-field">
         <div class="preview-label">Submitted by</div>
-        <div class="preview-value">${a.member_contact_email||"--"}</div>
+        <div class="preview-value">${a.member_name||a.member_contact_email||"--"}</div>
       </div>
-    `}function k(t,e){const a=e.incompleteProfiles.length,i=e.eventStats.pending,o=e.opportunityStats.pending;t.innerHTML=`
+    `}function S(t,e){const a=e.incompleteProfiles.length,i=e.eventStats.pending,o=e.opportunityStats.pending;t.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-header">
           <h1>MTNS MADE // System Dashboard</h1>
@@ -1081,21 +1081,21 @@ Warnings:
           </div>
         </div>
       </div>
-    `,t.querySelectorAll(".tab-btn").forEach(n=>{n.addEventListener("click",()=>{t.querySelectorAll(".tab-btn").forEach(r=>r.classList.remove("active")),t.querySelectorAll(".tab-content").forEach(r=>r.classList.remove("active")),n.classList.add("active"),t.querySelector(`#tab-${n.dataset.tab}`).classList.add("active")})}),t.querySelector("#refresh-btn").addEventListener("click",()=>f(t)),t.querySelectorAll(".contact-btn").forEach(n=>{n.addEventListener("click",()=>{const r=n.dataset.memberId,s=e.incompleteProfiles.find(d=>d.id===r)||e.recentMembers.find(d=>d.id===r)||e.failedSignups.find(d=>d.id===r);s&&B(s)})}),t.querySelectorAll(".approve-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.eventId,s=n.dataset.eventName;if(confirm(`Approve event "${s}"?
+    `,t.querySelectorAll(".tab-btn").forEach(n=>{n.addEventListener("click",()=>{t.querySelectorAll(".tab-btn").forEach(r=>r.classList.remove("active")),t.querySelectorAll(".tab-content").forEach(r=>r.classList.remove("active")),n.classList.add("active"),t.querySelector(`#tab-${n.dataset.tab}`).classList.add("active")})}),t.querySelector("#refresh-btn").addEventListener("click",()=>f(t)),t.querySelectorAll(".contact-btn").forEach(n=>{n.addEventListener("click",()=>{const r=n.dataset.memberId,s=e.incompleteProfiles.find(d=>d.id===r)||e.recentMembers.find(d=>d.id===r)||e.failedSignups.find(d=>d.id===r);s&&H(s)})}),t.querySelectorAll(".approve-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.eventId,s=n.dataset.eventName;if(confirm(`Approve event "${s}"?
 
-This will publish the event and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await _(),c=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":d},body:JSON.stringify({eventId:r,action:"approve"})})).json();c.success?(alert(`Event "${s}" has been approved!
+This will publish the event and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await x(),c=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":d},body:JSON.stringify({eventId:r,action:"approve"})})).json();c.success?(alert(`Event "${s}" has been approved!
 
 The member will be notified and the event will sync to Webflow.`),f(t)):(alert(`Failed to approve event: ${c.error}`),n.disabled=!1,n.textContent="Approve")}catch(d){console.error("Approve error:",d),alert("Error approving event. Please try again."),n.disabled=!1,n.textContent="Approve"}}})}),t.querySelectorAll(".reject-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.eventId,s=n.dataset.eventName,d=prompt(`Reject event "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const p=await _(),m=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":p},body:JSON.stringify({eventId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Event "${s}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const p=await x(),m=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":p},body:JSON.stringify({eventId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Event "${s}" has been rejected.
 
 The member will be notified.`),f(t)):(alert(`Failed to reject event: ${m.error}`),n.disabled=!1,n.textContent="Reject")}catch(p){console.error("Reject error:",p),alert("Error rejecting event. Please try again."),n.disabled=!1,n.textContent="Reject"}}})}),t.querySelectorAll(".preview-btn").forEach(n=>{n.addEventListener("click",()=>{J(n.dataset.eventId)})}),t.querySelectorAll(".preview-opp-btn").forEach(n=>{n.addEventListener("click",()=>{V(n.dataset.oppId)})}),t.querySelectorAll(".approve-opp-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.oppId,s=n.dataset.oppName;if(confirm(`Approve opportunity "${s}"?
 
-This will publish it and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await _(),c=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":d},body:JSON.stringify({opportunityId:r,action:"approve"})})).json();c.success?(alert(`Opportunity "${s}" has been approved!
+This will publish it and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await x(),c=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":d},body:JSON.stringify({opportunityId:r,action:"approve"})})).json();c.success?(alert(`Opportunity "${s}" has been approved!
 
 The member will be notified.`),f(t)):(alert(`Failed to approve opportunity: ${c.error}`),n.disabled=!1,n.textContent="Approve")}catch(d){console.error("Opportunity approve error:",d),alert("Error approving opportunity. Please try again."),n.disabled=!1,n.textContent="Approve"}}})}),t.querySelectorAll(".reject-opp-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.oppId,s=n.dataset.oppName,d=prompt(`Reject opportunity "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const p=await _(),m=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":p},body:JSON.stringify({opportunityId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Opportunity "${s}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const p=await x(),m=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":p},body:JSON.stringify({opportunityId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Opportunity "${s}" has been rejected.
 
 The member will be notified.`),f(t)):(alert(`Failed to reject opportunity: ${m.error}`),n.disabled=!1,n.textContent="Reject")}catch(p){console.error("Opportunity reject error:",p),alert("Error rejecting opportunity. Please try again."),n.disabled=!1,n.textContent="Reject"}}})}),t.querySelectorAll(".edit-btn").forEach(n=>{n.addEventListener("click",()=>{const r=n.dataset.memberId,s=n.dataset.memberName,d=n.dataset.currentType;W(r,s,d)})}),t.querySelectorAll(".delete-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.memberId,s=n.dataset.memberName;if(confirm(`Delete "${s}"?
 
@@ -1411,7 +1411,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
             </div>
           `}).join("")}
       </div>
-    `}async function f(t){const e=t.querySelector("#refresh-btn");e&&(e.disabled=!0,e.textContent="Loading...");try{w=await S(),k(t,w)}catch(a){console.error("Error refreshing dashboard:",a),e&&(e.disabled=!1,e.textContent="Refresh")}}async function E(){const t=document.querySelector(".dashboard-feed");if(!t){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){t.innerHTML=`
+    `}async function f(t){const e=t.querySelector("#refresh-btn");e&&(e.disabled=!0,e.textContent="Loading...");try{w=await k(),S(t,w)}catch(a){console.error("Error refreshing dashboard:",a),e&&(e.disabled=!1,e.textContent="Refresh")}}async function E(){const t=document.querySelector(".dashboard-feed");if(!t){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){t.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error: Supabase library not loaded</div>
@@ -1424,7 +1424,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           <div class="loading-text">Loading system data...</div>
         </div>
       </div>
-    `;try{w=await S(),k(t,w)}catch(e){console.error("Error loading dashboard:",e),t.innerHTML=`
+    `;try{w=await k(),S(t,w)}catch(e){console.error("Error loading dashboard:",e),t.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error loading dashboard</div>

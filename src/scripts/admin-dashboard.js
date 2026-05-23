@@ -1090,7 +1090,24 @@ MTNS MADE Team`;
       console.error('Error loading recent opportunities:', error);
       return [];
     }
-    return data || [];
+    const opps = data || [];
+
+    // Enrich with member names
+    const ids = [...new Set(opps.map(o => o.memberstack_id).filter(Boolean))];
+    if (ids.length > 0) {
+      const { data: members } = await supabase
+        .from('members')
+        .select('memberstack_id, first_name, last_name, name')
+        .in('memberstack_id', ids);
+      if (members) {
+        const memberMap = Object.fromEntries(members.map(m => [m.memberstack_id, m]));
+        opps.forEach(o => {
+          const m = memberMap[o.memberstack_id];
+          if (m) o.member_name = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.name || null;
+        });
+      }
+    }
+    return opps;
   }
 
   async function loadOpportunityStats() {
@@ -1549,7 +1566,7 @@ MTNS MADE Team`;
       </div>
       <div class="preview-field">
         <div class="preview-label">Submitted by</div>
-        <div class="preview-value">${opp.member_contact_email || '--'}</div>
+        <div class="preview-value">${opp.member_name || opp.member_contact_email || '--'}</div>
       </div>
     `;
   }
