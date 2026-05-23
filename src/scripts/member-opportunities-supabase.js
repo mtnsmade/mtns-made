@@ -480,7 +480,7 @@
             </div>` : ''}
 
           <div class="mo-form-field full-width">
-            <label>Listing Title <span>*</span></label>
+            <label>Job / Opportunity Title <span>*</span></label>
             <input type="text" class="mo-form-input" id="mo-form-name" value="${opp.name || ''}" placeholder="e.g., Seeking textile artist for collaboration">
           </div>
 
@@ -490,19 +490,31 @@
               ${createTypeSelect(opp.opportunity_type)}
             </div>
             <div class="mo-form-field">
-              <label>Organisation / Posted By</label>
+              <label>Trading Name / Business Name</label>
               <input type="text" class="mo-form-input" id="mo-form-org" value="${opp.organization || ''}" placeholder="Your name or business">
             </div>
           </div>
 
-          <div class="mo-form-field full-width">
-            <label>Description <span>*</span></label>
-            <textarea class="mo-form-input" id="mo-form-description" placeholder="Describe the opportunity, what you're looking for, and any requirements...">${opp.description || ''}</textarea>
+          <div class="mo-form-row">
+            <div class="mo-form-field">
+              <label>Closing Date <span>*</span></label>
+              <input type="date" class="mo-form-input" id="mo-form-closing" value="${opp.closing_date || ''}">
+            </div>
+            <div class="mo-form-field">
+              <label>Budget <span>*</span></label>
+              <input type="text" class="mo-form-input" id="mo-form-budget" value="${opp.budget || ''}" placeholder="e.g. $500–1000 AUD">
+            </div>
           </div>
 
           <div class="mo-form-field full-width">
-            <label>How to Apply</label>
-            <textarea class="mo-form-input" id="mo-form-apply" style="min-height:80px" placeholder="e.g., Send a portfolio and short expression of interest to...">${opp.how_to_apply || ''}</textarea>
+            <label>Summary of Job or Opportunity <span>*</span></label>
+            <textarea class="mo-form-input" id="mo-form-description" placeholder="Describe the opportunity, what you're looking for, and any key details...">${opp.description || ''}</textarea>
+          </div>
+
+          <div class="mo-form-field full-width">
+            <label>Criteria <span>*</span></label>
+            <textarea class="mo-form-input" id="mo-form-criteria" style="min-height:100px" placeholder="List the required or desired attributes for applicants...">${opp.criteria || ''}</textarea>
+            <div class="mo-hint">Required or desired attributes the applicant should have</div>
           </div>
 
           <div class="mo-form-row">
@@ -513,23 +525,16 @@
               <div class="mo-error-msg" id="mo-url-error">Link must be complete and include https://</div>
             </div>
             <div class="mo-form-field">
-              <label>Closing Date</label>
-              <input type="date" class="mo-form-input" id="mo-form-closing" value="${opp.closing_date || ''}">
-              <div class="mo-hint">Leave blank if no closing date</div>
-            </div>
-          </div>
-
-          <div class="mo-form-row">
-            <div class="mo-form-field">
               <label>Suburb</label>
               ${createSuburbSelect(opp.suburb_id)}
             </div>
-            <div class="mo-form-field" style="display:flex;align-items:center;padding-top:28px">
-              <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer">
-                <input type="checkbox" id="mo-form-remote" ${opp.is_remote ? 'checked' : ''}>
-                Remote / location flexible
-              </label>
-            </div>
+          </div>
+
+          <div class="mo-form-field">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer">
+              <input type="checkbox" id="mo-form-remote" ${opp.is_remote ? 'checked' : ''}>
+              Remote / location flexible
+            </label>
           </div>
 
         </div>
@@ -567,11 +572,17 @@
     const name = modal.querySelector('#mo-form-name').value.trim();
     const opportunityType = modal.querySelector('#mo-form-type').value;
     const description = modal.querySelector('#mo-form-description').value.trim();
+    const budget = modal.querySelector('#mo-form-budget').value.trim();
+    const criteria = modal.querySelector('#mo-form-criteria').value.trim();
+    const closingDate = modal.querySelector('#mo-form-closing').value;
     const urlInput = modal.querySelector('#mo-form-url').value.trim();
 
     if (!name) { alert('Please enter a listing title'); return; }
     if (!opportunityType) { alert('Please select an opportunity type'); return; }
-    if (!description) { alert('Please enter a description'); return; }
+    if (!closingDate) { alert('Please enter a closing date'); return; }
+    if (!budget) { alert('Please enter a budget or remuneration'); return; }
+    if (!description) { alert('Please enter a summary of the opportunity'); return; }
+    if (!criteria) { alert('Please enter the criteria for applicants'); return; }
     if (urlInput && !isValidUrl(urlInput)) { alert('Please enter a valid link URL'); return; }
 
     const submitBtn = modal.querySelector('#mo-modal-submit');
@@ -591,9 +602,11 @@
         opportunity_type: opportunityType || null,
         organization: modal.querySelector('#mo-form-org').value.trim() || null,
         description: description || null,
-        how_to_apply: modal.querySelector('#mo-form-apply').value.trim() || null,
+        budget: budget || null,
+        criteria: criteria || null,
+        how_to_apply: null,
         opportunity_url: formatUrl(urlInput) || null,
-        closing_date: modal.querySelector('#mo-form-closing').value || null,
+        closing_date: closingDate || null,
         suburb_id: modal.querySelector('#mo-form-suburb').value || null,
         is_remote: modal.querySelector('#mo-form-remote').checked,
         is_draft: true,       // Always pending review until admin approves
