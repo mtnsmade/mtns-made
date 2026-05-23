@@ -5,7 +5,8 @@ import path from 'path';
 // Get all script files dynamically
 const getScriptEntries = () => {
   const entries = {
-    router: './src/router.js'
+    router: './src/router.js',
+    'src/router': './src/router.js'  // Global Webflow code loads from /src/router.js
   };
   
   const scriptsDir = './src/scripts';
