@@ -821,11 +821,6 @@
   // HELPER FUNCTIONS
   // ============================================
 
-  async function getAdminMemberId() {
-    const { data: member } = await window.$memberstackDom.getCurrentMember();
-    return member?.id || '';
-  }
-
   function timeAgo(dateString) {
     if (!dateString) return '--';
     const date = new Date(dateString);
@@ -1696,14 +1691,12 @@ MTNS MADE Team`;
         btn.textContent = 'Approving...';
 
         try {
-          const adminToken = await getAdminMemberId();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({
               eventId: eventId,
@@ -1746,14 +1739,12 @@ MTNS MADE Team`;
         btn.textContent = 'Rejecting...';
 
         try {
-          const adminToken = await getAdminMemberId();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({
               eventId: eventId,
@@ -1809,14 +1800,12 @@ MTNS MADE Team`;
         btn.textContent = 'Approving...';
 
         try {
-          const adminToken = await getAdminMemberId();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({ opportunityId: oppId, action: 'approve' }),
           });
@@ -1856,14 +1845,12 @@ MTNS MADE Team`;
         btn.textContent = 'Rejecting...';
 
         try {
-          const adminToken = await getAdminMemberId();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({
               opportunityId: oppId,

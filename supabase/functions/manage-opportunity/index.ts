@@ -107,34 +107,6 @@ async function syncToWebflow(opportunity: Record<string, unknown>, memberName: s
   return webflowId;
 }
 
-async function verifyAdmin(memberId: string): Promise<boolean> {
-  if (!MEMBERSTACK_API_KEY) {
-    console.error('MEMBERSTACK_API_KEY not configured — cannot verify admin');
-    return false;
-  }
-
-  const response = await fetch(`https://admin.memberstack.com/members/${memberId}`, {
-    headers: { 'x-api-key': MEMBERSTACK_API_KEY },
-  });
-
-  if (!response.ok) {
-    console.warn('Memberstack member lookup failed:', response.status);
-    return false;
-  }
-
-  const { data: member } = await response.json();
-  const isAdmin = member?.planConnections?.some(
-    (p: { status: string; plan?: { name?: string } }) =>
-      p.status === 'ACTIVE' && p.plan?.name === 'Admin'
-  ) ?? false;
-
-  if (!isAdmin) {
-    console.warn('Member is not an Admin plan member:', memberId);
-  }
-
-  return isAdmin;
-}
-
 async function sendApprovalEmail(email: string, opportunityName: string): Promise<void> {
   if (!RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not configured, skipping email');
@@ -330,21 +302,6 @@ serve(async (req) => {
     );
   }
 
-  const memberToken = req.headers.get('X-Member-Id') || '';
-  if (!memberToken) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Unauthorized' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const isAdmin = await verifyAdmin(memberToken);
-  if (!isAdmin) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Forbidden' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
 
   try {
     const body: ManageOpportunityRequest = await req.json();
