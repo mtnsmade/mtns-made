@@ -1810,6 +1810,7 @@ MTNS MADE Team`;
 
         try {
           const adminToken = await getAdminToken();
+          console.log('[opp-approve] token obtained:', !!adminToken);
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
             method: 'POST',
             headers: {
@@ -1821,7 +1822,10 @@ MTNS MADE Team`;
             body: JSON.stringify({ opportunityId: oppId, action: 'approve' }),
           });
 
-          const result = await response.json();
+          console.log('[opp-approve] response status:', response.status);
+          const text = await response.text();
+          console.log('[opp-approve] response body:', text);
+          const result = JSON.parse(text);
 
           if (result.success) {
             alert(`Opportunity "${oppName}" has been approved!\n\nThe member will be notified.`);
