@@ -3,10 +3,8 @@
  * Handles admin approval or rejection of member-submitted jobs and opportunities
  * - Updates opportunity status in Supabase
  * - Syncs approved opportunities to Webflow CMS (collection: 64a9f30abaf5ea96e9180239)
- * - Sends notification email to member
- *
- * TODO: When member alert emails are added, call a notify-all-members function here
- * after approval. See task: "Add job alert email to all members on opportunity approval"
+ * - Sends notification email to the submitting member
+ * - Sends opportunity alert to all active members
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -290,6 +288,200 @@ async function sendRejectionEmail(email: string, opportunityName: string, reason
   }
 }
 
+interface ActiveMember {
+  first_name: string;
+  email: string;
+  profile_complete: boolean;
+}
+
+function buildAlertEmailHtml(
+  firstName: string,
+  opportunity: Record<string, unknown>,
+  typeLabel: string,
+  closingFormatted: string,
+  profileComplete: boolean,
+): string {
+  const oppUrl = `${SITE_URL}/opportunities/jobs`;
+  const profileUrl = `${SITE_URL}/member-dashboard`;
+
+  const profileNudge = profileComplete ? '' : `
+          <tr>
+            <td style="padding: 0 40px 28px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                style="background-color: #f5f5f5; border-left: 3px solid #1a1a1a; border-radius: 2px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <p style="margin: 0 0 8px; color: #1a1a1a; font-size: 14px; font-weight: 600;">
+                      Your profile isn't complete yet
+                    </p>
+                    <p style="margin: 0 0 12px; color: #555555; font-size: 14px; line-height: 1.5;">
+                      Completing your profile means you show up in the member directory and the community can find you. It only takes a few minutes.
+                    </p>
+                    <a href="${profileUrl}" style="color: #1a1a1a; font-size: 14px; font-weight: 600; text-decoration: underline;">
+                      Complete your profile →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New opportunity on MTNS MADE</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 4px; overflow: hidden;">
+          <tr>
+            <td style="background-color: #1a1a1a; padding: 24px 40px;">
+              <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;">
+                MTNS MADE
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 36px 40px 24px;">
+              <p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                Hi ${firstName},
+              </p>
+              <p style="margin: 0 0 24px; color: #1a1a1a; font-size: 16px; line-height: 1.6;">
+                A new opportunity has just been posted on the MTNS MADE board.
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                style="border: 1px solid #e0e0e0; border-radius: 2px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    ${typeLabel ? `<p style="margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #888888;">${typeLabel}</p>` : ''}
+                    <p style="margin: 0 0 4px; font-size: 18px; font-weight: 600; color: #1a1a1a; line-height: 1.3;">
+                      ${opportunity.name}
+                    </p>
+                    ${opportunity.organization ? `<p style="margin: 0 0 12px; font-size: 14px; color: #666666;">${opportunity.organization}</p>` : '<div style="margin-bottom: 12px;"></div>'}
+                    <p style="margin: 0; font-size: 13px; color: #888888;">
+                      ${closingFormatted ? `Closes ${closingFormatted}` : ''}
+                      ${opportunity.budget ? ` · ${opportunity.budget}` : ''}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <a href="${oppUrl}"
+                style="display: inline-block; background-color: #1a1a1a; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 24px; border-radius: 2px;">
+                View opportunity →
+              </a>
+            </td>
+          </tr>
+          ${profileNudge}
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 20px 40px; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0 0 6px; color: #aaaaaa; font-size: 12px; line-height: 1.6;">
+                Browse all current listings at
+                <a href="${oppUrl}" style="color: #888888;">${SITE_URL}/opportunities/jobs</a>
+              </p>
+              <p style="margin: 0; color: #aaaaaa; font-size: 12px;">
+                <a href="${SITE_URL}" style="color: #888888;">mtnsmade.com.au</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+const OPPORTUNITY_TYPE_LABELS: Record<string, string> = {
+  'job':              'Job / Employment',
+  'commission':       'Commission',
+  'collaboration':    'Collaboration',
+  'call-for-entries': 'Call for Entries',
+  'residency':        'Residency / Fellowship',
+  'volunteer':        'Volunteer',
+};
+
+async function sendMemberAlerts(
+  supabase: ReturnType<typeof createClient>,
+  opportunity: Record<string, unknown>,
+  submitterEmail: string,
+): Promise<void> {
+  if (!RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured — skipping member alerts');
+    return;
+  }
+
+  // Fetch all active members
+  const { data: members, error } = await supabase
+    .from('members')
+    .select('first_name, email, profile_complete')
+    .eq('subscription_status', 'active')
+    .eq('is_deleted', false)
+    .not('email', 'is', null);
+
+  if (error || !members?.length) {
+    console.warn('Member alert fetch error or no members:', error);
+    return;
+  }
+
+  const typeLabel = OPPORTUNITY_TYPE_LABELS[opportunity.opportunity_type as string] || '';
+  const closingFormatted = opportunity.closing_date
+    ? new Date(opportunity.closing_date as string).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '';
+
+  const subject = `New opportunity: ${opportunity.name}`;
+
+  // Build batch payload — skip the submitter (they already got the approval email)
+  const batch = (members as ActiveMember[])
+    .filter(m => m.email && m.email !== submitterEmail)
+    .map(m => ({
+      from: FROM_EMAIL,
+      to: [m.email],
+      subject,
+      html: buildAlertEmailHtml(
+        m.first_name || 'there',
+        opportunity,
+        typeLabel,
+        closingFormatted,
+        m.profile_complete,
+      ),
+    }));
+
+  if (!batch.length) {
+    console.log('No members to alert');
+    return;
+  }
+
+  console.log(`Sending opportunity alert to ${batch.length} members`);
+
+  // Resend batch API sends up to 100 emails per call
+  const chunkSize = 100;
+  for (let i = 0; i < batch.length; i += chunkSize) {
+    const chunk = batch.slice(i, i + chunkSize);
+    try {
+      const res = await fetch('https://api.resend.com/emails/batch', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(chunk),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error(`Batch send error (chunk ${i}):`, err);
+      } else {
+        console.log(`Batch sent: ${chunk.length} emails (chunk ${i / chunkSize + 1})`);
+      }
+    } catch (err) {
+      console.error(`Batch send exception (chunk ${i}):`, err);
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -380,6 +572,11 @@ serve(async (req) => {
       if (opportunity.member_contact_email) {
         await sendApprovalEmail(opportunity.member_contact_email, opportunity.name);
       }
+
+      // Alert all active members (non-fatal)
+      sendMemberAlerts(supabase, opportunity, opportunity.member_contact_email as string ?? '').catch(err =>
+        console.error('Member alert error:', err)
+      );
 
       return new Response(
         JSON.stringify({ success: true, action: 'approved', opportunityId: body.opportunityId }),
