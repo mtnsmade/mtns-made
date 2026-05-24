@@ -30,7 +30,7 @@ interface ManageOpportunityRequest {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, x-member-token',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, x-member-token, x-member-id',
 };
 
 function getSupabaseClient() {
@@ -107,21 +107,18 @@ async function syncToWebflow(opportunity: Record<string, unknown>, memberName: s
   return webflowId;
 }
 
-async function verifyAdmin(memberToken: string): Promise<boolean> {
+async function verifyAdmin(memberId: string): Promise<boolean> {
   if (!MEMBERSTACK_API_KEY) {
     console.error('MEMBERSTACK_API_KEY not configured — cannot verify admin');
     return false;
   }
 
-  const response = await fetch('https://admin.memberstack.com/members/tokenized', {
-    headers: {
-      'x-api-key': MEMBERSTACK_API_KEY,
-      'Authorization': `Bearer ${memberToken}`,
-    },
+  const response = await fetch(`https://admin.memberstack.com/members/${memberId}`, {
+    headers: { 'x-api-key': MEMBERSTACK_API_KEY },
   });
 
   if (!response.ok) {
-    console.warn('Memberstack token verification failed:', response.status);
+    console.warn('Memberstack member lookup failed:', response.status);
     return false;
   }
 
@@ -132,7 +129,7 @@ async function verifyAdmin(memberToken: string): Promise<boolean> {
   ) ?? false;
 
   if (!isAdmin) {
-    console.warn('Token valid but caller is not an Admin plan member');
+    console.warn('Member is not an Admin plan member:', memberId);
   }
 
   return isAdmin;
@@ -333,7 +330,7 @@ serve(async (req) => {
     );
   }
 
-  const memberToken = req.headers.get('X-Member-Token') || '';
+  const memberToken = req.headers.get('X-Member-Id') || '';
   if (!memberToken) {
     return new Response(
       JSON.stringify({ success: false, error: 'Unauthorized' }),

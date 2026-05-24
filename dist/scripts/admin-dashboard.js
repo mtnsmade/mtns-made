@@ -1,4 +1,4 @@
-(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",b="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",h="https://www.mtnsmade.com.au";let l=null,w=null,_=[];const M=`
+(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",b="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",h="https://www.mtnsmade.com.au";let l=null,w=null,_=[];const T=`
     .admin-dashboard {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
@@ -794,7 +794,7 @@
         overflow-x: auto;
       }
     }
-  `;async function x(){var e;const t=await window.$memberstackDom.getMemberToken();return((e=t==null?void 0:t.data)==null?void 0:e.token)||(t==null?void 0:t.data)||""}function u(t){if(!t)return"--";const e=new Date(t),i=Math.floor((new Date-e)/1e3);return i<60?"now":i<3600?`${Math.floor(i/60)}m`:i<86400?`${Math.floor(i/3600)}h`:i<604800?`${Math.floor(i/86400)}d`:e.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function A(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function $(t){const e=[];return t.profile_image_url||e.push("Profile Image"),t.header_image_url||e.push("Header Image"),(!t.bio||t.bio.length<50)&&e.push("Bio"),t.suburb_id||e.push("Location"),e}function C(t,e){const a=t.first_name||t.name||"there",i=e.length>0?`
+  `;async function x(){const{data:t}=await window.$memberstackDom.getCurrentMember();return(t==null?void 0:t.id)||""}function u(t){if(!t)return"--";const e=new Date(t),i=Math.floor((new Date-e)/1e3);return i<60?"now":i<3600?`${Math.floor(i/60)}m`:i<86400?`${Math.floor(i/3600)}h`:i<604800?`${Math.floor(i/86400)}d`:e.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function A(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function $(t){const e=[];return t.profile_image_url||e.push("Profile Image"),t.header_image_url||e.push("Header Image"),(!t.bio||t.bio.length<50)&&e.push("Bio"),t.suburb_id||e.push("Location"),e}function C(t,e){const a=t.first_name||t.name||"there",i=e.length>0?`
 
 To complete your profile, you'll need:
 ${e.map(o=>`- ${o}`).join(`
@@ -808,17 +808,17 @@ Complete your profile here: ${h}/profile/start
 
 Let us know if you need any help!
 
-MTNS MADE Team`}async function k(){const[t,e,a,i,o,n,r,s,d,c,p,m]=await Promise.all([L(),q(),z(),I(),D(),O(),R(),U(),F(),P(),B(),N()]);return _=m,{recentMembers:t,memberStats:e,incompleteProfiles:a,failedSignups:i,recentEvents:o,eventStats:n,recentOpportunities:r,opportunityStats:s,recentProjects:d,messageStats:c,recentActivity:p,membershipTypes:m,loadedAt:new Date}}async function L(){const{data:t,error:e}=await l.from("members").select(`
+MTNS MADE Team`}async function S(){const[t,e,a,i,o,n,r,s,d,c,p,m]=await Promise.all([L(),q(),P(),z(),D(),O(),R(),U(),F(),N(),B(),I()]);return _=m,{recentMembers:t,memberStats:e,incompleteProfiles:a,failedSignups:i,recentEvents:o,eventStats:n,recentOpportunities:r,opportunityStats:s,recentProjects:d,messageStats:c,recentActivity:p,membershipTypes:m,loadedAt:new Date}}async function L(){const{data:t,error:e}=await l.from("members").select(`
         id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
         membership_type_id, membership_types(id, name),
         created_at, updated_at
-      `).neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(20);return e?(console.error("Error loading recent members:",e),[]):t||[]}async function q(){const{data:t}=await l.from("members").select("id, subscription_status, profile_complete, webflow_id").neq("is_deleted",!0),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(s=>s.subscription_status==="active").length)||0,i=(t==null?void 0:t.filter(s=>s.subscription_status==="lapsed").length)||0,o=(t==null?void 0:t.filter(s=>s.profile_complete).length)||0,n=(t==null?void 0:t.filter(s=>s.webflow_id).length)||0,r=(t==null?void 0:t.filter(s=>s.profile_complete&&!s.webflow_id&&s.subscription_status==="active").length)||0;return{total:e,active:a,lapsed:i,complete:o,synced:n,pendingSync:r}}async function N(){const{data:t,error:e}=await l.from("membership_types").select("id, name").order("name");return e?(console.error("Error loading membership types:",e),[]):t||[]}async function P(){try{const t=new Date,e=new Date(t.getFullYear(),t.getMonth(),1).toISOString(),{data:a}=await l.from("messages").select("id, is_read, created_at"),{data:i}=await l.from("messages").select("id").gte("created_at",e),o=(a==null?void 0:a.length)||0,n=(a==null?void 0:a.filter(s=>!s.is_read).length)||0,r=(i==null?void 0:i.length)||0;return{total:o,unread:n,thisMonth:r}}catch(t){return console.error("Error loading message stats:",t),{total:0,unread:0,thisMonth:0}}}async function z(){const{data:t,error:e}=await l.from("members").select(`
+      `).neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(20);return e?(console.error("Error loading recent members:",e),[]):t||[]}async function q(){const{data:t}=await l.from("members").select("id, subscription_status, profile_complete, webflow_id").neq("is_deleted",!0),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(s=>s.subscription_status==="active").length)||0,i=(t==null?void 0:t.filter(s=>s.subscription_status==="lapsed").length)||0,o=(t==null?void 0:t.filter(s=>s.profile_complete).length)||0,n=(t==null?void 0:t.filter(s=>s.webflow_id).length)||0,r=(t==null?void 0:t.filter(s=>s.profile_complete&&!s.webflow_id&&s.subscription_status==="active").length)||0;return{total:e,active:a,lapsed:i,complete:o,synced:n,pendingSync:r}}async function I(){const{data:t,error:e}=await l.from("membership_types").select("id, name").order("name");return e?(console.error("Error loading membership types:",e),[]):t||[]}async function N(){try{const t=new Date,e=new Date(t.getFullYear(),t.getMonth(),1).toISOString(),{data:a}=await l.from("messages").select("id, is_read, created_at"),{data:i}=await l.from("messages").select("id").gte("created_at",e),o=(a==null?void 0:a.length)||0,n=(a==null?void 0:a.filter(s=>!s.is_read).length)||0,r=(i==null?void 0:i.length)||0;return{total:o,unread:n,thisMonth:r}}catch(t){return console.error("Error loading message stats:",t),{total:0,unread:0,thisMonth:0}}}async function P(){const{data:t,error:e}=await l.from("members").select(`
         id, memberstack_id, name, email, first_name, slug, subscription_status,
         profile_complete, profile_reminder_sent_at, created_at,
         profile_image_url, header_image_url, bio, suburb_id
-      `).eq("profile_complete",!1).eq("subscription_status","active").neq("is_deleted",!0).order("created_at",{ascending:!0});return e?(console.error("Error loading incomplete profiles:",e),[]):t||[]}async function I(){const{data:t,error:e}=await l.from("members").select(`
+      `).eq("profile_complete",!1).eq("subscription_status","active").neq("is_deleted",!0).order("created_at",{ascending:!0});return e?(console.error("Error loading incomplete profiles:",e),[]):t||[]}async function z(){const{data:t,error:e}=await l.from("members").select(`
         id, memberstack_id, name, email, first_name, slug,
         subscription_status, profile_complete, profile_reminder_sent_at, created_at
       `).not("subscription_status","in",'("active","lapsed","deleted")').neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(30);return e?(console.error("Error loading failed signups:",e),[]):t||[]}async function D(){const{data:t,error:e}=await l.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);return e?(console.error("Error loading recent events:",e),[]):t||[]}async function O(){const{data:t}=await l.from("events").select("id, is_draft, is_archived, webflow_id"),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(o=>o.is_draft&&!o.is_archived).length)||0,i=(t==null?void 0:t.filter(o=>!o.is_draft&&!o.is_archived).length)||0;return{total:e,pending:a,published:i}}async function R(){const{data:t,error:e}=await l.from("opportunities").select("id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);if(e)return console.error("Error loading recent opportunities:",e),[];const a=t||[],i=[...new Set(a.map(o=>o.memberstack_id).filter(Boolean))];if(i.length>0){const{data:o}=await l.from("members").select("memberstack_id, first_name, last_name, name").in("memberstack_id",i);if(o){const n=Object.fromEntries(o.map(r=>[r.memberstack_id,r]));a.forEach(r=>{const s=n[r.memberstack_id];s&&(r.member_name=[s.first_name,s.last_name].filter(Boolean).join(" ")||s.name||null)})}}return a}async function U(){const{data:t}=await l.from("opportunities").select("id, is_draft, is_archived"),e=(t==null?void 0:t.length)||0,a=(t==null?void 0:t.filter(o=>o.is_draft&&!o.is_archived).length)||0,i=(t==null?void 0:t.filter(o=>!o.is_draft&&!o.is_archived).length)||0;return{total:e,pending:a,published:i}}async function F(){const{data:t,error:e}=await l.from("projects").select(`
@@ -914,13 +914,13 @@ MTNS MADE Team`}async function k(){const[t,e,a,i,o,n,r,s,d,c,p,m]=await Promise.
 
 This will update the label only (no billing change).`:`Change ${e}'s type from "${i}" to "${d}"?
 
-This WILL change their Stripe subscription and billing.`;if(!confirm(c))return;const p=o.querySelector("#modal-save");p.disabled=!0,p.textContent="Updating Memberstack...";try{const g=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:t,newMembershipTypeId:r,skipPlanChange:s})}),y=await g.json();if(!g.ok)throw new Error(y.error||"Update failed");let T=`Membership type updated!
+This WILL change their Stripe subscription and billing.`;if(!confirm(c))return;const p=o.querySelector("#modal-save");p.disabled=!0,p.textContent="Updating Memberstack...";try{const g=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:t,newMembershipTypeId:r,skipPlanChange:s})}),y=await g.json();if(!g.ok)throw new Error(y.error||"Update failed");let j=`Membership type updated!
 
-${y.change.from} → ${y.change.to}`;y.results.warnings&&y.results.warnings.length>0&&(T+=`
+${y.change.from} → ${y.change.to}`;y.results.warnings&&y.results.warnings.length>0&&(j+=`
 
 Warnings:
 - ${y.results.warnings.join(`
-- `)}`),alert(T),o.remove();const j=document.querySelector(".dashboard-feed");j&&f(j)}catch(g){console.error("Error updating membership type:",g),alert("Error updating membership type: "+g.message),p.disabled=!1,p.textContent="Update Membership"}})}async function J(t){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
+- `)}`),alert(j),o.remove();const M=document.querySelector(".dashboard-feed");M&&f(M)}catch(g){console.error("Error updating membership type:",g),alert("Error updating membership type: "+g.message),p.disabled=!1,p.textContent="Update Membership"}})}async function J(t){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
       <div class="modal modal-preview">
         <div class="modal-header">
           <h3 class="modal-title">Event Preview</h3>
@@ -1007,7 +1007,7 @@ Warnings:
         <div class="preview-label">Submitted by</div>
         <div class="preview-value">${a.member_name||a.member_contact_email||"--"}</div>
       </div>
-    `}function S(t,e){const a=e.incompleteProfiles.length,i=e.eventStats.pending,o=e.opportunityStats.pending;t.innerHTML=`
+    `}function k(t,e){const a=e.incompleteProfiles.length,i=e.eventStats.pending,o=e.opportunityStats.pending;t.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-header">
           <h1>MTNS MADE // System Dashboard</h1>
@@ -1083,19 +1083,19 @@ Warnings:
       </div>
     `,t.querySelectorAll(".tab-btn").forEach(n=>{n.addEventListener("click",()=>{t.querySelectorAll(".tab-btn").forEach(r=>r.classList.remove("active")),t.querySelectorAll(".tab-content").forEach(r=>r.classList.remove("active")),n.classList.add("active"),t.querySelector(`#tab-${n.dataset.tab}`).classList.add("active")})}),t.querySelector("#refresh-btn").addEventListener("click",()=>f(t)),t.querySelectorAll(".contact-btn").forEach(n=>{n.addEventListener("click",()=>{const r=n.dataset.memberId,s=e.incompleteProfiles.find(d=>d.id===r)||e.recentMembers.find(d=>d.id===r)||e.failedSignups.find(d=>d.id===r);s&&H(s)})}),t.querySelectorAll(".approve-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.eventId,s=n.dataset.eventName;if(confirm(`Approve event "${s}"?
 
-This will publish the event and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await x(),p=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":d},body:JSON.stringify({eventId:r,action:"approve"})})).json();p.success?(alert(`Event "${s}" has been approved!
+This will publish the event and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await x(),p=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Id":d},body:JSON.stringify({eventId:r,action:"approve"})})).json();p.success?(alert(`Event "${s}" has been approved!
 
 The member will be notified and the event will sync to Webflow.`),f(t)):(alert(`Failed to approve event: ${p.error}`),n.disabled=!1,n.textContent="Approve")}catch(d){console.error("Approve error:",d),alert("Error approving event. Please try again."),n.disabled=!1,n.textContent="Approve"}}})}),t.querySelectorAll(".reject-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.eventId,s=n.dataset.eventName,d=prompt(`Reject event "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const c=await x(),m=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":c},body:JSON.stringify({eventId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Event "${s}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const c=await x(),m=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Id":c},body:JSON.stringify({eventId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Event "${s}" has been rejected.
 
 The member will be notified.`),f(t)):(alert(`Failed to reject event: ${m.error}`),n.disabled=!1,n.textContent="Reject")}catch(c){console.error("Reject error:",c),alert("Error rejecting event. Please try again."),n.disabled=!1,n.textContent="Reject"}}})}),t.querySelectorAll(".preview-btn").forEach(n=>{n.addEventListener("click",()=>{J(n.dataset.eventId)})}),t.querySelectorAll(".preview-opp-btn").forEach(n=>{n.addEventListener("click",()=>{V(n.dataset.oppId)})}),t.querySelectorAll(".approve-opp-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.oppId,s=n.dataset.oppName;if(confirm(`Approve opportunity "${s}"?
 
-This will publish it and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await x();console.log("[opp-approve] token obtained:",!!d);const c=await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":d},body:JSON.stringify({opportunityId:r,action:"approve"})});console.log("[opp-approve] response status:",c.status);const p=await c.text();console.log("[opp-approve] response body:",p);const m=JSON.parse(p);m.success?(alert(`Opportunity "${s}" has been approved!
+This will publish it and notify the member.`)){n.disabled=!0,n.textContent="Approving...";try{const d=await x();console.log("[opp-approve] token obtained:",!!d);const c=await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Id":d},body:JSON.stringify({opportunityId:r,action:"approve"})});console.log("[opp-approve] response status:",c.status);const p=await c.text();console.log("[opp-approve] response body:",p);const m=JSON.parse(p);m.success?(alert(`Opportunity "${s}" has been approved!
 
 The member will be notified.`),f(t)):(alert(`Failed to approve opportunity: ${m.error}`),n.disabled=!1,n.textContent="Approve")}catch(d){console.error("Opportunity approve error:",d),alert("Error approving opportunity. Please try again."),n.disabled=!1,n.textContent="Approve"}}})}),t.querySelectorAll(".reject-opp-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.oppId,s=n.dataset.oppName,d=prompt(`Reject opportunity "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const c=await x(),m=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Token":c},body:JSON.stringify({opportunityId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Opportunity "${s}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(d!==null){n.disabled=!0,n.textContent="Rejecting...";try{const c=await x(),m=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b,"X-Member-Id":c},body:JSON.stringify({opportunityId:r,action:"reject",rejectionReason:d||void 0})})).json();m.success?(alert(`Opportunity "${s}" has been rejected.
 
 The member will be notified.`),f(t)):(alert(`Failed to reject opportunity: ${m.error}`),n.disabled=!1,n.textContent="Reject")}catch(c){console.error("Opportunity reject error:",c),alert("Error rejecting opportunity. Please try again."),n.disabled=!1,n.textContent="Reject"}}})}),t.querySelectorAll(".edit-btn").forEach(n=>{n.addEventListener("click",()=>{const r=n.dataset.memberId,s=n.dataset.memberName,d=n.dataset.currentType;W(r,s,d)})}),t.querySelectorAll(".delete-btn").forEach(n=>{n.addEventListener("click",async()=>{const r=n.dataset.memberId,s=n.dataset.memberName;if(confirm(`Delete "${s}"?
 
@@ -1411,20 +1411,20 @@ This will remove them from the dashboard and Webflow directory. This action cann
             </div>
           `}).join("")}
       </div>
-    `}async function f(t){const e=t.querySelector("#refresh-btn");e&&(e.disabled=!0,e.textContent="Loading...");try{w=await k(),S(t,w)}catch(a){console.error("Error refreshing dashboard:",a),e&&(e.disabled=!1,e.textContent="Refresh")}}async function E(){const t=document.querySelector(".dashboard-feed");if(!t){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){t.innerHTML=`
+    `}async function f(t){const e=t.querySelector("#refresh-btn");e&&(e.disabled=!0,e.textContent="Loading...");try{w=await S(),k(t,w)}catch(a){console.error("Error refreshing dashboard:",a),e&&(e.disabled=!1,e.textContent="Refresh")}}async function E(){const t=document.querySelector(".dashboard-feed");if(!t){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){t.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error: Supabase library not loaded</div>
           </div>
         </div>
-      `;return}if(l=window.supabase.createClient(v,b),!document.querySelector("#admin-dashboard-styles")){const e=document.createElement("style");e.id="admin-dashboard-styles",e.textContent=M,document.head.appendChild(e)}t.innerHTML=`
+      `;return}if(l=window.supabase.createClient(v,b),!document.querySelector("#admin-dashboard-styles")){const e=document.createElement("style");e.id="admin-dashboard-styles",e.textContent=T,document.head.appendChild(e)}t.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-loading">
           <div class="loader"></div>
           <div class="loading-text">Loading system data...</div>
         </div>
       </div>
-    `;try{w=await k(),S(t,w)}catch(e){console.error("Error loading dashboard:",e),t.innerHTML=`
+    `;try{w=await S(),k(t,w)}catch(e){console.error("Error loading dashboard:",e),t.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error loading dashboard</div>

@@ -821,9 +821,9 @@
   // HELPER FUNCTIONS
   // ============================================
 
-  async function getAdminToken() {
-    const result = await window.$memberstackDom.getMemberToken();
-    return result?.data?.token || result?.data || '';
+  async function getAdminMemberId() {
+    const { data: member } = await window.$memberstackDom.getCurrentMember();
+    return member?.id || '';
   }
 
   function timeAgo(dateString) {
@@ -1696,14 +1696,14 @@ MTNS MADE Team`;
         btn.textContent = 'Approving...';
 
         try {
-          const adminToken = await getAdminToken();
+          const adminToken = await getAdminMemberId();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Token': adminToken,
+              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({
               eventId: eventId,
@@ -1746,14 +1746,14 @@ MTNS MADE Team`;
         btn.textContent = 'Rejecting...';
 
         try {
-          const adminToken = await getAdminToken();
+          const adminToken = await getAdminMemberId();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Token': adminToken,
+              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({
               eventId: eventId,
@@ -1809,7 +1809,7 @@ MTNS MADE Team`;
         btn.textContent = 'Approving...';
 
         try {
-          const adminToken = await getAdminToken();
+          const adminToken = await getAdminMemberId();
           console.log('[opp-approve] token obtained:', !!adminToken);
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
             method: 'POST',
@@ -1817,7 +1817,7 @@ MTNS MADE Team`;
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Token': adminToken,
+              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({ opportunityId: oppId, action: 'approve' }),
           });
@@ -1860,14 +1860,14 @@ MTNS MADE Team`;
         btn.textContent = 'Rejecting...';
 
         try {
-          const adminToken = await getAdminToken();
+          const adminToken = await getAdminMemberId();
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'apikey': SUPABASE_ANON_KEY,
-              'X-Member-Token': adminToken,
+              'X-Member-Id': adminToken,
             },
             body: JSON.stringify({
               opportunityId: oppId,
