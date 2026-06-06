@@ -294,6 +294,11 @@ async function mapToWebflowFields(record: ProjectRecord, includeSlug: boolean = 
     fieldData['project-description'] = record.description;
   }
 
+  // Short description (AI-generated summary)
+  if (record.short_description) {
+    fieldData['project-short-description'] = record.short_description;
+  }
+
   // Feature image (Webflow v2 image format)
   if (record.feature_image_url) {
     fieldData['feature-image'] = { url: record.feature_image_url };
@@ -366,36 +371,61 @@ async function publishWebflowItem(itemId: string): Promise<void> {
   }
 }
 
-// Check if a Webflow item with the same supabase-id already exists
-// This is the ultimate duplicate prevention - checks Webflow directly
-async function findExistingWebflowItem(supabaseId: string): Promise<{ id: string; slug: string } | null> {
+// Check if a Webflow item with the same supabase-id already exists.
+// Paginates through the full collection (Webflow max 100/page).
+// Falls back to matching by memberstack-id + name for pre-2026 items
+// that were created before the supabase-id field existed.
+async function findExistingWebflowItem(
+  supabaseId: string,
+  memberstackId?: string,
+  projectName?: string,
+): Promise<{ id: string; slug: string } | null> {
   try {
-    // Search Webflow for items with this supabase-id
-    // We need to fetch items and filter since Webflow doesn't support direct field queries
-    const response = await fetch(
-      `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items?limit=100`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
-          'accept': 'application/json',
-        },
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
+      const response = await fetch(
+        `${WEBFLOW_API_BASE}/collections/${WEBFLOW_PROJECTS_COLLECTION_ID}/items?limit=${limit}&offset=${offset}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
+            'accept': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error('Error checking for existing Webflow item:', response.status);
+        return null;
       }
-    );
 
-    if (!response.ok) {
-      console.error('Error checking for existing Webflow item:', response.status);
-      return null;
-    }
+      const data = await response.json();
+      const items: Array<{ id: string; fieldData: Record<string, unknown> }> = data.items ?? [];
 
-    const data = await response.json();
-    const existingItem = data.items?.find((item: { fieldData: { 'supabase-id'?: string } }) =>
-      item.fieldData?.['supabase-id'] === supabaseId
-    );
+      // Primary match: supabase-id (set on all items created since ~2026)
+      const bySupabaseId = items.find(item => item.fieldData['supabase-id'] === supabaseId);
+      if (bySupabaseId) {
+        console.log(`Found existing Webflow item by supabase-id ${supabaseId}: ${bySupabaseId.id}`);
+        return { id: bySupabaseId.id, slug: bySupabaseId.fieldData['slug'] as string };
+      }
 
-    if (existingItem) {
-      console.log(`Found existing Webflow item for supabase-id ${supabaseId}: ${existingItem.id}`);
-      return { id: existingItem.id, slug: existingItem.fieldData?.slug };
+      // Fallback: match by memberstack-id + name for pre-supabase-id items
+      if (memberstackId && projectName) {
+        const byMemberAndName = items.find(item =>
+          item.fieldData['memberstack-id'] === memberstackId &&
+          (item.fieldData['name'] as string)?.trim().toLowerCase() === projectName.trim().toLowerCase()
+        );
+        if (byMemberAndName) {
+          console.log(`Found existing Webflow item by memberstack-id+name for "${projectName}": ${byMemberAndName.id}`);
+          return { id: byMemberAndName.id, slug: byMemberAndName.fieldData['slug'] as string };
+        }
+      }
+
+      const total: number = data.pagination?.total ?? 0;
+      offset += items.length;
+      if (offset >= total || items.length === 0) break;
     }
 
     return null;
@@ -409,7 +439,7 @@ async function findExistingWebflowItem(supabaseId: string): Promise<{ id: string
 // Returns { id, slug } where slug is the actual slug assigned by Webflow
 async function createWebflowItem(record: ProjectRecord): Promise<{ id: string; slug: string } | null> {
   // DUPLICATE PREVENTION: Check Webflow directly for existing item
-  const existingItem = await findExistingWebflowItem(record.id);
+  const existingItem = await findExistingWebflowItem(record.id, record.memberstack_id, record.name);
   if (existingItem) {
     console.log(`Duplicate prevention: Webflow item already exists for project ${record.id}, returning existing`);
     // Update Supabase with the existing Webflow ID if it doesn't have it
