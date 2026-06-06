@@ -815,6 +815,165 @@
         overflow-x: auto;
       }
     }
+
+    /* Support Tracker */
+    .support-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .support-filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .filter-pill:hover { background: #e8e8e8; }
+    .filter-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+    .task-category {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .task-category.member_support  { background: #fff3e0; color: #e65100; }
+    .task-category.website_bug     { background: #fce4ec; color: #c62828; }
+    .task-category.feature_request { background: #e8f5e9; color: #2e7d32; }
+
+    .task-status {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .task-status.not_started   { background: #f5f5f5; color: #666; }
+    .task-status.in_progress   { background: #fff8e1; color: #f57f17; }
+    .task-status.feedback_needed { background: #e3f2fd; color: #1565c0; }
+    .task-status.complete      { background: #e8f5e9; color: #2e7d32; }
+    .task-status.stalled       { background: #fce4ec; color: #c62828; }
+
+    .task-title-cell { font-weight: 500; font-size: 13px; }
+    .task-desc { font-size: 12px; color: #666; margin-top: 3px; }
+    .task-member-link { color: #1a1a1a; text-decoration: underline; font-size: 12px; }
+
+    .status-select {
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .task-row-expand {
+      background: #fafafa;
+    }
+
+    .task-detail-panel {
+      padding: 16px 20px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .comments-section { margin-top: 16px; }
+    .comments-title { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+
+    .comment-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .comment-author-badge {
+      background: #1a1a1a;
+      color: #fff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .comment-author-badge.hannah { background: #6366f1; }
+
+    .comment-body { flex: 1; }
+    .comment-meta { font-size: 11px; color: #999; margin-bottom: 3px; }
+    .comment-text { font-size: 13px; line-height: 1.5; }
+
+    .comment-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      align-items: flex-end;
+    }
+
+    .comment-textarea {
+      flex: 1;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 13px;
+      resize: none;
+      min-height: 60px;
+    }
+
+    .comment-textarea:focus { outline: none; border-color: #1a1a1a; }
+
+    .support-empty { padding: 40px; text-align: center; color: #aaa; font-size: 14px; }
+
+    .member-search-wrap { position: relative; }
+    .member-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      z-index: 100;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .member-suggestion-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .member-suggestion-item:hover { background: #f5f5f5; }
+
+    @media (max-width: 768px) {
+      .support-toolbar { flex-direction: column; align-items: flex-start; }
+    }
   `;
 
   // ============================================
@@ -1618,6 +1777,7 @@ MTNS MADE Team`;
             <button class="tab-btn" data-tab="events">Events ${pendingEvents > 0 ? `(${pendingEvents})` : ''}</button>
             <button class="tab-btn" data-tab="opportunities">Opportunities ${pendingOpportunities > 0 ? `(${pendingOpportunities})` : ''}</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
+            <button class="tab-btn" data-tab="support">Support</button>
           </div>
 
           <div class="tab-content active" id="tab-activity">
@@ -1647,6 +1807,10 @@ MTNS MADE Team`;
           <div class="tab-content" id="tab-projects">
             ${renderProjectsTable(data.recentProjects)}
           </div>
+
+          <div class="tab-content" id="tab-support">
+            <div id="support-tracker-root">Loading...</div>
+          </div>
         </div>
       </div>
     `;
@@ -1658,6 +1822,9 @@ MTNS MADE Team`;
         container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         tab.classList.add('active');
         container.querySelector(`#tab-${tab.dataset.tab}`).classList.add('active');
+        if (tab.dataset.tab === 'support') {
+          initSupportTracker();
+        }
       });
     });
 
@@ -2383,6 +2550,530 @@ MTNS MADE Team`;
         }).join('')}
       </div>
     `;
+  }
+
+  // ============================================
+  // SUPPORT TRACKER
+  // ============================================
+
+  const SUPPORT_CATEGORY_LABELS = {
+    member_support:  'Member Support',
+    website_bug:     'Website Bug',
+    feature_request: 'Feature Request',
+  };
+
+  const SUPPORT_STATUS_LABELS = {
+    not_started:      'Not Started',
+    in_progress:      'In Progress',
+    feedback_needed:  'Feedback Needed',
+    complete:         'Complete',
+    stalled:          'Stalled',
+  };
+
+  let supportFilter = { category: 'all', status: 'all' };
+
+  async function loadSupportTasks() {
+    const { data, error } = await supabase
+      .from('support_tasks')
+      .select('*, support_task_comments(*)')
+      .order('created_at', { ascending: false });
+    if (error) { console.error('loadSupportTasks:', error); return []; }
+    // Sort comments oldest-first within each task
+    (data || []).forEach(t => t.support_task_comments?.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+    return data || [];
+  }
+
+  async function initSupportTracker() {
+    const root = document.getElementById('support-tracker-root');
+    if (!root) return;
+    root.innerHTML = '<div class="support-empty">Loading...</div>';
+    const tasks = await loadSupportTasks();
+    renderSupportTracker(root, tasks);
+  }
+
+  function renderSupportTracker(root, tasks) {
+    const filtered = tasks.filter(t => {
+      const catOk = supportFilter.category === 'all' || t.category === supportFilter.category;
+      const stOk  = supportFilter.status  === 'all' || t.status  === supportFilter.status;
+      return catOk && stOk;
+    });
+
+    root.innerHTML = `
+      <div class="support-toolbar">
+        <div class="support-filters">
+          <span class="filter-pill ${supportFilter.category === 'all' ? 'active' : ''}" data-cat="all">All</span>
+          <span class="filter-pill ${supportFilter.category === 'member_support' ? 'active' : ''}" data-cat="member_support">Member Support</span>
+          <span class="filter-pill ${supportFilter.category === 'website_bug' ? 'active' : ''}" data-cat="website_bug">Website Bug</span>
+          <span class="filter-pill ${supportFilter.category === 'feature_request' ? 'active' : ''}" data-cat="feature_request">Feature Request</span>
+          <span style="width:1px;background:#e0e0e0;margin:0 4px;"></span>
+          <span class="filter-pill ${supportFilter.status === 'all' ? 'active' : ''}" data-status="all">Any Status</span>
+          <span class="filter-pill ${supportFilter.status === 'not_started' ? 'active' : ''}" data-status="not_started">Not Started</span>
+          <span class="filter-pill ${supportFilter.status === 'in_progress' ? 'active' : ''}" data-status="in_progress">In Progress</span>
+          <span class="filter-pill ${supportFilter.status === 'feedback_needed' ? 'active' : ''}" data-status="feedback_needed">Feedback Needed</span>
+          <span class="filter-pill ${supportFilter.status === 'complete' ? 'active' : ''}" data-status="complete">Complete</span>
+          <span class="filter-pill ${supportFilter.status === 'stalled' ? 'active' : ''}" data-status="stalled">Stalled</span>
+        </div>
+        <button class="admin-btn primary" id="new-task-btn">+ New Task</button>
+      </div>
+
+      ${filtered.length === 0
+        ? '<div class="support-empty">No tasks yet.</div>'
+        : `<table class="admin-table" id="support-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Task</th>
+                <th>Member</th>
+                <th>Status</th>
+                <th>Hours</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(t => renderSupportRow(t)).join('')}
+            </tbody>
+          </table>`
+      }
+    `;
+
+    // Filter pills
+    root.querySelectorAll('[data-cat]').forEach(el => {
+      el.addEventListener('click', () => {
+        supportFilter.category = el.dataset.cat;
+        initSupportTracker();
+      });
+    });
+    root.querySelectorAll('[data-status]').forEach(el => {
+      el.addEventListener('click', () => {
+        supportFilter.status = el.dataset.status;
+        initSupportTracker();
+      });
+    });
+
+    // New task
+    root.querySelector('#new-task-btn')?.addEventListener('click', () => showNewTaskModal());
+
+    // Row expand toggles
+    root.querySelectorAll('.task-expand-btn').forEach(btn => {
+      btn.addEventListener('click', () => toggleTaskDetail(btn.dataset.taskId));
+    });
+
+    // Status selects
+    root.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', async (e) => {
+        const taskId = sel.dataset.taskId;
+        const newStatus = sel.value;
+        const task = tasks.find(t => t.id === taskId);
+        await updateTaskStatus(taskId, newStatus, task);
+        await initSupportTracker();
+      });
+    });
+
+    // Edit buttons
+    root.querySelectorAll('.task-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const task = tasks.find(t => t.id === btn.dataset.taskId);
+        if (task) showEditTaskModal(task);
+      });
+    });
+  }
+
+  function renderSupportRow(task) {
+    const comments = task.support_task_comments || [];
+    return `
+      <tr>
+        <td><span class="task-category ${task.category}">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span></td>
+        <td class="time-cell">${formatDate(task.created_at)}</td>
+        <td>
+          <div class="task-title-cell">${escHtml(task.title)}</div>
+          ${task.description ? `<div class="task-desc">${escHtml(task.description.substring(0, 80))}${task.description.length > 80 ? '…' : ''}</div>` : ''}
+        </td>
+        <td>
+          ${task.member_name
+            ? (task.member_profile_url
+                ? `<a class="task-member-link" href="${task.member_profile_url}" target="_blank">${escHtml(task.member_name)}</a>`
+                : escHtml(task.member_name))
+            : ''}
+        </td>
+        <td>
+          <select class="status-select" data-task-id="${task.id}">
+            ${Object.entries(SUPPORT_STATUS_LABELS).map(([val, label]) =>
+              `<option value="${val}" ${task.status === val ? 'selected' : ''}>${label}</option>`
+            ).join('')}
+          </select>
+        </td>
+        <td>${task.hours != null ? task.hours : ''}</td>
+        <td style="white-space:nowrap;">
+          <button class="action-btn task-expand-btn" data-task-id="${task.id}" style="margin-right:4px;">
+            ${comments.length > 0 ? `Notes (${comments.length})` : 'Notes'}
+          </button>
+          <button class="action-btn task-edit-btn" data-task-id="${task.id}">Edit</button>
+        </td>
+      </tr>
+      <tr class="task-row-expand" id="task-detail-${task.id}" style="display:none;">
+        <td colspan="7">
+          ${renderTaskDetail(task)}
+        </td>
+      </tr>
+    `;
+  }
+
+  function renderTaskDetail(task) {
+    const comments = task.support_task_comments || [];
+    return `
+      <div class="task-detail-panel">
+        ${task.description ? `<div style="font-size:13px;line-height:1.6;margin-bottom:12px;">${escHtml(task.description)}</div>` : ''}
+        ${task.notes ? `<div style="font-size:12px;color:#666;border-top:1px solid #eee;padding-top:10px;margin-top:10px;">${escHtml(task.notes)}</div>` : ''}
+
+        <div class="comments-section">
+          <div class="comments-title">Comments (${comments.length}/5)</div>
+          ${comments.map(c => `
+            <div class="comment-item">
+              <div class="comment-author-badge ${c.author.toLowerCase() === 'hannah' ? 'hannah' : ''}">${c.author.charAt(0).toUpperCase()}</div>
+              <div class="comment-body">
+                <div class="comment-meta">${escHtml(c.author)} &middot; ${formatDate(c.created_at)}</div>
+                <div class="comment-text">${escHtml(c.body)}</div>
+              </div>
+            </div>
+          `).join('')}
+
+          ${comments.length < 5 ? `
+            <div class="comment-input-row">
+              <textarea class="comment-textarea" id="comment-input-${task.id}" placeholder="Add a comment..."></textarea>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <button class="admin-btn primary add-comment-btn" data-task-id="${task.id}" style="white-space:nowrap;">Add</button>
+              </div>
+            </div>
+          ` : '<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleTaskDetail(taskId) {
+    const row = document.getElementById(`task-detail-${taskId}`);
+    if (!row) return;
+    const isHidden = row.style.display === 'none';
+    row.style.display = isHidden ? 'table-row' : 'none';
+
+    // Wire add-comment button when panel opens
+    if (isHidden) {
+      const addBtn = row.querySelector(`.add-comment-btn[data-task-id="${taskId}"]`);
+      if (addBtn) {
+        addBtn.addEventListener('click', async () => {
+          const input = document.getElementById(`comment-input-${taskId}`);
+          const text = input?.value.trim();
+          if (!text) return;
+          addBtn.disabled = true;
+          addBtn.textContent = 'Saving...';
+          await supabase.from('support_task_comments').insert({
+            task_id: taskId,
+            author: 'Racket',
+            body: text,
+          });
+          await initSupportTracker();
+          // Re-open the detail panel after refresh
+          setTimeout(() => {
+            const newRow = document.getElementById(`task-detail-${taskId}`);
+            if (newRow) newRow.style.display = 'table-row';
+          }, 100);
+        });
+      }
+    }
+  }
+
+  async function updateTaskStatus(taskId, newStatus, task) {
+    await supabase.from('support_tasks').update({ status: newStatus }).eq('id', taskId);
+
+    if (newStatus === 'feedback_needed') {
+      await sendTaskNotification('feedback_needed', task || { id: taskId, title: '(task)', status: newStatus });
+    } else if (newStatus === 'complete') {
+      await sendTaskNotification('complete', task || { id: taskId, title: '(task)', status: newStatus });
+    }
+  }
+
+  async function sendTaskNotification(event, task) {
+    const categoryLabel = SUPPORT_CATEGORY_LABELS[task.category] || task.category || '';
+    const memberLine = task.member_name ? `\nMember: ${task.member_name}${task.member_profile_url ? ' — ' + task.member_profile_url : ''}` : '';
+
+    let to, subject, body;
+
+    if (event === 'created') {
+      to = 'contact@racket.net.au';
+      subject = `New MTNS MADE support task: ${task.title}`;
+      body = `A new support task has been logged.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}`;
+    } else if (event === 'feedback_needed') {
+      to = 'hello@mtnsmade.com.au';
+      subject = `Feedback needed: ${task.title}`;
+      body = `A support task requires your feedback.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}\n\nPlease log in to the admin dashboard to respond.`;
+    } else if (event === 'complete') {
+      to = 'hello@mtnsmade.com.au';
+      subject = `Task complete: ${task.title}`;
+      body = `A support task has been marked complete.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}`;
+    } else {
+      return;
+    }
+
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, text: body, html: body.replace(/\n/g, '<br>') }),
+      });
+    } catch (e) {
+      console.error('sendTaskNotification error:', e);
+    }
+  }
+
+  // Member search (debounced)
+  let memberSearchTimer = null;
+  async function searchMembers(query) {
+    if (!query || query.length < 2) return [];
+    const { data } = await supabase
+      .from('members')
+      .select('id, name, slug')
+      .ilike('name', `%${query}%`)
+      .eq('subscription_status', 'active')
+      .limit(8);
+    return data || [];
+  }
+
+  function showNewTaskModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:560px;">
+        <div class="modal-header">
+          <h3 class="modal-title">New Support Task</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">Category</label>
+            <select class="form-input" id="st-category">
+              <option value="member_support">Member Support</option>
+              <option value="website_bug">Website Bug</option>
+              <option value="feature_request">Feature Request</option>
+            </select>
+          </div>
+          <div class="form-field" id="st-member-field">
+            <label class="form-label">Member</label>
+            <div class="member-search-wrap">
+              <input type="text" class="form-input" id="st-member-search" placeholder="Search by name..." autocomplete="off">
+              <div class="member-suggestions" id="st-member-suggestions" style="display:none;"></div>
+            </div>
+            <input type="hidden" id="st-member-id">
+            <input type="hidden" id="st-member-name">
+            <input type="hidden" id="st-member-url">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-input" id="st-title" placeholder="Brief summary of the task">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" id="st-description" style="min-height:80px;" placeholder="Full details, context, links..."></textarea>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Status</label>
+            <select class="form-input" id="st-status">
+              ${Object.entries(SUPPORT_STATUS_LABELS).map(([val, label]) =>
+                `<option value="${val}" ${val === 'not_started' ? 'selected' : ''}>${label}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Hours</label>
+            <input type="number" class="form-input" id="st-hours" placeholder="e.g. 0.25" step="0.25" min="0" style="max-width:120px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="admin-btn" id="st-cancel">Cancel</button>
+          <button class="admin-btn primary" id="st-save">Create Task</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Show/hide member field based on category
+    const catSel = modal.querySelector('#st-category');
+    const memberField = modal.querySelector('#st-member-field');
+    const toggleMemberField = () => {
+      memberField.style.display = catSel.value === 'member_support' ? 'block' : 'none';
+    };
+    toggleMemberField();
+    catSel.addEventListener('change', toggleMemberField);
+
+    // Member search autocomplete
+    const memberInput = modal.querySelector('#st-member-search');
+    const suggestions = modal.querySelector('#st-member-suggestions');
+    memberInput.addEventListener('input', () => {
+      clearTimeout(memberSearchTimer);
+      const q = memberInput.value.trim();
+      if (q.length < 2) { suggestions.style.display = 'none'; return; }
+      memberSearchTimer = setTimeout(async () => {
+        const results = await searchMembers(q);
+        if (results.length === 0) { suggestions.style.display = 'none'; return; }
+        suggestions.innerHTML = results.map(m =>
+          `<div class="member-suggestion-item" data-id="${m.id}" data-name="${escHtml(m.name || '')}" data-slug="${m.slug || ''}">${escHtml(m.name || m.id)}</div>`
+        ).join('');
+        suggestions.style.display = 'block';
+        suggestions.querySelectorAll('.member-suggestion-item').forEach(item => {
+          item.addEventListener('click', () => {
+            modal.querySelector('#st-member-id').value = item.dataset.id;
+            modal.querySelector('#st-member-name').value = item.dataset.name;
+            modal.querySelector('#st-member-url').value = item.dataset.slug ? `${SITE_URL}/members/${item.dataset.slug}` : '';
+            memberInput.value = item.dataset.name;
+            suggestions.style.display = 'none';
+          });
+        });
+      }, 250);
+    });
+
+    // Close
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('#st-cancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    // Save
+    modal.querySelector('#st-save').addEventListener('click', async () => {
+      const title = modal.querySelector('#st-title').value.trim();
+      const category = modal.querySelector('#st-category').value;
+      if (!title) { alert('Please enter a task title.'); return; }
+
+      const saveBtn = modal.querySelector('#st-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      const hours = modal.querySelector('#st-hours').value;
+      const memberId = modal.querySelector('#st-member-id').value;
+      const payload = {
+        category,
+        title,
+        description: modal.querySelector('#st-description').value.trim() || null,
+        status: modal.querySelector('#st-status').value,
+        hours: hours ? parseFloat(hours) : null,
+        member_id: memberId || null,
+        member_name: modal.querySelector('#st-member-name').value || null,
+        member_profile_url: modal.querySelector('#st-member-url').value || null,
+      };
+
+      const { data: newTask, error } = await supabase.from('support_tasks').insert(payload).select().single();
+
+      if (error) {
+        alert('Error creating task: ' + error.message);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Create Task';
+        return;
+      }
+
+      modal.remove();
+      await sendTaskNotification('created', newTask);
+      await initSupportTracker();
+    });
+  }
+
+  function showEditTaskModal(task) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:560px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Task</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">Category</label>
+            <select class="form-input" id="et-category">
+              <option value="member_support" ${task.category === 'member_support' ? 'selected' : ''}>Member Support</option>
+              <option value="website_bug" ${task.category === 'website_bug' ? 'selected' : ''}>Website Bug</option>
+              <option value="feature_request" ${task.category === 'feature_request' ? 'selected' : ''}>Feature Request</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-input" id="et-title" value="${escHtml(task.title)}">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" id="et-description" style="min-height:80px;">${escHtml(task.description || '')}</textarea>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" id="et-notes" style="min-height:60px;" placeholder="Internal notes, resolution summary...">${escHtml(task.notes || '')}</textarea>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Status</label>
+            <select class="form-input" id="et-status">
+              ${Object.entries(SUPPORT_STATUS_LABELS).map(([val, label]) =>
+                `<option value="${val}" ${task.status === val ? 'selected' : ''}>${label}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Hours</label>
+            <input type="number" class="form-input" id="et-hours" value="${task.hours != null ? task.hours : ''}" step="0.25" min="0" style="max-width:120px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="admin-btn" id="et-cancel">Cancel</button>
+          <button class="admin-btn primary" id="et-save">Save Changes</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('#et-cancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    modal.querySelector('#et-save').addEventListener('click', async () => {
+      const saveBtn = modal.querySelector('#et-save');
+      const newStatus = modal.querySelector('#et-status').value;
+      const statusChanged = newStatus !== task.status;
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      const hours = modal.querySelector('#et-hours').value;
+      const { error } = await supabase.from('support_tasks').update({
+        category:    modal.querySelector('#et-category').value,
+        title:       modal.querySelector('#et-title').value.trim(),
+        description: modal.querySelector('#et-description').value.trim() || null,
+        notes:       modal.querySelector('#et-notes').value.trim() || null,
+        status:      newStatus,
+        hours:       hours ? parseFloat(hours) : null,
+      }).eq('id', task.id);
+
+      if (error) {
+        alert('Error saving: ' + error.message);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+        return;
+      }
+
+      if (statusChanged) {
+        await sendTaskNotification(newStatus === 'feedback_needed' ? 'feedback_needed' : newStatus === 'complete' ? 'complete' : null, task);
+      }
+
+      modal.remove();
+      await initSupportTracker();
+    });
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   // ============================================
