@@ -858,8 +858,8 @@
     }
 
     .archive-month-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 12px;
       padding: 20px;
     }
@@ -2662,10 +2662,10 @@ MTNS MADE Team`;
   }
 
   function renderMonthlyArchive(root, archivedTasks) {
-    // Group by YYYY-MM
+    // Group by YYYY-MM of updated_at (when tasks were completed, not created)
     const byMonth = {};
     archivedTasks.forEach(t => {
-      const d = new Date(t.created_at);
+      const d = new Date(t.updated_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!byMonth[key]) byMonth[key] = [];
       byMonth[key].push(t);
@@ -2691,12 +2691,14 @@ MTNS MADE Team`;
     grid.className = 'archive-month-grid';
 
     monthKeys.forEach(key => {
-      const monthTasks = byMonth[key];
+      // Sort tasks within month: most recently updated first
+      const monthTasks = byMonth[key].slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
       const totalHours = monthTasks.reduce((sum, t) => sum + (parseFloat(t.hours) || 0), 0);
       const hoursDisplay = totalHours > 0 ? `${totalHours % 1 === 0 ? totalHours : totalHours.toFixed(2)}h` : '—';
 
       const card = document.createElement('div');
-      card.className = 'month-card';
+      // All cards start expanded
+      card.className = 'month-card expanded';
       card.innerHTML = `
         <div class="month-card-header">
           <div class="month-card-name">${monthLabel(key)}</div>
