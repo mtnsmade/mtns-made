@@ -829,7 +829,7 @@
     .status.feedback_needed { border-color: #1565c0; color: #1565c0; }
     .status.stalled         { border-color: #dc3545; color: #dc3545; }
 
-    /* Filter pills — pill-shaped variant of tab/button pattern */
+    /* Support toolbar — two-button layout */
     .support-toolbar {
       display: flex;
       align-items: center;
@@ -839,22 +839,105 @@
       flex-wrap: wrap;
     }
 
-    .support-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .support-toolbar-actions { display: flex; gap: 8px; align-items: center; }
 
-    .filter-pill {
-      background: #f5f5f5;
-      border: 1px solid #e0e0e0;
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-      font-family: inherit;
+    /* Archive view */
+    .archive-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e8e8e8;
     }
 
-    .filter-pill:hover { background: #e8e8e8; }
-    .filter-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .archive-header h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .archive-month-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .month-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .month-card:hover { border-color: #bbb; background: #fafafa; }
+
+    .month-card.expanded { border-color: #1a1a1a; }
+
+    .month-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .month-card-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .month-card-chevron {
+      font-size: 10px;
+      color: #aaa;
+      transition: transform 0.15s;
+    }
+
+    .month-card.expanded .month-card-chevron { transform: rotate(180deg); }
+
+    .month-card-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .month-card-stat strong { color: #1a1a1a; }
+
+    .month-tasks {
+      display: none;
+      margin-top: 10px;
+      border-top: 1px solid #e8e8e8;
+      padding-top: 10px;
+    }
+
+    .month-card.expanded .month-tasks { display: block; }
+
+    .month-task-item {
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 12px;
+      color: #333;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .month-task-item:last-child { border-bottom: none; }
+
+    .month-task-title {
+      flex: 1;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+
+    .month-task-title:hover { color: #0066cc; }
+
+    .month-task-meta { color: #aaa; white-space: nowrap; }
 
     /* Comments */
     .comments-section { margin-top: 16px; }
@@ -2480,7 +2563,11 @@ MTNS MADE Team`;
     stalled:          'Stalled',
   };
 
-  let supportFilter = { category: 'all', status: 'all' };
+  // 'main' shows active tasks; 'archive' shows monthly overview of completed tasks
+  let supportView = 'main';
+
+  const SUPPORT_ACTIVE_STATUSES   = new Set(['not_started', 'in_progress', 'feedback_needed']);
+  const SUPPORT_ARCHIVED_STATUSES = new Set(['complete', 'stalled']);
 
   async function loadSupportTasks() {
     const { data, error } = await supabase
@@ -2488,7 +2575,6 @@ MTNS MADE Team`;
       .select('*, support_task_comments(*)')
       .order('created_at', { ascending: false });
     if (error) { console.error('loadSupportTasks:', error); return []; }
-    // Sort comments oldest-first within each task
     (data || []).forEach(t => t.support_task_comments?.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
     return data || [];
   }
@@ -2496,38 +2582,33 @@ MTNS MADE Team`;
   async function initSupportTracker() {
     const root = document.getElementById('support-tracker-root');
     if (!root) return;
-    root.innerHTML = '<div class="support-empty">Loading...</div>';
+    root.innerHTML = '<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';
     const tasks = await loadSupportTasks();
     renderSupportTracker(root, tasks);
   }
 
   function renderSupportTracker(root, tasks) {
-    const filtered = tasks.filter(t => {
-      const catOk = supportFilter.category === 'all' || t.category === supportFilter.category;
-      const stOk  = supportFilter.status  === 'all' || t.status  === supportFilter.status;
-      return catOk && stOk;
-    });
+    const isArchive = supportView === 'archive';
 
     root.innerHTML = `
       <div class="support-toolbar">
-        <div class="support-filters">
-          <span class="filter-pill ${supportFilter.category === 'all' ? 'active' : ''}" data-cat="all">All</span>
-          <span class="filter-pill ${supportFilter.category === 'member_support' ? 'active' : ''}" data-cat="member_support">Member Support</span>
-          <span class="filter-pill ${supportFilter.category === 'website_bug' ? 'active' : ''}" data-cat="website_bug">Website Bug</span>
-          <span class="filter-pill ${supportFilter.category === 'feature_request' ? 'active' : ''}" data-cat="feature_request">Feature Request</span>
-          <span style="display:inline-block;width:1px;height:20px;background:#e0e0e0;margin:0 6px;vertical-align:middle;"></span>
-          <span class="filter-pill ${supportFilter.status === 'all' ? 'active' : ''}" data-status="all">Any Status</span>
-          <span class="filter-pill ${supportFilter.status === 'not_started' ? 'active' : ''}" data-status="not_started">Not Started</span>
-          <span class="filter-pill ${supportFilter.status === 'in_progress' ? 'active' : ''}" data-status="in_progress">In Progress</span>
-          <span class="filter-pill ${supportFilter.status === 'feedback_needed' ? 'active' : ''}" data-status="feedback_needed">Feedback Needed</span>
-          <span class="filter-pill ${supportFilter.status === 'complete' ? 'active' : ''}" data-status="complete">Complete</span>
-          <span class="filter-pill ${supportFilter.status === 'stalled' ? 'active' : ''}" data-status="stalled">Stalled</span>
+        <div class="support-toolbar-actions">
+          <button class="admin-btn primary" id="new-task-btn">+ New Task</button>
+          <button class="admin-btn ${isArchive ? 'primary' : ''}" id="archive-view-btn">Archive</button>
         </div>
-        <button class="admin-btn primary" id="new-task-btn">+ New Task</button>
+        ${isArchive
+          ? '<span style="font-size:12px;color:#888;">Completed &amp; stalled tasks</span>'
+          : '<span style="font-size:12px;color:#888;">Active tasks</span>'}
       </div>
+    `;
 
-      ${filtered.length === 0
-        ? '<div class="empty-state">No tasks yet.</div>'
+    if (isArchive) {
+      renderMonthlyArchive(root, tasks.filter(t => SUPPORT_ARCHIVED_STATUSES.has(t.status)));
+    } else {
+      const active = tasks.filter(t => SUPPORT_ACTIVE_STATUSES.has(t.status));
+      const tableEl = document.createElement('div');
+      tableEl.innerHTML = active.length === 0
+        ? '<div class="empty-state" style="padding:40px 20px;">No active tasks.</div>'
         : `<table class="admin-table" id="support-table">
             <thead>
               <tr>
@@ -2541,55 +2622,126 @@ MTNS MADE Team`;
               </tr>
             </thead>
             <tbody>
-              ${filtered.map(t => renderSupportRow(t)).join('')}
+              ${active.map(t => renderSupportRow(t)).join('')}
             </tbody>
-          </table>`
-      }
-    `;
+          </table>`;
+      root.appendChild(tableEl);
 
-    // Filter pills
-    root.querySelectorAll('[data-cat]').forEach(el => {
-      el.addEventListener('click', () => {
-        supportFilter.category = el.dataset.cat;
-        initSupportTracker();
+      // Notes modal buttons
+      root.querySelectorAll('.task-detail-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const task = tasks.find(t => t.id === btn.dataset.taskId);
+          if (task) showTaskDetailModal(task);
+        });
       });
-    });
-    root.querySelectorAll('[data-status]').forEach(el => {
-      el.addEventListener('click', () => {
-        supportFilter.status = el.dataset.status;
-        initSupportTracker();
-      });
-    });
 
-    // New task
+      // Status selects
+      root.querySelectorAll('.form-input[data-task-id]').forEach(sel => {
+        sel.addEventListener('change', async () => {
+          const task = tasks.find(t => t.id === sel.dataset.taskId);
+          await updateTaskStatus(sel.dataset.taskId, sel.value, task);
+          await initSupportTracker();
+        });
+      });
+
+      // Edit buttons
+      root.querySelectorAll('.task-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const task = tasks.find(t => t.id === btn.dataset.taskId);
+          if (task) showEditTaskModal(task);
+        });
+      });
+    }
+
+    // Toolbar buttons (always present)
     root.querySelector('#new-task-btn')?.addEventListener('click', () => showNewTaskModal());
+    root.querySelector('#archive-view-btn')?.addEventListener('click', () => {
+      supportView = supportView === 'archive' ? 'main' : 'archive';
+      initSupportTracker();
+    });
+  }
 
-    // Notes modal buttons
-    root.querySelectorAll('.task-detail-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const task = tasks.find(t => t.id === btn.dataset.taskId);
-        if (task) showTaskDetailModal(task);
-      });
+  function renderMonthlyArchive(root, archivedTasks) {
+    // Group by YYYY-MM
+    const byMonth = {};
+    archivedTasks.forEach(t => {
+      const d = new Date(t.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!byMonth[key]) byMonth[key] = [];
+      byMonth[key].push(t);
     });
 
-    // Status selects
-    root.querySelectorAll('.form-input[data-task-id]').forEach(sel => {
-      sel.addEventListener('change', async (e) => {
-        const taskId = sel.dataset.taskId;
-        const newStatus = sel.value;
-        const task = tasks.find(t => t.id === taskId);
-        await updateTaskStatus(taskId, newStatus, task);
-        await initSupportTracker();
+    const monthKeys = Object.keys(byMonth).sort((a, b) => b.localeCompare(a)); // newest first
+
+    if (monthKeys.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.style.padding = '40px 20px';
+      empty.textContent = 'No archived tasks yet.';
+      root.appendChild(empty);
+      return;
+    }
+
+    function monthLabel(key) {
+      const [y, m] = key.split('-');
+      return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'archive-month-grid';
+
+    monthKeys.forEach(key => {
+      const monthTasks = byMonth[key];
+      const totalHours = monthTasks.reduce((sum, t) => sum + (parseFloat(t.hours) || 0), 0);
+      const hoursDisplay = totalHours > 0 ? `${totalHours % 1 === 0 ? totalHours : totalHours.toFixed(2)}h` : '—';
+
+      const card = document.createElement('div');
+      card.className = 'month-card';
+      card.innerHTML = `
+        <div class="month-card-header">
+          <div class="month-card-name">${monthLabel(key)}</div>
+          <div class="month-card-chevron">▼</div>
+        </div>
+        <div class="month-card-stats">
+          <div class="month-card-stat"><strong>${monthTasks.length}</strong> task${monthTasks.length !== 1 ? 's' : ''}</div>
+          <div class="month-card-stat"><strong>${hoursDisplay}</strong></div>
+        </div>
+        <div class="month-tasks">
+          ${monthTasks.map(t => `
+            <div class="month-task-item">
+              <div class="month-task-title" data-task-id="${t.id}">
+                <span class="status ${t.category}" style="font-size:10px;padding:2px 6px;margin-right:4px;">${SUPPORT_CATEGORY_LABELS[t.category] || t.category}</span>
+                ${escHtml(t.title.length > 80 ? t.title.substring(0, 77) + '…' : t.title)}
+              </div>
+              <div class="month-task-meta">${t.hours != null ? t.hours + 'h' : ''}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        card.classList.toggle('expanded');
       });
+
+      // Task title clicks → open detail modal (need tasks ref from outer scope)
+      card.querySelectorAll('.month-task-title').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // We need the full task with comments — trigger a fresh load for this task
+          const taskId = el.dataset.taskId;
+          supabase.from('support_tasks').select('*, support_task_comments(*)').eq('id', taskId).single().then(({ data: t }) => {
+            if (t) {
+              t.support_task_comments?.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+              showTaskDetailModal(t);
+            }
+          });
+        });
+      });
+
+      grid.appendChild(card);
     });
 
-    // Edit buttons
-    root.querySelectorAll('.task-edit-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const task = tasks.find(t => t.id === btn.dataset.taskId);
-        if (task) showEditTaskModal(task);
-      });
-    });
+    root.appendChild(grid);
   }
 
   function renderSupportRow(task) {
@@ -2599,7 +2751,7 @@ MTNS MADE Team`;
         <td><span class="status ${task.category}">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span></td>
         <td class="time-cell">${formatDate(task.created_at)}</td>
         <td>
-          <div class="name-cell">${escHtml(task.title)}</div>
+          <div class="name-cell" title="${escHtml(task.title)}" style="cursor:default;">${escHtml(task.title.length > 80 ? task.title.substring(0, 77) + '…' : task.title)}</div>
         </td>
         <td>
           ${task.member_name
