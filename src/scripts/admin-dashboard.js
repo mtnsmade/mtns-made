@@ -2864,6 +2864,7 @@ MTNS MADE Team`;
           body: text,
         });
         modal.remove();
+        await sendTaskNotification('comment', task, text);
         await initSupportTracker();
       });
     }
@@ -2879,7 +2880,7 @@ MTNS MADE Team`;
     }
   }
 
-  async function sendTaskNotification(event, task) {
+  async function sendTaskNotification(event, task, commentText) {
     const categoryLabel = SUPPORT_CATEGORY_LABELS[task.category] || task.category || '';
     const memberLine = task.member_name ? `\nMember: ${task.member_name}${task.member_profile_url ? ' — ' + task.member_profile_url : ''}` : '';
 
@@ -2891,6 +2892,10 @@ MTNS MADE Team`;
       to = 'contact@racket.net.au';
       subject = `New MTNS MADE support task: ${task.title}`;
       body = `A new support task has been logged.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}\n\nView on dashboard: ${dashboardLink}`;
+    } else if (event === 'comment') {
+      to = 'hello@mtnsmade.com.au';
+      subject = `New comment on: ${task.title}`;
+      body = `Racket has added a comment to a support task.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n\nComment:\n${commentText}\n\nView on dashboard: ${dashboardLink}`;
     } else if (event === 'feedback_needed') {
       to = 'hello@mtnsmade.com.au';
       subject = `Feedback needed: ${task.title}`;
@@ -3094,6 +3099,7 @@ MTNS MADE Team`;
           </div>
         </div>
         <div class="modal-footer">
+          <button class="admin-btn" id="et-delete" style="color:#dc3545;border-color:#dc3545;margin-right:auto;">Delete</button>
           <button class="admin-btn" id="et-cancel">Cancel</button>
           <button class="admin-btn primary" id="et-save">Save Changes</button>
         </div>
@@ -3105,6 +3111,17 @@ MTNS MADE Team`;
     modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
     modal.querySelector('#et-cancel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    modal.querySelector('#et-delete').addEventListener('click', async () => {
+      if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+      const delBtn = modal.querySelector('#et-delete');
+      delBtn.disabled = true;
+      delBtn.textContent = 'Deleting...';
+      await supabase.from('support_task_comments').delete().eq('task_id', task.id);
+      await supabase.from('support_tasks').delete().eq('id', task.id);
+      modal.remove();
+      await initSupportTracker();
+    });
 
     modal.querySelector('#et-save').addEventListener('click', async () => {
       const saveBtn = modal.querySelector('#et-save');
