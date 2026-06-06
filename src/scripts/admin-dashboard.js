@@ -2662,10 +2662,10 @@ MTNS MADE Team`;
   }
 
   function renderMonthlyArchive(root, archivedTasks) {
-    // Group by YYYY-MM of updated_at (when tasks were completed, not created)
+    // Group by YYYY-MM of created_at (the month the work was originally logged)
     const byMonth = {};
     archivedTasks.forEach(t => {
-      const d = new Date(t.updated_at);
+      const d = new Date(t.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!byMonth[key]) byMonth[key] = [];
       byMonth[key].push(t);
