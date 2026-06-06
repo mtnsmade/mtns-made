@@ -856,10 +856,6 @@
     .filter-pill:hover { background: #e8e8e8; }
     .filter-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
 
-    /* Expand panel */
-    .task-row-expand { background: #fafafa; }
-    .task-detail-panel { padding: 16px 20px; border-top: 1px solid #f0f0f0; }
-
     /* Comments */
     .comments-section { margin-top: 16px; }
     .comments-title { font-size: 11px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
@@ -2568,9 +2564,12 @@ MTNS MADE Team`;
     // New task
     root.querySelector('#new-task-btn')?.addEventListener('click', () => showNewTaskModal());
 
-    // Row expand toggles
-    root.querySelectorAll('.task-expand-btn').forEach(btn => {
-      btn.addEventListener('click', () => toggleTaskDetail(btn.dataset.taskId));
+    // Notes modal buttons
+    root.querySelectorAll('.task-detail-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const task = tasks.find(t => t.id === btn.dataset.taskId);
+        if (task) showTaskDetailModal(task);
+      });
     });
 
     // Status selects
@@ -2601,7 +2600,6 @@ MTNS MADE Team`;
         <td class="time-cell">${formatDate(task.created_at)}</td>
         <td>
           <div class="name-cell">${escHtml(task.title)}</div>
-          ${task.description ? `<div class="email-cell" style="margin-top:2px;">${escHtml(task.description.substring(0, 80))}${task.description.length > 80 ? '…' : ''}</div>` : ''}
         </td>
         <td>
           ${task.member_name
@@ -2620,82 +2618,102 @@ MTNS MADE Team`;
         <td class="time-cell">${task.hours != null ? task.hours + 'h' : ''}</td>
         <td>
           <div class="action-btns">
-            <button class="action-btn task-expand-btn" data-task-id="${task.id}">
+            <button class="action-btn task-detail-btn" data-task-id="${task.id}">
               ${comments.length > 0 ? `Notes (${comments.length})` : 'Notes'}
             </button>
             <button class="action-btn edit-btn task-edit-btn" data-task-id="${task.id}">Edit</button>
           </div>
         </td>
       </tr>
-      <tr class="task-row-expand" id="task-detail-${task.id}" style="display:none;">
-        <td colspan="7">
-          ${renderTaskDetail(task)}
-        </td>
-      </tr>
     `;
   }
 
-  function renderTaskDetail(task) {
+  function showTaskDetailModal(task) {
     const comments = task.support_task_comments || [];
-    return `
-      <div class="task-detail-panel">
-        ${task.description ? `<div style="font-size:13px;line-height:1.6;margin-bottom:12px;">${escHtml(task.description)}</div>` : ''}
-        ${task.notes ? `<div style="font-size:12px;color:#666;border-top:1px solid #eee;padding-top:10px;margin-top:10px;">${escHtml(task.notes)}</div>` : ''}
-
-        <div class="comments-section">
-          <div class="comments-title">Comments (${comments.length}/5)</div>
-          ${comments.map(c => `
-            <div class="comment-item">
-              <div class="comment-author-badge ${c.author.toLowerCase() === 'hannah' ? 'hannah' : ''}">${c.author.charAt(0).toUpperCase()}</div>
-              <div class="comment-body">
-                <div class="comment-meta">${escHtml(c.author)} &middot; ${formatDate(c.created_at)}</div>
-                <div class="comment-text">${escHtml(c.body)}</div>
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:620px;">
+        <div class="modal-header">
+          <div>
+            <span class="status ${task.category}" style="margin-bottom:6px;display:inline-block;">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span>
+            <h3 class="modal-title" style="margin-top:6px;">${escHtml(task.title)}</h3>
+          </div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          ${task.description ? `
+            <div class="form-field">
+              <div class="form-label">Description</div>
+              <div style="font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;">${escHtml(task.description)}</div>
+            </div>
+          ` : ''}
+          ${task.notes ? `
+            <div class="form-field">
+              <div class="form-label">Notes</div>
+              <div style="font-size:13px;line-height:1.7;color:#555;white-space:pre-wrap;">${escHtml(task.notes)}</div>
+            </div>
+          ` : ''}
+          ${task.member_name ? `
+            <div class="form-field">
+              <div class="form-label">Member</div>
+              <div style="font-size:13px;">
+                ${task.member_profile_url
+                  ? `<a href="${task.member_profile_url}" target="_blank" style="color:#0066cc;">${escHtml(task.member_name)}</a>`
+                  : escHtml(task.member_name)}
               </div>
             </div>
-          `).join('')}
+          ` : ''}
 
-          ${comments.length < 5 ? `
-            <div class="comment-input-row">
-              <textarea class="form-input" id="comment-input-${task.id}" placeholder="Add a comment..." style="min-height:60px;resize:none;flex:1;"></textarea>
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <button class="admin-btn primary add-comment-btn" data-task-id="${task.id}" style="white-space:nowrap;">Add</button>
-              </div>
+          <div class="comments-section">
+            <div class="comments-title">Comments (${comments.length}/5)</div>
+            <div id="task-comments-list">
+              ${comments.map(c => `
+                <div class="comment-item">
+                  <div class="comment-author-badge ${c.author.toLowerCase() === 'hannah' || c.author === 'MTNS MADE' ? 'hannah' : ''}">${c.author.charAt(0).toUpperCase()}</div>
+                  <div class="comment-body">
+                    <div class="comment-meta">${escHtml(c.author)} &middot; ${formatDate(c.created_at)}</div>
+                    <div class="comment-text">${escHtml(c.body)}</div>
+                  </div>
+                </div>
+              `).join('')}
             </div>
-          ` : '<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
+            ${comments.length < 5 ? `
+              <div class="comment-input-row" style="margin-top:16px;">
+                <textarea class="form-input" id="task-comment-input" placeholder="Add a comment..." style="min-height:70px;resize:none;flex:1;"></textarea>
+              </div>
+            ` : '<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="admin-btn" id="td-close">Close</button>
+          ${comments.length < 5 ? `<button class="admin-btn primary" id="td-add-comment">Add Comment</button>` : ''}
         </div>
       </div>
     `;
-  }
 
-  function toggleTaskDetail(taskId) {
-    const row = document.getElementById(`task-detail-${taskId}`);
-    if (!row) return;
-    const isHidden = row.style.display === 'none';
-    row.style.display = isHidden ? 'table-row' : 'none';
+    document.body.appendChild(modal);
 
-    // Wire add-comment button when panel opens
-    if (isHidden) {
-      const addBtn = row.querySelector(`.add-comment-btn[data-task-id="${taskId}"]`);
-      if (addBtn) {
-        addBtn.addEventListener('click', async () => {
-          const input = document.getElementById(`comment-input-${taskId}`);
-          const text = input?.value.trim();
-          if (!text) return;
-          addBtn.disabled = true;
-          addBtn.textContent = 'Saving...';
-          await supabase.from('support_task_comments').insert({
-            task_id: taskId,
-            author: 'Racket',
-            body: text,
-          });
-          await initSupportTracker();
-          // Re-open the detail panel after refresh
-          setTimeout(() => {
-            const newRow = document.getElementById(`task-detail-${taskId}`);
-            if (newRow) newRow.style.display = 'table-row';
-          }, 100);
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('#td-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    const addBtn = modal.querySelector('#td-add-comment');
+    if (addBtn) {
+      addBtn.addEventListener('click', async () => {
+        const input = modal.querySelector('#task-comment-input');
+        const text = input?.value.trim();
+        if (!text) return;
+        addBtn.disabled = true;
+        addBtn.textContent = 'Saving...';
+        await supabase.from('support_task_comments').insert({
+          task_id: task.id,
+          author: 'Racket',
+          body: text,
         });
-      }
+        modal.remove();
+        await initSupportTracker();
+      });
     }
   }
 
