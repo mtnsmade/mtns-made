@@ -816,21 +816,30 @@
       }
     }
 
-    /* Support Tracker */
+    /* Support Tracker — extends existing .status and .action-btn systems */
+
+    /* Category badges — coloured backgrounds on top of existing .status base */
+    .status.member_support  { background: #fff3e0; border-color: #e65100; color: #e65100; }
+    .status.website_bug     { background: #fce4ec; border-color: #c62828; color: #c62828; }
+    .status.feature_request { background: #e8f5e9; border-color: #2e7d32; color: #2e7d32; }
+
+    /* Task status modifiers — added to existing .status system */
+    .status.not_started     { border-color: #bbb; color: #888; }
+    .status.in_progress     { border-color: #f57f17; color: #f57f17; }
+    .status.feedback_needed { border-color: #1565c0; color: #1565c0; }
+    .status.stalled         { border-color: #dc3545; color: #dc3545; }
+
+    /* Filter pills — pill-shaped variant of tab/button pattern */
     .support-toolbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 16px;
+      padding: 16px 20px;
       flex-wrap: wrap;
     }
 
-    .support-filters {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
+    .support-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 
     .filter-pill {
       background: #f5f5f5;
@@ -841,134 +850,39 @@
       cursor: pointer;
       transition: all 0.15s;
       white-space: nowrap;
+      font-family: inherit;
     }
 
     .filter-pill:hover { background: #e8e8e8; }
     .filter-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
 
-    .task-category {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
+    /* Expand panel */
+    .task-row-expand { background: #fafafa; }
+    .task-detail-panel { padding: 16px 20px; border-top: 1px solid #f0f0f0; }
 
-    .task-category.member_support  { background: #fff3e0; color: #e65100; }
-    .task-category.website_bug     { background: #fce4ec; color: #c62828; }
-    .task-category.feature_request { background: #e8f5e9; color: #2e7d32; }
-
-    .task-status {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .task-status.not_started   { background: #f5f5f5; color: #666; }
-    .task-status.in_progress   { background: #fff8e1; color: #f57f17; }
-    .task-status.feedback_needed { background: #e3f2fd; color: #1565c0; }
-    .task-status.complete      { background: #e8f5e9; color: #2e7d32; }
-    .task-status.stalled       { background: #fce4ec; color: #c62828; }
-
-    .task-title-cell { font-weight: 500; font-size: 13px; }
-    .task-desc { font-size: 12px; color: #666; margin-top: 3px; }
-    .task-member-link { color: #1a1a1a; text-decoration: underline; font-size: 12px; }
-
-    .status-select {
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      padding: 3px 6px;
-      font-size: 12px;
-      font-family: inherit;
-      cursor: pointer;
-      background: #fff;
-    }
-
-    .task-row-expand {
-      background: #fafafa;
-    }
-
-    .task-detail-panel {
-      padding: 16px 20px;
-      border-top: 1px solid #f0f0f0;
-    }
-
+    /* Comments */
     .comments-section { margin-top: 16px; }
-    .comments-title { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
-
-    .comment-item {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
+    .comments-title { font-size: 11px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .comment-item { display: flex; gap: 10px; margin-bottom: 12px; }
     .comment-author-badge {
-      background: #1a1a1a;
-      color: #fff;
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      flex-shrink: 0;
+      background: #1a1a1a; color: #fff; border-radius: 50%;
+      width: 26px; height: 26px; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0;
     }
-
     .comment-author-badge.hannah { background: #6366f1; }
-
     .comment-body { flex: 1; }
     .comment-meta { font-size: 11px; color: #999; margin-bottom: 3px; }
     .comment-text { font-size: 13px; line-height: 1.5; }
+    .comment-input-row { display: flex; gap: 8px; margin-top: 12px; align-items: flex-end; }
 
-    .comment-input-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-      align-items: flex-end;
-    }
-
-    .comment-textarea {
-      flex: 1;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-family: inherit;
-      font-size: 13px;
-      resize: none;
-      min-height: 60px;
-    }
-
-    .comment-textarea:focus { outline: none; border-color: #1a1a1a; }
-
-    .support-empty { padding: 40px; text-align: center; color: #aaa; font-size: 14px; }
-
+    /* Member autocomplete */
     .member-search-wrap { position: relative; }
     .member-suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-top: none;
-      border-radius: 0 0 6px 6px;
-      z-index: 100;
-      max-height: 200px;
-      overflow-y: auto;
+      position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+      border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 6px 6px;
+      z-index: 100; max-height: 200px; overflow-y: auto;
     }
-
-    .member-suggestion-item {
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
+    .member-suggestion-item { padding: 8px 12px; font-size: 13px; cursor: pointer; }
     .member-suggestion-item:hover { background: #f5f5f5; }
 
     @media (max-width: 768px) {
@@ -2617,7 +2531,7 @@ MTNS MADE Team`;
       </div>
 
       ${filtered.length === 0
-        ? '<div class="support-empty">No tasks yet.</div>'
+        ? '<div class="empty-state">No tasks yet.</div>'
         : `<table class="admin-table" id="support-table">
             <thead>
               <tr>
@@ -2660,7 +2574,7 @@ MTNS MADE Team`;
     });
 
     // Status selects
-    root.querySelectorAll('.status-select').forEach(sel => {
+    root.querySelectorAll('.form-input[data-task-id]').forEach(sel => {
       sel.addEventListener('change', async (e) => {
         const taskId = sel.dataset.taskId;
         const newStatus = sel.value;
@@ -2683,32 +2597,34 @@ MTNS MADE Team`;
     const comments = task.support_task_comments || [];
     return `
       <tr>
-        <td><span class="task-category ${task.category}">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span></td>
+        <td><span class="status ${task.category}">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span></td>
         <td class="time-cell">${formatDate(task.created_at)}</td>
         <td>
-          <div class="task-title-cell">${escHtml(task.title)}</div>
-          ${task.description ? `<div class="task-desc">${escHtml(task.description.substring(0, 80))}${task.description.length > 80 ? '…' : ''}</div>` : ''}
+          <div class="name-cell">${escHtml(task.title)}</div>
+          ${task.description ? `<div class="email-cell" style="margin-top:2px;">${escHtml(task.description.substring(0, 80))}${task.description.length > 80 ? '…' : ''}</div>` : ''}
         </td>
         <td>
           ${task.member_name
             ? (task.member_profile_url
-                ? `<a class="task-member-link" href="${task.member_profile_url}" target="_blank">${escHtml(task.member_name)}</a>`
-                : escHtml(task.member_name))
+                ? `<a class="email-cell" href="${task.member_profile_url}" target="_blank" style="color:#0066cc;text-decoration:none;">${escHtml(task.member_name)}</a>`
+                : `<span class="email-cell">${escHtml(task.member_name)}</span>`)
             : ''}
         </td>
         <td>
-          <select class="status-select" data-task-id="${task.id}">
+          <select class="form-input" data-task-id="${task.id}" style="padding:4px 8px;font-size:12px;width:auto;">
             ${Object.entries(SUPPORT_STATUS_LABELS).map(([val, label]) =>
               `<option value="${val}" ${task.status === val ? 'selected' : ''}>${label}</option>`
             ).join('')}
           </select>
         </td>
-        <td>${task.hours != null ? task.hours : ''}</td>
-        <td style="white-space:nowrap;">
-          <button class="action-btn task-expand-btn" data-task-id="${task.id}" style="margin-right:4px;">
-            ${comments.length > 0 ? `Notes (${comments.length})` : 'Notes'}
-          </button>
-          <button class="action-btn task-edit-btn" data-task-id="${task.id}">Edit</button>
+        <td class="time-cell">${task.hours != null ? task.hours + 'h' : ''}</td>
+        <td>
+          <div class="action-btns">
+            <button class="action-btn task-expand-btn" data-task-id="${task.id}">
+              ${comments.length > 0 ? `Notes (${comments.length})` : 'Notes'}
+            </button>
+            <button class="action-btn edit-btn task-edit-btn" data-task-id="${task.id}">Edit</button>
+          </div>
         </td>
       </tr>
       <tr class="task-row-expand" id="task-detail-${task.id}" style="display:none;">
@@ -2740,7 +2656,7 @@ MTNS MADE Team`;
 
           ${comments.length < 5 ? `
             <div class="comment-input-row">
-              <textarea class="comment-textarea" id="comment-input-${task.id}" placeholder="Add a comment..."></textarea>
+              <textarea class="form-input" id="comment-input-${task.id}" placeholder="Add a comment..." style="min-height:60px;resize:none;flex:1;"></textarea>
               <div style="display:flex;flex-direction:column;gap:6px;">
                 <button class="admin-btn primary add-comment-btn" data-task-id="${task.id}" style="white-space:nowrap;">Add</button>
               </div>
