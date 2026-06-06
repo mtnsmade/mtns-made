@@ -2715,18 +2715,20 @@ MTNS MADE Team`;
 
     let to, subject, body;
 
+    const dashboardLink = 'https://www.mtnsmade.com.au/admin/dashboard';
+
     if (event === 'created') {
       to = 'contact@racket.net.au';
       subject = `New MTNS MADE support task: ${task.title}`;
-      body = `A new support task has been logged.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}`;
+      body = `A new support task has been logged.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}\n\nView on dashboard: ${dashboardLink}`;
     } else if (event === 'feedback_needed') {
       to = 'hello@mtnsmade.com.au';
       subject = `Feedback needed: ${task.title}`;
-      body = `A support task requires your feedback.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}\n\nPlease log in to the admin dashboard to respond.`;
+      body = `A support task requires your feedback.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}\n\nView on dashboard: ${dashboardLink}`;
     } else if (event === 'complete') {
       to = 'hello@mtnsmade.com.au';
       subject = `Task complete: ${task.title}`;
-      body = `A support task has been marked complete.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}`;
+      body = `A support task has been marked complete.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n\nView on dashboard: ${dashboardLink}`;
     } else {
       return;
     }
