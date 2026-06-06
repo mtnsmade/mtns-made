@@ -2605,7 +2605,7 @@ MTNS MADE Team`;
           <span class="filter-pill ${supportFilter.category === 'member_support' ? 'active' : ''}" data-cat="member_support">Member Support</span>
           <span class="filter-pill ${supportFilter.category === 'website_bug' ? 'active' : ''}" data-cat="website_bug">Website Bug</span>
           <span class="filter-pill ${supportFilter.category === 'feature_request' ? 'active' : ''}" data-cat="feature_request">Feature Request</span>
-          <span style="width:1px;background:#e0e0e0;margin:0 4px;"></span>
+          <span style="display:inline-block;width:1px;height:20px;background:#e0e0e0;margin:0 6px;vertical-align:middle;"></span>
           <span class="filter-pill ${supportFilter.status === 'all' ? 'active' : ''}" data-status="all">Any Status</span>
           <span class="filter-pill ${supportFilter.status === 'not_started' ? 'active' : ''}" data-status="not_started">Not Started</span>
           <span class="filter-pill ${supportFilter.status === 'in_progress' ? 'active' : ''}" data-status="in_progress">In Progress</span>
@@ -2875,18 +2875,6 @@ MTNS MADE Team`;
             <label class="form-label">Description</label>
             <textarea class="form-input" id="st-description" style="min-height:80px;" placeholder="Full details, context, links..."></textarea>
           </div>
-          <div class="form-field">
-            <label class="form-label">Status</label>
-            <select class="form-input" id="st-status">
-              ${Object.entries(SUPPORT_STATUS_LABELS).map(([val, label]) =>
-                `<option value="${val}" ${val === 'not_started' ? 'selected' : ''}>${label}</option>`
-              ).join('')}
-            </select>
-          </div>
-          <div class="form-field">
-            <label class="form-label">Hours</label>
-            <input type="number" class="form-input" id="st-hours" placeholder="e.g. 0.25" step="0.25" min="0" style="max-width:120px;">
-          </div>
         </div>
         <div class="modal-footer">
           <button class="admin-btn" id="st-cancel">Cancel</button>
@@ -2947,14 +2935,13 @@ MTNS MADE Team`;
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saving...';
 
-      const hours = modal.querySelector('#st-hours').value;
       const memberId = modal.querySelector('#st-member-id').value;
       const payload = {
         category,
         title,
         description: modal.querySelector('#st-description').value.trim() || null,
-        status: modal.querySelector('#st-status').value,
-        hours: hours ? parseFloat(hours) : null,
+        status: 'not_started',
+        hours: null,
         member_id: memberId || null,
         member_name: modal.querySelector('#st-member-name').value || null,
         member_profile_url: modal.querySelector('#st-member-url').value || null,
