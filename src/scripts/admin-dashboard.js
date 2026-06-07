@@ -2927,8 +2927,8 @@ MTNS MADE Team`;
     if (!query || query.length < 2) return [];
     const { data } = await supabase
       .from('members')
-      .select('id, name, slug')
-      .ilike('name', `%${query}%`)
+      .select('id, name, slug, business_name')
+      .or(`name.ilike.%${query}%,business_name.ilike.%${query}%`)
       .eq('subscription_status', 'active')
       .limit(8);
     return data || [];
@@ -2955,7 +2955,7 @@ MTNS MADE Team`;
           <div class="form-field" id="st-member-field">
             <label class="form-label">Member</label>
             <div class="member-search-wrap">
-              <input type="text" class="form-input" id="st-member-search" placeholder="Search by name..." autocomplete="off">
+              <input type="text" class="form-input" id="st-member-search" placeholder="Search by name or trading name..." autocomplete="off">
               <div class="member-suggestions" id="st-member-suggestions" style="display:none;"></div>
             </div>
             <input type="hidden" id="st-member-id">
@@ -3000,7 +3000,10 @@ MTNS MADE Team`;
         const results = await searchMembers(q);
         if (results.length === 0) { suggestions.style.display = 'none'; return; }
         suggestions.innerHTML = results.map(m =>
-          `<div class="member-suggestion-item" data-id="${m.id}" data-name="${escHtml(m.name || '')}" data-slug="${m.slug || ''}">${escHtml(m.name || m.id)}</div>`
+          `<div class="member-suggestion-item" data-id="${m.id}" data-name="${escHtml(m.name || '')}" data-slug="${m.slug || ''}">
+            ${escHtml(m.name || m.id)}
+            ${m.business_name ? `<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${escHtml(m.business_name)}</span>` : ''}
+          </div>`
         ).join('');
         suggestions.style.display = 'block';
         suggestions.querySelectorAll('.member-suggestion-item').forEach(item => {
