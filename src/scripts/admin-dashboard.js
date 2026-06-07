@@ -2916,6 +2916,25 @@ MTNS MADE Team`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to, subject, text: body, html: body.replace(/\n/g, '<br>') }),
       });
+
+      // If a task is complete and has a linked member, also notify them
+      if (event === 'complete' && task.member_id) {
+        const { data: member } = await supabase
+          .from('members')
+          .select('email, name')
+          .eq('id', task.member_id)
+          .single();
+        if (member?.email) {
+          const firstName = member.name?.split(' ')[0] || 'there';
+          const memberSubject = `Your support request has been resolved: ${task.title}`;
+          const memberBody = `Hi ${firstName},\n\nWe wanted to let you know that your support request has been resolved.\n\nRequest: ${task.title}\n\nIf you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.\n\nThanks,\nThe MTNS MADE Team`;
+          await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: member.email, subject: memberSubject, text: memberBody, html: memberBody.replace(/\n/g, '<br>') }),
+          });
+        }
+      }
     } catch (e) {
       console.error('sendTaskNotification error:', e);
     }
