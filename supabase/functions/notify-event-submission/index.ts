@@ -81,7 +81,7 @@ serve(async (req) => {
       </p>
     </div>
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${SITE_URL}/admin" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+      <a href="${SITE_URL}/admin/dashboard" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold;">
         Review in Admin Dashboard
       </a>
     </div>
@@ -100,7 +100,7 @@ Event: ${body.eventName}
 ${body.eventDate ? `Date: ${body.eventDate}\n` : ''}Submitted by: ${body.memberName}
 Email: ${body.memberEmail}
 
-Review in Admin Dashboard: ${SITE_URL}/admin
+Review in Admin Dashboard: ${SITE_URL}/admin/dashboard
 
 Please review and approve or reject this event within 48 hours.
 `;

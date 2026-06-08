@@ -848,15 +848,18 @@ async function handleMemberDeleted(data: MemberstackMemberData): Promise<void> {
   // 1. Soft delete in Supabase and get Webflow ID
   const { webflowId } = await softDeleteMember(data.id);
 
-  // 2. Delete from Webflow if has Webflow ID
+  // 2. Archive member's projects in Webflow + mark deleted in Supabase
+  await archiveMemberProjects(data.id);
+
+  // 3. Delete member profile from Webflow if has Webflow ID
   if (webflowId) {
     await deleteFromWebflow(webflowId);
   }
 
-  // 3. Delete images from storage
+  // 4. Delete images from storage
   await deleteMemberImages(data.id);
 
-  // 4. Log activity
+  // 5. Log activity
   await logActivity(data.id, 'member_deleted');
 }
 
