@@ -1,7 +1,7 @@
 # MTNS MADE — Development Roadmap
 
 > **How to use this file:**
-> Review open items here before planning any new feature or infrastructure change. Dependencies and architectural decisions should factor in what's already planned — particularly the email provider migration (R-001) which will affect every email-sending function, and the Mailchimp integration (R-004) which will affect member lifecycle events.
+> Review open items here before planning any new feature or infrastructure change. Dependencies and architectural decisions should factor in what's already planned — particularly the email provider migration (R-001) which will affect every email-sending function, the Mailchimp integration (R-004) which will affect member lifecycle events, and the lapsed member grace period (R-007 + R-008) which touches the cancellation flow.
 
 ---
 
@@ -120,6 +120,81 @@ The completion check at lines 1009–1018 is logically correct but occasionally 
 Currently the Webflow API token is missing the `sites:write` scope. This means archived or deleted members remain visible on the live site until Hannah manually publishes. Adding the scope to the token would allow edge functions to trigger a publish automatically after archiving.
 
 **Blocked by:** Webflow API token needs to be regenerated with `sites:write` scope included.
+
+---
+
+### R-007 — 30-day grace period for lapsed members
+**Priority:** Medium
+**Effort:** Medium
+**Affects:** `memberstack-webhook`, new `lapsed-member-cleanup` edge function (cron), Supabase schema
+**Dependency:** R-001 (Gmail API) should be live first — this flow involves 3 emails per cancelled member
+**Ships with:** R-008 (exit survey — same trigger, same archival email)
+
+**Client brief:**
+> "We will hold your profile in the archive for a 30-day period in which time the payment needs to be made. Following this time the archive will be removed."
+
+**What's needed:**
+
+**1. Database change**
+Add `lapsed_at` timestamp column to `members` table. Set when `member.plan.canceled` fires. This is the clock start for the 30-day window.
+
+**2. Email sequence (3 emails)**
+| Email | Timing | Content |
+|-------|--------|---------|
+| Archival notice | Immediately on cancellation | Profile archived, 30-day window explained, payment link, exit survey button (R-008) |
+| Reminder | Day 20 | "10 days left to reactivate your profile" |
+| Final notice | Day 29 | "Your profile will be permanently removed tomorrow" |
+
+**3. New daily cron job — `lapsed-member-cleanup`**
+Runs daily, finds all `lapsed` members where `lapsed_at` > 30 days ago, then:
+- Hard-deletes their Webflow profile and projects
+- Marks them `deleted` in Supabase
+- Sends final removal confirmation email
+
+**4. Reactivation within the window**
+Verify the existing `member.plan.updated` webhook path correctly un-archives the member profile and projects if they resubscribe within 30 days.
+
+**Note:** Coordinate with R-004 (Mailchimp) — the `subscription-cancelled` winback sequence should not overlap with the day-20/day-29 reminder emails.
+
+---
+
+### R-008 — Exit survey on membership cancellation
+**Priority:** Medium
+**Effort:** Small–Medium
+**Affects:** New Webflow page, new `member-feedback` edge function
+**Dependency:** R-001 (Gmail API), R-007 (archival email is the delivery mechanism)
+**Ships with:** R-007
+
+**Client brief:**
+> "Adding an outgoing message for members asking why they're leaving — could it be automated and then sent to hello@?"
+
+**Planned approach:**
+A button in the R-007 archival email links to `/member-feedback?id={memberstack_id}&name={name}` on the Webflow site. The page is a simple form with:
+- Pre-selected reason checkboxes: Cost · Moving away from the Mountains · Not using it enough · Starting a new business · Other
+- Free-text "Anything else you'd like to share?" field
+- Member name/email pre-populated from URL params (hidden fields)
+- Submit button
+
+On submit → Webflow form webhook → `member-feedback` edge function → formatted email to `hello@mtnsmade.com.au`.
+
+Responses also stored in a new `member_feedback` Supabase table for trend analysis (e.g. spot if "Cost" spikes after a price change).
+
+**Flow:**
+```
+member.plan.canceled
+       ↓
+Archival email (R-007)
+  └─► "Before you go — tell us why you're leaving" [button]
+                    ↓
+         /member-feedback?id=xxx (Webflow page)
+                    ↓
+         member-feedback edge function
+                    ↓
+         → Email to hello@mtnsmade.com.au (formatted response)
+         → INSERT into member_feedback table (Supabase)
+```
+
+**Content note:** Hannah/Rachel to supply the copy for the form intro and the reason checkbox options before implementation.
 
 ---
 
