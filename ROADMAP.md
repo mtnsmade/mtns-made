@@ -1,7 +1,7 @@
 # MTNS MADE — Development Roadmap
 
 > **How to use this file:**
-> Review open items here before planning any new feature or infrastructure change. Dependencies and architectural decisions should factor in what's already planned — particularly the email provider migration (R-001) which will affect every email-sending function, the Mailchimp integration (R-004) which will affect member lifecycle events, and the lapsed member grace period (R-007 + R-008) which touches the cancellation flow.
+> Review open items here before planning any new feature or infrastructure change. Dependencies and architectural decisions should factor in what's already planned — particularly the email provider migration (R-001) which will affect every email-sending function, the Mailchimp integration (R-004) which will affect member lifecycle events, the lapsed member grace period (R-007 + R-008) which touches the cancellation flow, and the AI Profile Builder (R-009) which touches onboarding, edit profile, and requires the Anthropic API key as a Supabase secret.
 
 ---
 
@@ -120,6 +120,119 @@ The completion check at lines 1009–1018 is logically correct but occasionally 
 Currently the Webflow API token is missing the `sites:write` scope. This means archived or deleted members remain visible on the live site until Hannah manually publishes. Adding the scope to the token would allow edge functions to trigger a publish automatically after archiving.
 
 **Blocked by:** Webflow API token needs to be regenerated with `sites:write` scope included.
+
+---
+
+### R-009 — AI Profile Builder & Profile Enhancer
+**Priority:** High
+**Effort:** Large
+**Affects:** `member-onboarding-supabase.js`, `member-edit-profile-supabase.js`, new `generate-bio` edge function, new proactive email cron, Webflow (new `/profile-builder` page or embedded in existing profile flow)
+**Dependency:** R-001 (Gmail API) for the proactive outreach email. Anthropic API key needs to be added as a Supabase edge function secret (currently only lives in `scripts/populate-subdirectories/.env`).
+
+**Background:**
+Members consistently submit weak bios — too short, too vague, or too generic — despite the workshop document (Member-Document-Bio.pdf) providing clear guidance. The solution is to replace the blank textarea with a structured interview that extracts the right information, then generates a polished bio using Claude.
+
+**The four entry points:**
+
+| Entry point | Surface | Trigger |
+|-------------|---------|---------|
+| New member onboarding | Choice at bio step | "Write my own" vs "Use Profile Builder" |
+| Existing member dashboard | "Enhance my bio" button | Member-initiated |
+| Admin dashboard | "Send profile enhancer" action | Admin-initiated for a specific member |
+| Proactive email | Automated | Members with bio < 50 words receive nudge email with link |
+
+---
+
+**The interview — 5 steps (based on Member-Document-Bio.pdf structure):**
+
+*Step 1 — Who are you*
+- Name and suburb pre-filled from profile
+- "In one sentence, describe your creative practice or profession" *(maps to opening sentence)*
+
+*Step 2 — What you do & how you work*
+- "What are your main mediums, services, or areas of focus?" (e.g. hand embroidery, graphic design, performance)
+- "What makes your approach or process distinctive?" (aesthetic, philosophy, themes, methods)
+- "Any specific techniques, tools, or technologies you use regularly?"
+
+*Step 3 — Achievements & experience*
+- "Notable clients, organisations, or collaborators you've worked with?"
+- "Any exhibitions, festivals, publications, or stockists worth mentioning?"
+- "Awards, grants, or residencies?"
+
+*Step 4 — Current work & future direction*
+- "What are you working on right now?"
+- "Any evolving interests, research directions, or community involvement?"
+
+*Step 5 — Tone preference*
+- Dropdown: **Professional** · **Smart Casual** · **Warm & Conversational**
+- Note: all bios written in third person per MTNS MADE guidelines
+
+---
+
+**Generation step:**
+
+On submit → `generate-bio` edge function:
+1. Sends structured answers + tone preference to Claude API (claude-sonnet-4-5 or later)
+2. Generates two outputs:
+   - **Full bio** (~150–200 words) — maps to `bio` field in Supabase
+   - **Short bio** (~40–50 words) — maps to `short_bio` field in Supabase
+3. Returns both to the member for **review before saving**
+
+Member sees a preview with two options: **Accept & save** or **Edit** (editable text area). No silent writes — member always reviews first. A "Regenerate" button optionally lets them try a different tone.
+
+On accept → saves to Supabase → triggers Webflow sync via existing `sync-member` flow.
+
+---
+
+**Claude prompt design (to be refined during implementation):**
+
+```
+You are writing a professional bio for a member of MTNS MADE, a Blue Mountains creative community directory.
+
+Write in third person. Tone: {tone}.
+Be specific — name actual mediums, clients, techniques. Avoid generic descriptors.
+Structure: opening identity sentence → practice/approach → achievements → current direction.
+
+Member answers:
+- Name & location: {name}, {suburb}
+- Practice summary: {practice}
+- Mediums & services: {mediums}
+- Distinctive approach: {approach}
+- Techniques/tools: {tools}
+- Notable clients/orgs: {clients}
+- Exhibitions/publications/stockists: {exhibitions}
+- Awards/grants/residencies: {awards}
+- Current work: {current}
+- Future direction: {future}
+
+Output two versions:
+1. FULL BIO (150–200 words)
+2. SHORT BIO (40–50 words)
+```
+
+---
+
+**Proactive outreach cron:**
+
+A daily (or weekly) scheduled function that:
+- Queries members where `LENGTH(bio) < 50` (or bio is null) and `subscription_status = 'active'`
+- Sends a single nudge email with a personalised link to `/profile-builder?id={memberstack_id}`
+- Sets a `profile_enhancer_sent_at` timestamp so they're not re-emailed
+- Email copy: "Your profile is live but your bio could work harder for you — let us help."
+
+---
+
+**Webflow page: `/profile-builder`**
+
+Custom-coded multi-step form page (not a CMS template). Member ID passed via URL param to pre-fill name, suburb, existing bio (if any) as starting point for existing members. Progress indicator showing steps 1–5. Mobile-friendly — many members will use this on their phone.
+
+---
+
+**Decisions needed before implementation:**
+- Confirm Claude model to use (check API key access — must be Claude 4 series per project notes)
+- Does the tone dropdown need a 4th option? (Client to confirm)
+- Should "Regenerate" cost count toward anything? (Probably fine — bio generation is cheap)
+- Should generated bios be flagged differently in the admin dashboard so Hannah can spot AI-assisted profiles?
 
 ---
 
