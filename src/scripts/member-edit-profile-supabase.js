@@ -1080,16 +1080,24 @@
         profile_complete: isProfileComplete
       };
 
-      // Update member
-      const { error: updateError } = await supabase
+      // Upsert member — handles the edge case where the Memberstack webhook
+      // failed to create the Supabase record during signup (e.g. Link payment flow).
+      const { data: savedMember, error: updateError } = await supabase
         .from('members')
-        .update(updateData)
-        .eq('memberstack_id', memberstackId);
+        .upsert({
+          memberstack_id: memberstackId,
+          email: memberData.auth?.email || null,
+          first_name: memberData.customFields?.['first-name'] || formData.firstName || null,
+          last_name: memberData.customFields?.['last-name'] || formData.lastName || null,
+          ...updateData
+        }, { onConflict: 'memberstack_id' })
+        .select('id')
+        .single();
 
       if (updateError) throw updateError;
 
       // Update category associations
-      const memberId = supabaseMember.id;
+      const memberId = savedMember?.id || supabaseMember?.id;
 
       // Delete existing
       await supabase.from('member_sub_directories').delete().eq('member_id', memberId);
