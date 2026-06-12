@@ -199,12 +199,25 @@
       }
     }
 
-    /* Prevent grid cells from overflowing their 1fr columns */
-    .x-member-grid > .w-dyn-item {
-      min-width: 0;
+    /* Contain the grid — clip any overflow so nothing bleeds into horizontal scroll */
+    .x-member-grid-container,
+    .x-member-grid-container .w-dyn-list {
+      width: 100%;
+      overflow: hidden;
     }
 
-    /* Feature image link and img: fill card width so natural image dimensions don't blow out columns */
+    /* Prevent grid tracks from growing beyond 1fr due to content minimum widths */
+    .x-member-grid > .w-dyn-item {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* Force all images inside cards to fill their container width */
+    .x-member-card img {
+      width: 100%;
+      max-width: 100%;
+    }
+
     .x-member-feature-image-container .x-member-feature-image {
       width: 100%;
     }
