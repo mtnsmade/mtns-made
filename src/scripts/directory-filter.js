@@ -199,27 +199,9 @@
       }
     }
 
-    /* Contain the grid — clip any overflow so nothing bleeds into horizontal scroll */
-    .x-member-grid-container,
-    .x-member-grid-container .w-dyn-list {
-      width: 100%;
-      overflow: hidden;
-    }
-
-    /* Prevent grid tracks from growing beyond 1fr due to content minimum widths */
+    /* Grid cells: allow shrinking to 1fr without content min-width forcing tracks wider */
     .x-member-grid > .w-dyn-item {
       min-width: 0;
-      overflow: hidden;
-    }
-
-    /* Force all images inside cards to fill their container width */
-    .x-member-card img {
-      width: 100%;
-      max-width: 100%;
-    }
-
-    .x-member-feature-image-container .x-member-feature-image {
-      width: 100%;
     }
   `;
 
@@ -679,8 +661,8 @@
                 <div class="text-style-allcaps text-color-white small">${memberType}</div>
                 <div>${memberType}</div>
               </div>
-              <a href="/members/${member.slug}" class="x-member-feature-image w-inline-block">
-                <img src="${featureImage}" loading="lazy" alt="${displayName}" class="x-member-feature-image" onerror="this.style.display='none'">
+              <a href="/members/${member.slug}" class="x-member-feature-image" style="display:block;width:100%;height:100%;">
+                <img src="${featureImage}" loading="lazy" alt="${displayName}" class="x-member-feature-image" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">
               </a>
             </div>
             <div class="x-member-card-text-container">
