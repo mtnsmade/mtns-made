@@ -80,6 +80,26 @@
       margin: 0;
     }
 
+    .x-opp-criteria {
+      margin-top: 12px;
+    }
+    .x-opp-criteria strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .x-opp-criteria p {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.6;
+      margin: 0;
+      white-space: pre-line;
+    }
+
     .x-opp-card-footer {
       padding: 14px 24px;
       border-top: 1px solid #f0f0f0;
@@ -177,6 +197,7 @@
             <h2 class="x-opp-title">${opp.name || 'Untitled'}</h2>
             ${opp.organization ? `<p class="x-opp-org">${opp.organization}</p>` : ''}
             ${opp.description ? `<p class="x-opp-description">${opp.description}</p>` : ''}
+            ${opp.criteria ? `<div class="x-opp-criteria"><strong>Criteria</strong><p>${opp.criteria}</p></div>` : ''}
           </div>
           <div class="x-opp-card-footer">
             <div>
@@ -259,7 +280,7 @@
 
     const { data, error } = await supabase
       .from('opportunities')
-      .select('id, name, slug, opportunity_type, organization, description, budget, closing_date, opportunity_url, is_remote, created_at')
+      .select('id, name, slug, opportunity_type, organization, description, criteria, budget, closing_date, opportunity_url, is_remote, created_at')
       .eq('is_draft', false)
       .eq('is_archived', false)
       .order('created_at', { ascending: false });

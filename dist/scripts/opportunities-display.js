@@ -58,6 +58,26 @@
       margin: 0;
     }
 
+    .x-opp-criteria {
+      margin-top: 12px;
+    }
+    .x-opp-criteria strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .x-opp-criteria p {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.6;
+      margin: 0;
+      white-space: pre-line;
+    }
+
     .x-opp-card-footer {
       padding: 14px 24px;
       border-top: 1px solid #f0f0f0;
@@ -121,24 +141,25 @@
       color: #666;
     }
     .x-opp-empty h3 { margin: 0 0 8px; font-size: 18px; color: #333; }
-  `;let d=null,a=[],s=null;function b(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}):null}function y(e){if(!e)return!1;const n=(new Date(e)-new Date)/(1e3*60*60*24);return n>=0&&n<=14}function v(e){const t=l[e.opportunity_type]||e.opportunity_type||"",i=b(e.closing_date),n=y(e.closing_date),o=e.opportunity_url;return`
+  `;let c=null,a=[],s=null;function b(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}):null}function y(e){if(!e)return!1;const i=(new Date(e)-new Date)/(1e3*60*60*24);return i>=0&&i<=14}function h(e){const o=l[e.opportunity_type]||e.opportunity_type||"",n=b(e.closing_date),i=y(e.closing_date),t=e.opportunity_url;return`
       <div role="listitem" class="w-dyn-item">
         <div class="x-opp-card">
           <div class="x-opp-card-body">
-            ${t?`<span class="x-opp-type-badge">${t}</span>`:""}
+            ${o?`<span class="x-opp-type-badge">${o}</span>`:""}
             <h2 class="x-opp-title">${e.name||"Untitled"}</h2>
             ${e.organization?`<p class="x-opp-org">${e.organization}</p>`:""}
             ${e.description?`<p class="x-opp-description">${e.description}</p>`:""}
+            ${e.criteria?`<div class="x-opp-criteria"><strong>Criteria</strong><p>${e.criteria}</p></div>`:""}
           </div>
           <div class="x-opp-card-footer">
             <div>
-              ${i?`<div class="x-opp-meta"><strong>Closes:</strong> ${i}${n?' <span style="color:#c0392b">· Closing soon</span>':""}</div>`:""}
+              ${n?`<div class="x-opp-meta"><strong>Closes:</strong> ${n}${i?' <span style="color:#c0392b">· Closing soon</span>':""}</div>`:""}
               ${e.budget?`<div class="x-opp-meta"><strong>Budget:</strong> ${e.budget}</div>`:""}
             </div>
-            ${o?`<a href="${e.opportunity_url}" target="_blank" rel="noopener" class="x-opp-link">More info →</a>`:""}
+            ${t?`<a href="${e.opportunity_url}" target="_blank" rel="noopener" class="x-opp-link">More info →</a>`:""}
           </div>
         </div>
-      </div>`}function c(e,t){if(t.length===0){e.innerHTML=`
+      </div>`}function d(e,o){if(o.length===0){e.innerHTML=`
         <div class="w-dyn-list">
           <div class="w-dyn-empty">
             <div class="x-opp-empty">
@@ -149,10 +170,10 @@
         </div>`;return}e.innerHTML=`
       <div class="w-dyn-list">
         <div role="list" class="x-member-grid w-dyn-items">
-          ${t.map(v).join("")}
+          ${o.map(h).join("")}
         </div>
-      </div>`}function h(e,t){const i=[...new Set(t.map(o=>o.opportunity_type).filter(Boolean))];if(i.length<2){e.style.display="none";return}const n=i.map(o=>{const r=l[o]||o;return`<button class="x-opp-filter-btn" data-type="${o}">${r}</button>`}).join("");e.innerHTML=`
+      </div>`}function v(e,o){const n=[...new Set(o.map(t=>t.opportunity_type).filter(Boolean))];if(n.length<2){e.style.display="none";return}const i=n.map(t=>{const r=l[t]||t;return`<button class="x-opp-filter-btn" data-type="${t}">${r}</button>`}).join("");e.innerHTML=`
       <div class="x-opp-filters">
-        ${n}
+        ${i}
         <button class="x-opp-filter-btn active" data-type="">All</button>
-      </div>`,e.querySelectorAll(".x-opp-filter-btn").forEach(o=>{o.addEventListener("click",()=>{e.querySelectorAll(".x-opp-filter-btn").forEach(p=>p.classList.remove("active")),o.classList.add("active"),s=o.dataset.type||null;const r=s?a.filter(p=>p.opportunity_type===s):a,x=document.querySelector(".x-member-grid-container");x&&c(x,r)})})}async function f(){const e=document.querySelector(".x-member-grid-container");if(!e)return;if(!window.supabase){e.innerHTML='<div class="x-opp-loading">Error: Supabase not loaded. Please refresh.</div>';return}d=window.supabase.createClient(u,g);const t=document.createElement("style");t.textContent=m,document.head.appendChild(t),e.innerHTML='<div class="x-opp-loading">Loading opportunities...</div>';const{data:i,error:n}=await d.from("opportunities").select("id, name, slug, opportunity_type, organization, description, budget, closing_date, opportunity_url, is_remote, created_at").eq("is_draft",!1).eq("is_archived",!1).order("created_at",{ascending:!1});if(n){console.error("Opportunities display error:",n),e.innerHTML='<div class="x-opp-empty"><h3>Error loading opportunities</h3><p>Please refresh the page.</p></div>';return}a=i||[];const o=document.querySelector(".directory-filters")||(()=>{const r=document.createElement("div");return e.parentNode.insertBefore(r,e),r})();h(o,a),c(e,a)}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",f):f()})();
+      </div>`,e.querySelectorAll(".x-opp-filter-btn").forEach(t=>{t.addEventListener("click",()=>{e.querySelectorAll(".x-opp-filter-btn").forEach(p=>p.classList.remove("active")),t.classList.add("active"),s=t.dataset.type||null;const r=s?a.filter(p=>p.opportunity_type===s):a,f=document.querySelector(".x-member-grid-container");f&&d(f,r)})})}async function x(){const e=document.querySelector(".x-member-grid-container");if(!e)return;if(!window.supabase){e.innerHTML='<div class="x-opp-loading">Error: Supabase not loaded. Please refresh.</div>';return}c=window.supabase.createClient(u,g);const o=document.createElement("style");o.textContent=m,document.head.appendChild(o),e.innerHTML='<div class="x-opp-loading">Loading opportunities...</div>';const{data:n,error:i}=await c.from("opportunities").select("id, name, slug, opportunity_type, organization, description, criteria, budget, closing_date, opportunity_url, is_remote, created_at").eq("is_draft",!1).eq("is_archived",!1).order("created_at",{ascending:!1});if(i){console.error("Opportunities display error:",i),e.innerHTML='<div class="x-opp-empty"><h3>Error loading opportunities</h3><p>Please refresh the page.</p></div>';return}a=n||[];const t=document.querySelector(".directory-filters")||(()=>{const r=document.createElement("div");return e.parentNode.insertBefore(r,e),r})();v(t,a),d(e,a)}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",x):x()})();
