@@ -198,6 +198,16 @@
         display: block;
       }
     }
+
+    /* Prevent grid cells from overflowing their 1fr columns */
+    .x-member-grid > .w-dyn-item {
+      min-width: 0;
+    }
+
+    /* Feature image link and img: fill card width so natural image dimensions don't blow out columns */
+    .x-member-feature-image-container .x-member-feature-image {
+      width: 100%;
+    }
   `;
 
   function injectStyles() {
