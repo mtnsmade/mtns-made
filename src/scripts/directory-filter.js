@@ -248,7 +248,7 @@
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Show loading
-    membersGrid.innerHTML = '<div class="w-dyn-list"><div class="directory-loading">Loading members...</div></div>';
+    membersGrid.innerHTML = '<div class="directory-loading">Loading members...</div>';
 
     try {
       await loadDirectoryData(slug);
@@ -632,13 +632,9 @@
   function renderMembers(container, members) {
     if (members.length === 0) {
       container.innerHTML = `
-        <div class="w-dyn-list">
-          <div class="w-dyn-empty">
-            <div class="directory-empty">
-              <h3>No members found</h3>
-              <p>Try clearing your filters or check back later.</p>
-            </div>
-          </div>
+        <div class="directory-empty">
+          <h3>No members found</h3>
+          <p>Try clearing your filters or check back later.</p>
         </div>
       `;
       return;
@@ -661,8 +657,8 @@
                 <div class="text-style-allcaps text-color-white small">${memberType}</div>
                 <div>${memberType}</div>
               </div>
-              <a href="/members/${member.slug}" class="x-member-feature-image" style="display:block;width:100%;height:100%;">
-                <img src="${featureImage}" loading="lazy" alt="${displayName}" class="x-member-feature-image" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">
+              <a href="/members/${member.slug}" class="x-member-feature-image" style="position:absolute;top:0;left:0;right:0;bottom:0;">
+                <img src="${featureImage}" loading="lazy" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">
               </a>
             </div>
             <div class="x-member-card-text-container">
@@ -681,12 +677,9 @@
       `;
     }).join('');
 
-    // Use the exact Webflow grid structure
     container.innerHTML = `
-      <div class="w-dyn-list">
-        <div role="list" class="x-member-grid w-dyn-items">
-          ${cards}
-        </div>
+      <div role="list" class="x-member-grid w-dyn-items">
+        ${cards}
       </div>
     `;
   }
