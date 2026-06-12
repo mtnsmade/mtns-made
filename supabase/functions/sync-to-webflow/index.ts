@@ -14,7 +14,6 @@ const WEBFLOW_MEMBERS_COLLECTION_ID = '64a938756620ae4bee88df34';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 
 // Site URL for building Webflow member URLs
 const SITE_URL = 'https://www.mtnsmade.com.au';
@@ -125,6 +124,8 @@ interface EventRecord {
 interface CategoryData {
   webflow_id: string;
 }
+
+import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
 
 // Initialize Supabase client with service role key
 function getSupabaseClient() {
@@ -1335,11 +1336,6 @@ async function deleteWebflowMember(webflowId: string): Promise<void> {
 
 // Send "Your Profile is Live" email
 async function sendProfileLiveEmail(record: MemberRecord, slug: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.log('RESEND_API_KEY not configured, skipping profile live email');
-    return;
-  }
-
   const firstName = record.first_name || record.name?.split(' ')[0] || 'there';
   const profileUrl = `${SITE_URL}/members/${slug}`;
 
@@ -1380,25 +1376,17 @@ async function sendProfileLiveEmail(record: MemberRecord, slug: string): Promise
   `;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'MTNS MADE <support@mail.mtnsmade.com.au>',
-        to: [record.email],
-        subject: 'Your MTNS MADE profile is now live!',
-        html: html,
-      }),
+    const result = await sendEmail({
+      to: record.email!,
+      subject: 'Your MTNS MADE profile is now live!',
+      html,
+      from: FROM_HELLO,
     });
 
-    if (response.ok) {
+    if (result.success) {
       console.log('Profile live email sent to:', record.email);
     } else {
-      const error = await response.text();
-      console.error('Failed to send profile live email:', error);
+      console.error('Failed to send profile live email:', result.error);
     }
   } catch (error) {
     console.error('Error sending profile live email:', error);
@@ -1733,24 +1721,15 @@ serve(async (req: Request) => {
         }
 
         if (!record.webflow_id) {
-          // Re-check Supabase for webflow_id to prevent duplicates from race conditions
-          const supabase = getSupabaseClient();
-          const { data: currentProject } = await supabase
-            .from('projects')
-            .select('webflow_id')
-            .eq('id', record.id)
-            .single();
-
-          if (currentProject?.webflow_id) {
-            console.log('Project already has Webflow ID (race condition prevented), updating instead');
-            await updateWebflowItem(currentProject.webflow_id, record);
-            break;
-          }
-
-          const webflowResult = await createWebflowItem(record);
-          if (webflowResult) {
-            await updateSupabaseWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
-          }
+          // Skip: the INSERT webhook is solely responsible for creating new Webflow items.
+          // A common race: the `generate-project-summary` trigger writes `short_description`
+          // to Supabase within seconds of project creation, firing this UPDATE webhook before
+          // the INSERT webhook has finished writing `webflow_id`. If we try to create here we
+          // get duplicate Webflow items. The INSERT webhook will write `webflow_id` shortly
+          // after, triggering another UPDATE webhook at which point the item already exists
+          // and `updateWebflowItem` below handles it correctly.
+          // Legacy items with missing webflow_id are handled by the check-consistency function.
+          console.log(`Project ${record.id} has no webflow_id in UPDATE — skipping (INSERT webhook handles creation)`);
           break;
         }
 
