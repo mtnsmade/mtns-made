@@ -1699,6 +1699,11 @@ serve(async (req: Request) => {
 
         if (webflowResult) {
           await updateSupabaseWithWebflowId(record.id, webflowResult.id, webflowResult.slug);
+          // Republish the member's profile page so the new project appears immediately
+          const memberWebflowId = await getMemberWebflowId(record.memberstack_id);
+          if (memberWebflowId) {
+            await publishWebflowMember(memberWebflowId);
+          }
         }
 
         break;
@@ -1717,6 +1722,12 @@ serve(async (req: Request) => {
           // Delete images from storage
           await deleteProjectImages(record.memberstack_id, record.id);
 
+          // Republish the member's profile page so deleted project disappears immediately
+          const memberWebflowId = await getMemberWebflowId(record.memberstack_id);
+          if (memberWebflowId) {
+            await publishWebflowMember(memberWebflowId);
+          }
+
           break;
         }
 
@@ -1734,6 +1745,13 @@ serve(async (req: Request) => {
         }
 
         await updateWebflowItem(record.webflow_id, record);
+
+        // Republish the member's profile page so updated project appears immediately
+        const memberWebflowId = await getMemberWebflowId(record.memberstack_id);
+        if (memberWebflowId) {
+          await publishWebflowMember(memberWebflowId);
+        }
+
         break;
       }
 
@@ -1746,6 +1764,11 @@ serve(async (req: Request) => {
         // Delete images from storage
         if (oldRecord) {
           await deleteProjectImages(oldRecord.memberstack_id, oldRecord.id);
+          // Republish the member's profile page so deleted project disappears immediately
+          const memberWebflowId = await getMemberWebflowId(oldRecord.memberstack_id);
+          if (memberWebflowId) {
+            await publishWebflowMember(memberWebflowId);
+          }
         }
 
         break;

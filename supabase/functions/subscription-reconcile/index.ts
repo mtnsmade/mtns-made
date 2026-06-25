@@ -7,15 +7,14 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 
 // Webflow config
 const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
@@ -246,7 +245,7 @@ async function logActivity(memberstackId: string, activityType: string): Promise
 
 // Send reconciliation report email
 async function sendReconciliationReport(fixes: ReconciliationFix[]): Promise<void> {
-  if (!RESEND_API_KEY || fixes.length === 0) return;
+  if (fixes.length === 0) return;
 
   const successfulFixes = fixes.filter(f => f.success);
   const failedFixes = fixes.filter(f => !f.success);
@@ -305,18 +304,11 @@ async function sendReconciliationReport(fixes: ReconciliationFix[]): Promise<voi
 </html>
 `;
 
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: FROM_EMAIL,
-      to: [ADMIN_EMAIL],
-      subject: `[MTNS MADE] Subscription Reconciliation: ${successfulFixes.length} fixes applied`,
-      html: emailHtml,
-    }),
+  await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `[MTNS MADE] Subscription Reconciliation: ${successfulFixes.length} fixes applied`,
+    html: emailHtml,
+    from: FROM_SUPPORT,
   });
 }
 

@@ -9,14 +9,13 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const WEBFLOW_OPPORTUNITIES_COLLECTION_ID = '64a9f30abaf5ea96e9180239';
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 interface ManageOpportunityRequest {
@@ -106,10 +105,6 @@ async function syncToWebflow(opportunity: Record<string, unknown>, memberName: s
 }
 
 async function sendApprovalEmail(email: string, opportunityName: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping email');
-    return;
-  }
 
   const emailHtml = `
 <!DOCTYPE html>
@@ -166,37 +161,20 @@ async function sendApprovalEmail(email: string, opportunityName: string): Promis
 </html>`;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [email],
-        subject: `Your listing "${opportunityName}" has been approved!`,
-        html: emailHtml,
-        text: `Great news! Your listing "${opportunityName}" has been approved and is now live on the MTNS MADE jobs and opportunities board.\n\nView the board: ${SITE_URL}/opportunities\n\nThank you for contributing to the MTNS MADE community!\n\nMTNS MADE\n${SITE_URL}`,
-      }),
+    await sendEmail({
+      to: email,
+      subject: `Your listing "${opportunityName}" has been approved!`,
+      html: emailHtml,
+      text: `Great news! Your listing "${opportunityName}" has been approved and is now live on the MTNS MADE jobs and opportunities board.\n\nView the board: ${SITE_URL}/opportunities\n\nThank you for contributing to the MTNS MADE community!\n\nMTNS MADE\n${SITE_URL}`,
+      from: FROM_HELLO,
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Email send error:', error);
-    } else {
-      console.log('Approval email sent to:', email);
-    }
+    console.log('Approval email sent to:', email);
   } catch (error) {
     console.error('Error sending approval email:', error);
   }
 }
 
 async function sendRejectionEmail(email: string, opportunityName: string, reason?: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping email');
-    return;
-  }
 
   const reasonText = reason
     ? `<p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;"><strong>Reason:</strong> ${reason}</p>`
@@ -262,27 +240,14 @@ async function sendRejectionEmail(email: string, opportunityName: string, reason
 </html>`;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [email],
-        subject: `Update on your listing "${opportunityName}"`,
-        html: emailHtml,
-        text: `Thank you for submitting your listing "${opportunityName}" to MTNS MADE.\n\nUnfortunately, we weren't able to approve this listing at this time.\n${reasonPlain}\nYou're welcome to edit and resubmit, or reach out if you have any questions.\n\nEdit your listings: ${SITE_URL}/profile/opportunities\n\nMTNS MADE\n${SITE_URL}`,
-      }),
+    await sendEmail({
+      to: email,
+      subject: `Update on your listing "${opportunityName}"`,
+      html: emailHtml,
+      text: `Thank you for submitting your listing "${opportunityName}" to MTNS MADE.\n\nUnfortunately, we weren't able to approve this listing at this time.\n${reasonPlain}\nYou're welcome to edit and resubmit, or reach out if you have any questions.\n\nEdit your listings: ${SITE_URL}/profile/opportunities\n\nMTNS MADE\n${SITE_URL}`,
+      from: FROM_HELLO,
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Email send error:', error);
-    } else {
-      console.log('Rejection email sent to:', email);
-    }
+    console.log('Rejection email sent to:', email);
   } catch (error) {
     console.error('Error sending rejection email:', error);
   }
@@ -409,11 +374,6 @@ async function sendMemberAlerts(
   opportunity: Record<string, unknown>,
   submitterEmail: string,
 ): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured — skipping member alerts');
-    return;
-  }
-
   // Fetch all active members
   const { data: members, error } = await supabase
     .from('members')
@@ -434,52 +394,35 @@ async function sendMemberAlerts(
 
   const subject = `New opportunity: ${opportunity.name}`;
 
-  // Build batch payload — skip the submitter (they already got the approval email)
-  const batch = (members as ActiveMember[])
-    .filter(m => m.email && m.email !== submitterEmail)
-    .map(m => ({
-      from: FROM_EMAIL,
-      to: [m.email],
-      subject,
-      html: buildAlertEmailHtml(
-        m.first_name || 'there',
-        opportunity,
-        typeLabel,
-        closingFormatted,
-        m.profile_complete,
-      ),
-    }));
+  const recipients = (members as ActiveMember[]).filter(m => m.email && m.email !== submitterEmail);
 
-  if (!batch.length) {
+  if (!recipients.length) {
     console.log('No members to alert');
     return;
   }
 
-  console.log(`Sending opportunity alert to ${batch.length} members`);
+  console.log(`Sending opportunity alert to ${recipients.length} members`);
 
-  // Resend batch API sends up to 100 emails per call
-  const chunkSize = 100;
-  for (let i = 0; i < batch.length; i += chunkSize) {
-    const chunk = batch.slice(i, i + chunkSize);
+  for (const m of recipients) {
     try {
-      const res = await fetch('https://api.resend.com/emails/batch', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(chunk),
+      await sendEmail({
+        to: m.email,
+        subject,
+        html: buildAlertEmailHtml(
+          m.first_name || 'there',
+          opportunity,
+          typeLabel,
+          closingFormatted,
+          m.profile_complete,
+        ),
+        from: FROM_HELLO,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        console.error(`Batch send error (chunk ${i}):`, err);
-      } else {
-        console.log(`Batch sent: ${chunk.length} emails (chunk ${i / chunkSize + 1})`);
-      }
     } catch (err) {
-      console.error(`Batch send exception (chunk ${i}):`, err);
+      console.error(`Alert send error for ${m.email}:`, err);
     }
   }
+
+  console.log(`Opportunity alerts sent to ${recipients.length} members`);
 }
 
 serve(async (req) => {

@@ -963,26 +963,34 @@
   }
 
   async function getOrCreateMember(memberstackId) {
-    try {
-      // First try to find existing member
-      const { data: existing, error: findError } = await supabase
-        .from('members')
-        .select('*')
-        .eq('memberstack_id', memberstackId)
-        .single();
+    const { data: existing } = await supabase
+      .from('members')
+      .select('*')
+      .eq('memberstack_id', memberstackId)
+      .maybeSingle();
 
-      if (existing) {
-        return existing;
-      }
+    if (existing) return existing;
 
-      // If not found, we need to wait for the webhook to create it
-      // The member should exist if they've gone through signup
-      console.log('Member not found in Supabase, may need to wait for webhook');
-      return null;
-    } catch (error) {
-      console.error('Error getting member:', error);
+    const { data: created, error } = await supabase
+      .from('members')
+      .insert({
+        memberstack_id: memberstackId,
+        email: memberData.auth?.email || null,
+        first_name: memberData.customFields?.['first-name'] || null,
+        last_name: memberData.customFields?.['last-name'] || null,
+        subscription_status: 'active',
+        profile_complete: false,
+        is_deleted: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('getOrCreateMember failed:', error);
       return null;
     }
+    console.warn('Member record created in onboarding (webhook had not fired):', memberstackId);
+    return created;
   }
 
   async function getMembershipTypeId(membershipSlug) {
@@ -2641,6 +2649,12 @@
       }
 
       memberData = member;
+
+      const existingOrNew = await getOrCreateMember(memberData.id);
+      if (!existingOrNew) {
+        renderError(container, 'Unable to load your profile. Please refresh or contact support.');
+        return;
+      }
 
       // Check if already completed
       if (member.customFields?.['onboarding-complete'] === 'true') {

@@ -4,15 +4,14 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 
 // Webflow config
 const WEBFLOW_API_BASE = 'https://api.webflow.com/v2';
@@ -285,15 +284,47 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
     const supabaseMember = supabaseByMemberstackId.get(msMember.id);
 
     if (!supabaseMember) {
-      // Active Memberstack member not in Supabase
+      // Active Memberstack member not in Supabase — create the missing record
       if (isActive) {
-        issues.push({
-          type: 'missing_supabase',
-          severity: 'critical',
-          memberstackId: msMember.id,
-          email: msMember.auth?.email,
-          details: `Active Memberstack member not found in Supabase`,
-        });
+        try {
+          const { error: insertError } = await getSupabaseClient().from('members').insert({
+            memberstack_id: msMember.id,
+            email: msMember.auth?.email || null,
+            first_name: msMember.customFields?.['first-name'] || null,
+            last_name: msMember.customFields?.['last-name'] || null,
+            subscription_status: 'active',
+            profile_complete: false,
+            is_deleted: false,
+          });
+          if (insertError) {
+            console.error('Auto-fix failed for missing Supabase member:', msMember.id, insertError);
+            issues.push({
+              type: 'missing_supabase',
+              severity: 'critical',
+              memberstackId: msMember.id,
+              email: msMember.auth?.email,
+              details: `Active Memberstack member not found in Supabase (auto-fix failed: ${insertError.message})`,
+            });
+          } else {
+            console.log('Auto-fix: created missing Supabase record for', msMember.id);
+            issues.push({
+              type: 'missing_supabase',
+              severity: 'info',
+              memberstackId: msMember.id,
+              email: msMember.auth?.email,
+              details: `Active Memberstack member was missing from Supabase — record created automatically`,
+            });
+          }
+        } catch (err) {
+          console.error('Auto-fix exception for missing Supabase member:', msMember.id, err);
+          issues.push({
+            type: 'missing_supabase',
+            severity: 'critical',
+            memberstackId: msMember.id,
+            email: msMember.auth?.email,
+            details: `Active Memberstack member not found in Supabase (auto-fix exception)`,
+          });
+        }
       }
       continue;
     }
@@ -512,11 +543,6 @@ async function saveReport(report: ConsistencyReport): Promise<void> {
 
 // Send email alert if there are critical issues
 async function sendAlertEmail(report: ConsistencyReport): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.log('RESEND_API_KEY not configured, skipping alert email');
-    return;
-  }
-
   // Only send if there are critical or warning issues
   if (report.summary.issues_critical === 0 && report.summary.issues_warning === 0) {
     console.log('No critical/warning issues, skipping alert email');
@@ -681,26 +707,13 @@ async function sendAlertEmail(report: ConsistencyReport): Promise<void> {
 `;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [ADMIN_EMAIL],
-        subject: `[MTNS MADE] Data Consistency Alert - ${report.summary.issues_critical} critical, ${report.summary.issues_warning} warnings`,
-        html: emailHtml,
-      }),
+    await sendEmail({
+      to: ADMIN_EMAIL,
+      subject: `[MTNS MADE] Data Consistency Alert - ${report.summary.issues_critical} critical, ${report.summary.issues_warning} warnings`,
+      html: emailHtml,
+      from: FROM_SUPPORT,
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Email send error:', error);
-    } else {
-      console.log('Alert email sent to:', ADMIN_EMAIL);
-    }
+    console.log('Alert email sent to:', ADMIN_EMAIL);
   } catch (error) {
     console.error('Error sending alert email:', error);
   }

@@ -1,6 +1,6 @@
 /**
- * MTNS MADE - Notify Event Submission
- * Sends email notification to admin when a member submits an event for approval
+ * MTNS MADE - Notify Opportunity Submission
+ * Sends email notification to admin when a member submits a job/opportunity for approval
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -9,15 +9,14 @@ import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
-interface EventSubmissionRequest {
-  eventName: string;
-  eventDate?: string;
+interface OpportunitySubmissionRequest {
+  opportunityName: string;
+  opportunityType?: string;
   memberName: string;
   memberEmail: string;
   isUpdate?: boolean;
 }
 
-// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -25,7 +24,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -38,11 +36,11 @@ serve(async (req) => {
   }
 
   try {
-    const body: EventSubmissionRequest = await req.json();
+    const body: OpportunitySubmissionRequest = await req.json();
 
-    if (!body.eventName || !body.memberName) {
+    if (!body.opportunityName || !body.memberName) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Missing required fields: eventName, memberName' }),
+        JSON.stringify({ success: false, error: 'Missing required fields: opportunityName, memberName' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -53,17 +51,17 @@ serve(async (req) => {
     const emailHtml = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <div style="background: #1a1a1a; color: #fff; padding: 20px; text-align: center;">
-    <h1 style="margin: 0; font-size: 20px;">${subjectAction} Event Submission</h1>
+    <h1 style="margin: 0; font-size: 20px;">${subjectAction} Opportunity Submission</h1>
   </div>
   <div style="padding: 30px; background: #f9f9f9;">
     <p style="margin: 0 0 20px 0; color: #333;">
-      A member has ${actionText} an event for approval:
+      A member has ${actionText} a job/opportunity for approval:
     </p>
     <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
       <p style="margin: 0 0 10px 0; color: #333;">
-        <strong>Event:</strong> ${body.eventName}
+        <strong>Opportunity:</strong> ${body.opportunityName}
       </p>
-      ${body.eventDate ? `<p style="margin: 0 0 10px 0; color: #333;"><strong>Date:</strong> ${body.eventDate}</p>` : ''}
+      ${body.opportunityType ? `<p style="margin: 0 0 10px 0; color: #333;"><strong>Type:</strong> ${body.opportunityType}</p>` : ''}
       <p style="margin: 0 0 10px 0; color: #333;">
         <strong>Submitted by:</strong> ${body.memberName}
       </p>
@@ -77,28 +75,27 @@ serve(async (req) => {
       </a>
     </div>
     <p style="margin: 0; color: #666; font-size: 14px;">
-      Please review and approve or reject this event within 48 hours.
+      Please review and approve or reject this opportunity within 48 hours.
     </p>
   </div>
-</div>
-`;
+</div>`;
 
-    const emailText = `${subjectAction} Event Submission
+    const emailText = `${subjectAction} Opportunity Submission
 
-A member has ${actionText} an event for approval:
+A member has ${actionText} a job/opportunity for approval:
 
-Event: ${body.eventName}
-${body.eventDate ? `Date: ${body.eventDate}\n` : ''}Submitted by: ${body.memberName}
+Opportunity: ${body.opportunityName}
+${body.opportunityType ? `Type: ${body.opportunityType}\n` : ''}Submitted by: ${body.memberName}
 Email: ${body.memberEmail}
 
 Review in Admin Dashboard: ${SITE_URL}/admin/dashboard
 
-Please review and approve or reject this event within 48 hours.
+Please review and approve or reject this opportunity within 48 hours.
 `;
 
     const result = await sendEmail({
       to: ADMIN_EMAIL,
-      subject: `${subjectAction} Event for Review: ${body.eventName}`,
+      subject: `${subjectAction} Opportunity for Review: ${body.opportunityName}`,
       html: emailHtml,
       text: emailText,
       from: FROM_SUPPORT,
@@ -112,7 +109,7 @@ Please review and approve or reject this event within 48 hours.
       );
     }
 
-    console.log('Event submission notification sent:', result.id);
+    console.log('Opportunity submission notification sent:', result.id);
 
     return new Response(
       JSON.stringify({ success: true, id: result.id }),

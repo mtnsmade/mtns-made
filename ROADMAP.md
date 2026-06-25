@@ -7,7 +7,7 @@
 
 ## Open
 
-### R-001 — Migrate email sending from Resend to Gmail API
+### R-001 — Migrate email sending from Resend to Gmail API *(code complete — needs production test)*
 **Priority:** High
 **Effort:** Medium
 **Affects:** `send-email` edge function, all edge functions that call it
@@ -42,23 +42,23 @@ Hitting Resend's free tier limit of 100 emails/day. Google Workspace (Google App
 
 ---
 
-### R-002 — Email system: missing emails + address consistency
+### R-002 — Email system: missing emails + address consistency *(mostly done — low-priority items remain)*
 **Priority:** Medium
 **Effort:** Small
 **Affects:** `memberstack-webhook`, `profile-reminder` edge functions
 **Dependency:** Best done after R-001 (so the correct `from` addresses are in place)
 
-**Missing emails to add:**
-| Email | Trigger | Priority |
-|-------|---------|----------|
-| Subscription cancelled | `member.plan.canceled` | Medium — member currently gets no notification they've been archived |
-| Failed signup alert | Signup fails to create in Supabase | High — silent failures are invisible |
-| Subscription reactivated | Member resubscribes | Low |
-| Member deleted | `member.deleted` | Low |
-| First project published | First sync to Webflow | Low |
+**Missing emails — status:**
+| Email | Trigger | Status |
+|-------|---------|--------|
+| Subscription cancelled | `member.plan.canceled` | ✓ Done (Jun 2026) |
+| Failed signup alert | Signup fails to create in Supabase | ✓ Done |
+| Subscription reactivated | Member resubscribes | ✓ Done (Jun 2026) |
+| Member deleted | `member.deleted` | Low — defer to R-007 |
+| First project published | First sync to Webflow | Low — skip |
 
 **Consistency fix:**
-Admin notification address is currently split — `hello@` for signups/events, `support@` for reminders. Standardise to `support@` for all admin/internal emails.
+✓ `ADMIN_EMAIL` default standardised to `support@mtnsmade.com.au` in `memberstack-webhook` (Jun 2026). All admin/internal emails now use `FROM_SUPPORT`.
 
 ---
 
@@ -323,4 +323,6 @@ Archival email (R-007)
 | — | Support tracker: comment notifications to `hello@`, delete task, member completion email | Jun 2026 |
 | — | Member search: search by trading name (`business_name`) as well as personal name | Jun 2026 |
 | — | Event submission email: fix dashboard link to `/admin/dashboard` | Jun 2026 |
+| R-001 | Gmail API migration — all 13 edge functions migrated from Resend | Jun 2026 |
+| R-002 | Missing emails (cancellation, reactivation) + admin address consistency | Jun 2026 |
 | — | `profile_complete` bug: fixed 12 members false-negative, 9 members false-positive | Mar 2026 |

@@ -6,15 +6,14 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, FROM_HELLO, FROM_SUPPORT } from '../_shared/gmail.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const MEMBERSTACK_WEBHOOK_SECRET = Deno.env.get('MEMBERSTACK_WEBHOOK_SECRET') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
-const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'hello@mtnsmade.com.au';
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 // Webflow config
@@ -53,11 +52,6 @@ async function logActivity(memberstackId: string, activityType: string): Promise
 
 // Send welcome email to new member
 async function sendWelcomeEmail(email: string, firstName: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping welcome email');
-    return;
-  }
-
   const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -162,27 +156,7 @@ ${SITE_URL}
 `;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [email],
-        subject: 'Welcome to MTNS MADE!',
-        html: emailHtml,
-        text: emailText,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Welcome email send error:', error);
-      return;
-    }
-
+    await sendEmail({ to: email, subject: 'Welcome to MTNS MADE!', html: emailHtml, text: emailText, from: FROM_HELLO });
     console.log('Welcome email sent to:', email);
   } catch (error) {
     console.error('Error sending welcome email:', error);
@@ -191,11 +165,6 @@ ${SITE_URL}
 
 // Notify admin of new member signup
 async function notifyAdminNewMember(email: string, firstName: string, lastName: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping admin notification');
-    return;
-  }
-
   const memberName = [firstName, lastName].filter(Boolean).join(' ') || email;
 
   const emailHtml = `
@@ -223,29 +192,171 @@ async function notifyAdminNewMember(email: string, firstName: string, lastName: 
 `;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [ADMIN_EMAIL],
-        subject: `New Member: ${memberName}`,
-        html: emailHtml,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Admin notification send error:', error);
-      return;
-    }
-
+    await sendEmail({ to: ADMIN_EMAIL, subject: `New Member: ${memberName}`, html: emailHtml, from: FROM_SUPPORT });
     console.log('Admin notified of new member:', email);
   } catch (error) {
     console.error('Error notifying admin:', error);
+  }
+}
+
+// Notify member their subscription has been cancelled and profile archived
+async function sendCancellationEmail(email: string, firstName: string): Promise<void> {
+  const resubscribeUrl = SITE_URL + '/members/plans';
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <tr>
+            <td style="background-color: #1a1a1a; padding: 32px 40px; text-align: center;">
+              <img src="https://cdn.prod.website-files.com/64229aff3da29012f062753c/64c8c73cbe927ed3e4ade8df_mtns-made-white.svg" alt="MTNS MADE" width="180" style="display: block; margin: 0 auto;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #333333; font-size: 22px; font-weight: 600;">
+                Your membership has ended
+              </h2>
+              <p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                Hi ${firstName || 'there'}, your MTNS MADE membership has been cancelled and your profile is no longer visible in the directory.
+              </p>
+              <p style="margin: 0 0 30px; color: #555555; font-size: 16px; line-height: 1.6;">
+                If you'd like to rejoin the community and have your profile reinstated, you're welcome to resubscribe at any time.
+              </p>
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 30px;">
+                <tr>
+                  <td style="background-color: #1a1a1a; border-radius: 6px;">
+                    <a href="${resubscribeUrl}" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
+                      Resubscribe
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0; color: #888888; font-size: 14px; line-height: 1.6;">
+                Questions? Reply to this email and we'll be happy to help.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 24px 40px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0; color: #aaaaaa; font-size: 12px;">
+                <a href="${SITE_URL}" style="color: #888888;">mtnsmade.com.au</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const emailText = `Hi ${firstName || 'there'},
+
+Your MTNS MADE membership has been cancelled and your profile is no longer visible in the directory.
+
+If you'd like to rejoin, you're welcome to resubscribe at any time:
+${resubscribeUrl}
+
+Questions? Reply to this email and we'll be happy to help.
+
+MTNS MADE
+${SITE_URL}`;
+
+  try {
+    await sendEmail({ to: email, subject: 'Your MTNS MADE membership has ended', html: emailHtml, text: emailText, from: FROM_HELLO });
+    console.log('Cancellation email sent to:', email);
+  } catch (error) {
+    console.error('Error sending cancellation email:', error);
+  }
+}
+
+// Notify member their subscription has been reactivated and profile is live
+async function sendReactivationEmail(email: string, firstName: string): Promise<void> {
+  const profileUrl = SITE_URL + '/profile/dashboard';
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <tr>
+            <td style="background-color: #1a1a1a; padding: 32px 40px; text-align: center;">
+              <img src="https://cdn.prod.website-files.com/64229aff3da29012f062753c/64c8c73cbe927ed3e4ade8df_mtns-made-white.svg" alt="MTNS MADE" width="180" style="display: block; margin: 0 auto;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #333333; font-size: 22px; font-weight: 600;">
+                Welcome back to MTNS MADE!
+              </h2>
+              <p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                Hi ${firstName || 'there'}, your MTNS MADE membership is now active again and your profile is back in the directory.
+              </p>
+              <p style="margin: 0 0 30px; color: #555555; font-size: 16px; line-height: 1.6;">
+                Great to have you back in the community!
+              </p>
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 30px;">
+                <tr>
+                  <td style="background-color: #1a1a1a; border-radius: 6px;">
+                    <a href="${profileUrl}" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
+                      View Your Profile
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0; color: #888888; font-size: 14px; line-height: 1.6;">
+                Questions? Reply to this email and we'll be happy to help.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 24px 40px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0; color: #aaaaaa; font-size: 12px;">
+                <a href="${SITE_URL}" style="color: #888888;">mtnsmade.com.au</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const emailText = `Hi ${firstName || 'there'},
+
+Your MTNS MADE membership is now active again and your profile is back in the directory.
+
+Great to have you back in the community!
+
+View your profile: ${profileUrl}
+
+Questions? Reply to this email and we'll be happy to help.
+
+MTNS MADE
+${SITE_URL}`;
+
+  try {
+    await sendEmail({ to: email, subject: 'Welcome back to MTNS MADE!', html: emailHtml, text: emailText, from: FROM_HELLO });
+    console.log('Reactivation email sent to:', email);
+  } catch (error) {
+    console.error('Error sending reactivation email:', error);
   }
 }
 
@@ -319,25 +430,13 @@ async function getSuburbIdByWebflowId(webflowId: string): Promise<string | null>
 
 // Send failed signup alert to admin
 async function sendFailedSignupAlert(email: string, memberstackId: string, error: unknown): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping failed signup alert');
-    return;
-  }
-
   const errorMessage = error instanceof Error ? error.message : String(error);
-
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [ADMIN_EMAIL],
-        subject: `⚠️ Failed Signup: ${email}`,
-        html: `
+    await sendEmail({
+      to: ADMIN_EMAIL,
+      subject: `⚠️ Failed Signup: ${email}`,
+      from: FROM_SUPPORT,
+      html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <div style="background: #cc0000; color: #fff; padding: 20px; text-align: center;">
     <h1 style="margin: 0; font-size: 20px;">⚠️ Member Signup Failed</h1>
@@ -356,15 +455,8 @@ async function sendFailedSignupAlert(email: string, memberstackId: string, error
     </p>
   </div>
 </div>`,
-      }),
     });
-
-    if (!response.ok) {
-      const err = await response.json();
-      console.error('Failed signup alert send error:', err);
-    } else {
-      console.log('Failed signup alert sent to admin for:', email);
-    }
+    console.log('Failed signup alert sent to admin for:', email);
   } catch (err) {
     console.error('Error sending failed signup alert:', err);
   }
@@ -822,7 +914,7 @@ async function handleMemberCreated(data: MemberstackMemberData): Promise<void> {
   } catch (error) {
     // Alert admin immediately — don't wait for the daily consistency check
     console.error('Failed to create member in Supabase, sending alert:', data.id);
-    await sendFailedSignupAlert(data.auth.email, data.id, error);
+    await sendFailedSignupAlert(data.auth?.email ?? 'unknown', data.id, error);
     throw error; // Re-throw so Memberstack receives a 500 and will retry
   }
 
@@ -856,7 +948,13 @@ async function handleMemberDeleted(data: MemberstackMemberData): Promise<void> {
     await deleteFromWebflow(webflowId);
   }
 
-  // 4. Delete images from storage
+  // 4. Trigger site publish so deleted member disappears from live site immediately
+  fetch(`${SUPABASE_URL}/functions/v1/publish-site`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+  }).catch(err => console.warn('publish-site error after member delete:', err));
+
+  // 5. Delete images from storage
   await deleteMemberImages(data.id);
 
   // 5. Log activity
@@ -890,6 +988,18 @@ async function handleMemberPlanCanceled(data: MemberstackMemberData): Promise<vo
     // Also archive member's projects
     console.log('Archiving member projects due to plan cancellation');
     await archiveMemberProjects(data.id);
+
+    // Trigger site publish so archived member disappears from live site immediately
+    fetch(`${SUPABASE_URL}/functions/v1/publish-site`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    }).catch(err => console.warn('publish-site error after plan cancellation:', err));
+
+    // Notify member their profile is now archived
+    const firstName = member.first_name || member.name?.split(' ')[0] || '';
+    sendCancellationEmail(member.email, firstName).catch(err =>
+      console.warn('Cancellation email error:', err)
+    );
 
     // Log to activity feed
     await logActivity(data.id, 'subscription_canceled');
@@ -940,6 +1050,11 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
         console.log('Unarchiving member projects due to resubscription');
         await unarchiveMemberProjects(data.id);
         await logActivity(data.id, 'subscription_reactivated');
+        // Notify member they're back
+        const firstName = member.first_name || member.name?.split(' ')[0] || '';
+        sendReactivationEmail(member.email, firstName).catch(err =>
+          console.warn('Reactivation email error:', err)
+        );
       }
     } else {
       // No Webflow ID, but still archive/unarchive projects and log activity
@@ -947,10 +1062,18 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
         console.log('Archiving member projects (no Webflow profile)');
         await archiveMemberProjects(data.id);
         await logActivity(data.id, 'subscription_canceled');
+        const firstName = member.first_name || member.name?.split(' ')[0] || '';
+        sendCancellationEmail(member.email, firstName).catch(err =>
+          console.warn('Cancellation email error:', err)
+        );
       } else if (newStatus === 'active' && previousStatus === 'lapsed') {
         console.log('Unarchiving member projects (no Webflow profile)');
         await unarchiveMemberProjects(data.id);
         await logActivity(data.id, 'subscription_reactivated');
+        const firstName = member.first_name || member.name?.split(' ')[0] || '';
+        sendReactivationEmail(member.email, firstName).catch(err =>
+          console.warn('Reactivation email error:', err)
+        );
       }
     }
   } else {

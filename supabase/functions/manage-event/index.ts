@@ -8,12 +8,11 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 interface ManageEventRequest {
@@ -53,11 +52,6 @@ async function logActivity(memberstackId: string, activityType: string, entityId
 
 // Send approval email to member
 async function sendApprovalEmail(email: string, eventName: string, eventSlug: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping email');
-    return;
-  }
-
   const eventUrl = `${SITE_URL}/event/${eventSlug}`;
 
   const emailHtml = `
@@ -128,27 +122,8 @@ ${SITE_URL}
 `;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [email],
-        subject: `Your event "${eventName}" has been approved!`,
-        html: emailHtml,
-        text: emailText,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Email send error:', error);
-    } else {
-      console.log('Approval email sent to:', email);
-    }
+    await sendEmail({ to: email, subject: `Your event "${eventName}" has been approved!`, html: emailHtml, text: emailText, from: FROM_HELLO });
+    console.log('Approval email sent to:', email);
   } catch (error) {
     console.error('Error sending approval email:', error);
   }
@@ -156,10 +131,6 @@ ${SITE_URL}
 
 // Send rejection email to member
 async function sendRejectionEmail(email: string, eventName: string, reason?: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping email');
-    return;
-  }
 
   const reasonText = reason
     ? `<p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;"><strong>Reason:</strong> ${reason}</p>`
@@ -241,27 +212,8 @@ ${SITE_URL}
 `;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [email],
-        subject: `Update on your event "${eventName}"`,
-        html: emailHtml,
-        text: emailText,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Email send error:', error);
-    } else {
-      console.log('Rejection email sent to:', email);
-    }
+    await sendEmail({ to: email, subject: `Update on your event "${eventName}"`, html: emailHtml, text: emailText, from: FROM_HELLO });
+    console.log('Rejection email sent to:', email);
   } catch (error) {
     console.error('Error sending rejection email:', error);
   }

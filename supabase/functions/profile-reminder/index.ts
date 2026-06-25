@@ -11,12 +11,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+import { sendEmail, FROM_HELLO, FROM_SUPPORT } from '../_shared/gmail.ts';
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
-const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'hello@mtnsmade.com.au';
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -134,30 +134,21 @@ ${SITE_URL}
 `;
 }
 
-async function sendEmail(to: string, firstName: string): Promise<boolean> {
+async function sendReminderEmail(to: string, firstName: string): Promise<boolean> {
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [to],
-        subject: 'Complete your MTNS MADE profile',
-        html: getEmailHtml(firstName),
-        text: getEmailText(firstName),
-      }),
+    const result = await sendEmail({
+      to,
+      subject: 'Complete your MTNS MADE profile',
+      html: getEmailHtml(firstName),
+      text: getEmailText(firstName),
+      from: FROM_HELLO,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error(`Failed to send to ${to}:`, error);
+    if (!result.success) {
+      console.error(`Failed to send to ${to}:`, result.error);
       return false;
     }
 
-    const result = await response.json();
     console.log(`Email sent to ${to}: ${result.id}`);
     return true;
   } catch (error) {
@@ -211,10 +202,6 @@ async function sendAdminSummary(
   sentMembers: Array<{ email: string; first_name: string }>,
   failedCount: number
 ): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping admin summary');
-    return;
-  }
 
   const totalSent = sentMembers.length;
   const membersList = sentMembers.length > 0
@@ -312,27 +299,14 @@ This is an automated summary from MTNS MADE
 `;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [ADMIN_EMAIL],
-        subject: `Weekly Profile Reminder: ${totalSent} sent, ${failedCount} failed`,
-        html: emailHtml,
-        text: emailText,
-      }),
+    await sendEmail({
+      to: ADMIN_EMAIL,
+      subject: `Weekly Profile Reminder: ${totalSent} sent, ${failedCount} failed`,
+      html: emailHtml,
+      text: emailText,
+      from: FROM_SUPPORT,
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Admin summary email error:', error);
-    } else {
-      console.log('Admin summary email sent to:', ADMIN_EMAIL);
-    }
+    console.log('Admin summary email sent to:', ADMIN_EMAIL);
   } catch (error) {
     console.error('Error sending admin summary:', error);
   }
@@ -365,7 +339,7 @@ serve(async (req) => {
         );
       }
 
-      const sent = await sendEmail(testEmail, 'Test User');
+      const sent = await sendReminderEmail(testEmail, 'Test User');
       return new Response(
         JSON.stringify({ success: sent, mode: 'test', email: testEmail }),
         { headers: { 'Content-Type': 'application/json' } }
@@ -382,7 +356,7 @@ serve(async (req) => {
     const sentMembers: Array<{ email: string; first_name: string }> = [];
 
     for (const member of members) {
-      const success = await sendEmail(member.email, member.first_name);
+      const success = await sendReminderEmail(member.email, member.first_name);
 
       if (success) {
         await markReminderSent(member.id);
@@ -392,14 +366,14 @@ serve(async (req) => {
         failed++;
       }
 
-      // Rate limit: 500ms between emails (Resend allows 2 req/sec)
+      // Rate limit: 500ms between emails
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     console.log(`Reminder complete: ${sent} sent, ${failed} failed`);
 
     // Send admin summary (always, even if no reminders sent)
-    await new Promise(resolve => setTimeout(resolve, 500)); // Rate limit delay
+    await new Promise(resolve => setTimeout(resolve, 500));
     await sendAdminSummary(sentMembers, failed);
 
     return new Response(

@@ -5,11 +5,10 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 // CORS headers
@@ -83,7 +82,8 @@ async function sendNotificationEmail(
   memberEmail: string,
   memberName: string,
   senderName: string,
-  subject: string
+  subject: string,
+  senderEmail: string
 ): Promise<boolean> {
   const dashboardUrl = SITE_URL + '/profile/messages';
 
@@ -137,24 +137,17 @@ Log in to your MTNS MADE dashboard to read the full message and reply:
 ${dashboardUrl}`;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + RESEND_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [memberEmail],
-        subject: 'New MTNS MADE Enquiry: ' + subject,
-        html: emailHtml,
-        text: emailText,
-      }),
+    const result = await sendEmail({
+      to: memberEmail,
+      subject: 'New MTNS MADE Enquiry: ' + subject,
+      html: emailHtml,
+      text: emailText,
+      from: FROM_HELLO,
+      replyTo: senderEmail,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Resend API error:', error);
+    if (!result.success) {
+      console.error('Email send error:', result.error);
       return false;
     }
 
@@ -212,7 +205,8 @@ serve(async (req: Request) => {
       member.email,
       memberDisplayName,
       data.senderName,
-      data.subject
+      data.subject,
+      data.senderEmail
     );
 
     return new Response(

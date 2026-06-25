@@ -10,11 +10,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+import { sendEmail, FROM_HELLO, FROM_SUPPORT } from '../_shared/gmail.ts';
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const RESEND_API_KEY = Deno.env.get('RESEND_API') || '';
 
-const FROM_EMAIL = 'MTNS MADE <support@mail.mtnsmade.com.au>';
 const ADMIN_EMAIL = 'support@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
@@ -128,40 +128,16 @@ ${SITE_URL}
 `;
 }
 
-// Delay helper for rate limiting (Resend allows 2 requests/second)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function sendEmail(to: string, firstName: string): Promise<{ success: boolean; id?: string; error?: string }> {
-  if (!RESEND_API_KEY) {
-    return { success: false, error: 'RESEND_API_KEY not configured' };
-  }
-
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [to],
-        subject: 'Showcase your work on MTNS MADE',
-        html: getEmailHtml(firstName),
-        text: getEmailText(firstName),
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      return { success: false, error: result.message || 'Failed to send email' };
-    }
-
-    return { success: true, id: result.id };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+async function sendReminderEmail(to: string, firstName: string): Promise<{ success: boolean; id?: string; error?: string }> {
+  return await sendEmail({
+    to,
+    subject: 'Showcase your work on MTNS MADE',
+    html: getEmailHtml(firstName),
+    text: getEmailText(firstName),
+    from: FROM_HELLO,
+  });
 }
 
 // CORS headers
@@ -191,7 +167,7 @@ serve(async (req) => {
 
     // Test mode - send to specific email
     if (mode === 'test' && body.email) {
-      const result = await sendEmail(body.email, body.firstName || 'Test');
+      const result = await sendReminderEmail(body.email, body.firstName || 'Test');
       return new Response(
         JSON.stringify({ success: result.success, mode: 'test', result }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -264,12 +240,12 @@ serve(async (req) => {
         continue;
       }
 
-      // Rate limit: wait 500ms between emails (Resend allows 2 req/sec)
+      // Rate limit: wait 500ms between emails
       if (i > 0) {
         await delay(500);
       }
 
-      const emailResult = await sendEmail(member.email, member.first_name);
+      const emailResult = await sendReminderEmail(member.email, member.first_name);
 
       if (emailResult.success) {
         // Mark as reminded
@@ -287,22 +263,15 @@ serve(async (req) => {
     }
 
     // Send admin summary if any emails were sent or failed
-    if ((results.sent > 0 || results.failed > 0) && RESEND_API_KEY) {
+    if (results.sent > 0 || results.failed > 0) {
       try {
-        // Wait to avoid rate limit
         await delay(500);
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: FROM_EMAIL,
-            to: [ADMIN_EMAIL],
-            subject: `Project Reminder Summary: ${results.sent} sent`,
-            text: `Project Reminder Summary\n\nSent: ${results.sent}\nFailed: ${results.failed}\n\n${results.errors.length > 0 ? 'Errors:\n' + results.errors.join('\n') : 'No errors'}`,
-          }),
+        await sendEmail({
+          to: ADMIN_EMAIL,
+          subject: `Project Reminder Summary: ${results.sent} sent`,
+          html: `<p>Project Reminder Summary</p><p>Sent: ${results.sent}<br>Failed: ${results.failed}</p>${results.errors.length > 0 ? `<p>Errors:<br>${results.errors.join('<br>')}</p>` : ''}`,
+          text: `Project Reminder Summary\n\nSent: ${results.sent}\nFailed: ${results.failed}\n\n${results.errors.length > 0 ? 'Errors:\n' + results.errors.join('\n') : 'No errors'}`,
+          from: FROM_SUPPORT,
         });
         console.log('Admin summary email sent');
       } catch (error) {
