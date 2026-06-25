@@ -466,19 +466,27 @@ async function sendFailedSignupAlert(email: string, memberstackId: string, error
 async function createMember(memberData: MemberstackMemberData): Promise<void> {
   const supabase = getSupabaseClient();
 
-  // Determine subscription status from plan connections
-  // Default to 'active' since members must pay to complete signup
-  // Memberstack webhook may not always include planConnections data
+  // Determine subscription status and membership type from plan connections
   let subscriptionStatus = 'active';
+  let membershipTypeId: string | null = null;
   if (memberData.planConnections && memberData.planConnections.length > 0) {
-    // ACTIVE and TRIALING are both valid paying member states
     const activePlan = memberData.planConnections.find(p =>
       p.status === 'ACTIVE' || p.status === 'TRIALING'
     );
-    // Only set to pending if we have plan data but no active/trialing plan
     subscriptionStatus = activePlan ? 'active' : 'pending';
+
+    const planForType = activePlan || memberData.planConnections[0];
+    if (planForType?.planName) {
+      const { data: mt } = await supabase
+        .from('membership_types')
+        .select('id')
+        .ilike('name', planForType.planName)
+        .maybeSingle();
+      membershipTypeId = mt?.id || null;
+      console.log('Membership type lookup:', planForType.planName, '->', membershipTypeId);
+    }
   }
-  console.log('Setting subscription status for new member:', subscriptionStatus, 'planConnections:', memberData.planConnections);
+  console.log('Creating member — status:', subscriptionStatus, 'membership_type_id:', membershipTypeId);
 
   // Look up suburb from Memberstack custom fields (stored as Webflow ID)
   let suburbId: string | null = null;
@@ -511,6 +519,7 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
       slug: slug,
       suburb_id: suburbId,
       subscription_status: subscriptionStatus,
+      membership_type_id: membershipTypeId,
       profile_complete: false,
       is_deleted: false,
     }, { onConflict: 'memberstack_id', ignoreDuplicates: false });
@@ -1020,11 +1029,32 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
 
   const previousStatus = member.subscription_status;
 
-  // Determine new status from plan connections
+  // Determine new status and membership type from plan connections
+  const supabase = getSupabaseClient();
   let newStatus = previousStatus;
+  let newMembershipTypeId: string | null | undefined = undefined; // undefined = don't update
   if (data.planConnections && data.planConnections.length > 0) {
     const activePlan = data.planConnections.find(p => p.status === 'ACTIVE');
     newStatus = activePlan ? 'active' : 'lapsed';
+
+    const planForType = activePlan || data.planConnections[0];
+    if (planForType?.planName) {
+      const { data: mt } = await supabase
+        .from('membership_types')
+        .select('id')
+        .ilike('name', planForType.planName)
+        .maybeSingle();
+      newMembershipTypeId = mt?.id || null;
+    }
+  }
+
+  // Update membership type if we resolved one
+  if (newMembershipTypeId !== undefined && newMembershipTypeId !== member.membership_type_id) {
+    await supabase
+      .from('members')
+      .update({ membership_type_id: newMembershipTypeId })
+      .eq('memberstack_id', data.id);
+    console.log('Membership type updated:', member.membership_type_id, '->', newMembershipTypeId);
   }
 
   // Update Supabase if status changed
