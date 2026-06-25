@@ -1,4 +1,4 @@
-(function(){console.log("Admin dashboard v2 loaded");const g="https://epszwomtxkpjegbjbixr.supabase.co",b="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",x="https://www.mtnsmade.com.au";let d=null,$=null,k=[];const P=`
+(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",h="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",y="https://www.mtnsmade.com.au";let m=null,E=null,T=[];const O=`
     .admin-dashboard {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
@@ -795,199 +795,257 @@
       }
     }
 
-    /* Support Tracker */
+    /* Support Tracker — extends existing .status and .action-btn systems */
+
+    /* Category badges — coloured backgrounds on top of existing .status base */
+    .status.member_support  { background: #fff3e0; border-color: #e65100; color: #e65100; }
+    .status.website_bug     { background: #fce4ec; border-color: #c62828; color: #c62828; }
+    .status.feature_request { background: #e8f5e9; border-color: #2e7d32; color: #2e7d32; }
+
+    /* Task status modifiers — added to existing .status system */
+    .status.not_started     { border-color: #bbb; color: #888; }
+    .status.in_progress     { border-color: #f57f17; color: #f57f17; }
+    .status.feedback_needed { border-color: #1565c0; color: #1565c0; }
+    .status.stalled         { border-color: #dc3545; color: #dc3545; }
+
+    /* Retainer banner */
+    .retainer-banner {
+      margin: 0 20px 12px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      background: #f9f9f9;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .retainer-banner.approaching {
+      background: #fff8e1;
+      border-color: #f9a825;
+    }
+
+    .retainer-banner.over {
+      background: #fce4ec;
+      border-color: #c62828;
+    }
+
+    .retainer-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .retainer-bar-wrap {
+      flex: 1;
+      min-width: 120px;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .retainer-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: #4caf50;
+      transition: width 0.3s;
+    }
+
+    .retainer-banner.approaching .retainer-bar-fill { background: #f9a825; }
+    .retainer-banner.over .retainer-bar-fill { background: #e53935; }
+
+    .retainer-hours {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      color: #1a1a1a;
+    }
+
+    .retainer-status {
+      font-size: 12px;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .retainer-banner.approaching .retainer-status { color: #e65100; font-weight: 600; }
+    .retainer-banner.over .retainer-status { color: #c62828; font-weight: 600; }
+
+    /* Support toolbar — two-button layout */
     .support-toolbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .support-filters {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .filter-pill {
-      background: #f5f5f5;
-      border: 1px solid #e0e0e0;
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-
-    .filter-pill:hover { background: #e8e8e8; }
-    .filter-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-
-    .task-category {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .task-category.member_support  { background: #fff3e0; color: #e65100; }
-    .task-category.website_bug     { background: #fce4ec; color: #c62828; }
-    .task-category.feature_request { background: #e8f5e9; color: #2e7d32; }
-
-    .task-status {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .task-status.not_started   { background: #f5f5f5; color: #666; }
-    .task-status.in_progress   { background: #fff8e1; color: #f57f17; }
-    .task-status.feedback_needed { background: #e3f2fd; color: #1565c0; }
-    .task-status.complete      { background: #e8f5e9; color: #2e7d32; }
-    .task-status.stalled       { background: #fce4ec; color: #c62828; }
-
-    .task-title-cell { font-weight: 500; font-size: 13px; }
-    .task-desc { font-size: 12px; color: #666; margin-top: 3px; }
-    .task-member-link { color: #1a1a1a; text-decoration: underline; font-size: 12px; }
-
-    .status-select {
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      padding: 3px 6px;
-      font-size: 12px;
-      font-family: inherit;
-      cursor: pointer;
-      background: #fff;
-    }
-
-    .task-row-expand {
-      background: #fafafa;
-    }
-
-    .task-detail-panel {
       padding: 16px 20px;
-      border-top: 1px solid #f0f0f0;
+      flex-wrap: wrap;
     }
 
-    .comments-section { margin-top: 16px; }
-    .comments-title { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .support-toolbar-actions { display: flex; gap: 8px; align-items: center; }
 
-    .comment-item {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .comment-author-badge {
-      background: #1a1a1a;
-      color: #fff;
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
+    /* Archive view */
+    .archive-header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      flex-shrink: 0;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e8e8e8;
     }
 
-    .comment-author-badge.hannah { background: #6366f1; }
+    .archive-header h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
 
+    .archive-month-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .month-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .month-card:hover { border-color: #bbb; background: #fafafa; }
+
+    .month-card.expanded { border-color: #1a1a1a; }
+
+    .month-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .month-card-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .month-card-chevron {
+      font-size: 10px;
+      color: #aaa;
+      transition: transform 0.15s;
+    }
+
+    .month-card.expanded .month-card-chevron { transform: rotate(180deg); }
+
+    .month-card-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .month-card-stat strong { color: #1a1a1a; }
+
+    .month-tasks {
+      display: none;
+      margin-top: 10px;
+      border-top: 1px solid #e8e8e8;
+      padding-top: 10px;
+    }
+
+    .month-card.expanded .month-tasks { display: block; }
+
+    .month-task-item {
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 12px;
+      color: #333;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .month-task-item:last-child { border-bottom: none; }
+
+    .month-task-title {
+      flex: 1;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+
+    .month-task-title:hover { color: #0066cc; }
+
+    .month-task-meta { color: #aaa; white-space: nowrap; }
+
+    /* Comments */
+    .comments-section { margin-top: 16px; }
+    .comments-title { font-size: 11px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .comment-item { display: flex; gap: 10px; margin-bottom: 12px; }
+    .comment-author-badge {
+      background: #1a1a1a; color: #fff; border-radius: 50%;
+      width: 26px; height: 26px; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0;
+    }
+    .comment-author-badge.hannah { background: #6366f1; }
     .comment-body { flex: 1; }
     .comment-meta { font-size: 11px; color: #999; margin-bottom: 3px; }
     .comment-text { font-size: 13px; line-height: 1.5; }
+    .comment-input-row { display: flex; gap: 8px; margin-top: 12px; align-items: flex-end; }
 
-    .comment-input-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-      align-items: flex-end;
-    }
-
-    .comment-textarea {
-      flex: 1;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-family: inherit;
-      font-size: 13px;
-      resize: none;
-      min-height: 60px;
-    }
-
-    .comment-textarea:focus { outline: none; border-color: #1a1a1a; }
-
-    .support-empty { padding: 40px; text-align: center; color: #aaa; font-size: 14px; }
-
+    /* Member autocomplete */
     .member-search-wrap { position: relative; }
     .member-suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-top: none;
-      border-radius: 0 0 6px 6px;
-      z-index: 100;
-      max-height: 200px;
-      overflow-y: auto;
+      position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+      border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 6px 6px;
+      z-index: 100; max-height: 200px; overflow-y: auto;
     }
-
-    .member-suggestion-item {
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
+    .member-suggestion-item { padding: 8px 12px; font-size: 13px; cursor: pointer; }
     .member-suggestion-item:hover { background: #f5f5f5; }
 
     @media (max-width: 768px) {
       .support-toolbar { flex-direction: column; align-items: flex-start; }
     }
-  `;function h(e){if(!e)return"--";const t=new Date(e),i=Math.floor((new Date-t)/1e3);return i<60?"now":i<3600?`${Math.floor(i/60)}m`:i<86400?`${Math.floor(i/3600)}h`:i<604800?`${Math.floor(i/86400)}d`:t.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function I(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function T(e){const t=[];return e.profile_image_url||t.push("Profile Image"),e.header_image_url||t.push("Header Image"),(!e.bio||e.bio.length<50)&&t.push("Bio"),e.suburb_id||t.push("Location"),t}function D(e,t){const a=e.first_name||e.name||"there",i=t.length>0?`
+  `;function x(e){if(!e)return"--";const t=new Date(e),o=Math.floor((new Date-t)/1e3);return o<60?"now":o<3600?`${Math.floor(o/60)}m`:o<86400?`${Math.floor(o/3600)}h`:o<604800?`${Math.floor(o/86400)}d`:t.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function R(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function M(e){const t=[];return e.profile_image_url||t.push("Profile Image"),e.header_image_url||t.push("Header Image"),(!e.bio||e.bio.length<50)&&t.push("Bio"),e.suburb_id||t.push("Location"),t}function U(e,t){const i=e.first_name||e.name||"there",o=t.length>0?`
 
 To complete your profile, you'll need:
-${t.map(s=>`- ${s}`).join(`
-`)}`:"";return`Hi ${a},
+${t.map(r=>`- ${r}`).join(`
+`)}`:"";return`Hi ${i},
 
 Thanks for being part of MTNS MADE! We noticed your profile isn't quite complete yet.
 
-A complete profile helps other creatives find you in the directory and shows off your amazing work.${i}
+A complete profile helps other creatives find you in the directory and shows off your amazing work.${o}
 
-Complete your profile here: ${x}/profile/start
+Complete your profile here: ${y}/profile/start
 
 Let us know if you need any help!
 
-MTNS MADE Team`}async function q(){const[e,t,a,i,s,o,n,r,l,c,p,_]=await Promise.all([O(),R(),B(),H(),W(),J(),V(),Y(),G(),F(),K(),U()]);return k=_,{recentMembers:e,memberStats:t,incompleteProfiles:a,failedSignups:i,recentEvents:s,eventStats:o,recentOpportunities:n,opportunityStats:r,recentProjects:l,messageStats:c,recentActivity:p,membershipTypes:_,loadedAt:new Date}}async function O(){const{data:e,error:t}=await d.from("members").select(`
+MTNS MADE Team`}async function L(){const[e,t,i,o,r,a,n,s,d,l,p,c]=await Promise.all([F(),H(),V(),J(),Y(),G(),K(),Q(),X(),W(),Z(),B()]);return T=c,{recentMembers:e,memberStats:t,incompleteProfiles:i,failedSignups:o,recentEvents:r,eventStats:a,recentOpportunities:n,opportunityStats:s,recentProjects:d,messageStats:l,recentActivity:p,membershipTypes:c,loadedAt:new Date}}async function F(){const{data:e,error:t}=await m.from("members").select(`
         id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
         membership_type_id, membership_types(id, name),
         created_at, updated_at
-      `).neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(20);return t?(console.error("Error loading recent members:",t),[]):e||[]}async function R(){const{data:e}=await d.from("members").select("id, subscription_status, profile_complete, webflow_id").neq("is_deleted",!0),t=(e==null?void 0:e.length)||0,a=(e==null?void 0:e.filter(r=>r.subscription_status==="active").length)||0,i=(e==null?void 0:e.filter(r=>r.subscription_status==="lapsed").length)||0,s=(e==null?void 0:e.filter(r=>r.profile_complete).length)||0,o=(e==null?void 0:e.filter(r=>r.webflow_id).length)||0,n=(e==null?void 0:e.filter(r=>r.profile_complete&&!r.webflow_id&&r.subscription_status==="active").length)||0;return{total:t,active:a,lapsed:i,complete:s,synced:o,pendingSync:n}}async function U(){const{data:e,error:t}=await d.from("membership_types").select("id, name").order("name");return t?(console.error("Error loading membership types:",t),[]):e||[]}async function F(){try{const e=new Date,t=new Date(e.getFullYear(),e.getMonth(),1).toISOString(),{data:a}=await d.from("messages").select("id, is_read, created_at"),{data:i}=await d.from("messages").select("id").gte("created_at",t),s=(a==null?void 0:a.length)||0,o=(a==null?void 0:a.filter(r=>!r.is_read).length)||0,n=(i==null?void 0:i.length)||0;return{total:s,unread:o,thisMonth:n}}catch(e){return console.error("Error loading message stats:",e),{total:0,unread:0,thisMonth:0}}}async function B(){const{data:e,error:t}=await d.from("members").select(`
+      `).neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(20);return t?(console.error("Error loading recent members:",t),[]):e||[]}async function H(){const{data:e}=await m.from("members").select("id, subscription_status, profile_complete, webflow_id").neq("is_deleted",!0),t=(e==null?void 0:e.length)||0,i=(e==null?void 0:e.filter(s=>s.subscription_status==="active").length)||0,o=(e==null?void 0:e.filter(s=>s.subscription_status==="lapsed").length)||0,r=(e==null?void 0:e.filter(s=>s.profile_complete).length)||0,a=(e==null?void 0:e.filter(s=>s.webflow_id).length)||0,n=(e==null?void 0:e.filter(s=>s.profile_complete&&!s.webflow_id&&s.subscription_status==="active").length)||0;return{total:t,active:i,lapsed:o,complete:r,synced:a,pendingSync:n}}async function B(){const{data:e,error:t}=await m.from("membership_types").select("id, name").order("name");return t?(console.error("Error loading membership types:",t),[]):e||[]}async function W(){try{const e=new Date,t=new Date(e.getFullYear(),e.getMonth(),1).toISOString(),{data:i}=await m.from("messages").select("id, is_read, created_at"),{data:o}=await m.from("messages").select("id").gte("created_at",t),r=(i==null?void 0:i.length)||0,a=(i==null?void 0:i.filter(s=>!s.is_read).length)||0,n=(o==null?void 0:o.length)||0;return{total:r,unread:a,thisMonth:n}}catch(e){return console.error("Error loading message stats:",e),{total:0,unread:0,thisMonth:0}}}async function V(){const{data:e,error:t}=await m.from("members").select(`
         id, memberstack_id, name, email, first_name, slug, subscription_status,
         profile_complete, profile_reminder_sent_at, created_at,
         profile_image_url, header_image_url, bio, suburb_id
-      `).eq("profile_complete",!1).eq("subscription_status","active").neq("is_deleted",!0).order("created_at",{ascending:!0});return t?(console.error("Error loading incomplete profiles:",t),[]):e||[]}async function H(){const{data:e,error:t}=await d.from("members").select(`
+      `).eq("profile_complete",!1).eq("subscription_status","active").neq("is_deleted",!0).order("created_at",{ascending:!0});return t?(console.error("Error loading incomplete profiles:",t),[]):e||[]}async function J(){const{data:e,error:t}=await m.from("members").select(`
         id, memberstack_id, name, email, first_name, slug,
         subscription_status, profile_complete, profile_reminder_sent_at, created_at
-      `).not("subscription_status","in",'("active","lapsed","deleted")').neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(30);return t?(console.error("Error loading failed signups:",t),[]):e||[]}async function W(){const{data:e,error:t}=await d.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);return t?(console.error("Error loading recent events:",t),[]):e||[]}async function J(){const{data:e}=await d.from("events").select("id, is_draft, is_archived, webflow_id"),t=(e==null?void 0:e.length)||0,a=(e==null?void 0:e.filter(s=>s.is_draft&&!s.is_archived).length)||0,i=(e==null?void 0:e.filter(s=>!s.is_draft&&!s.is_archived).length)||0;return{total:t,pending:a,published:i}}async function V(){const{data:e,error:t}=await d.from("opportunities").select("id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);if(t)return console.error("Error loading recent opportunities:",t),[];const a=e||[],i=[...new Set(a.map(s=>s.memberstack_id).filter(Boolean))];if(i.length>0){const{data:s}=await d.from("members").select("memberstack_id, first_name, last_name, name").in("memberstack_id",i);if(s){const o=Object.fromEntries(s.map(n=>[n.memberstack_id,n]));a.forEach(n=>{const r=o[n.memberstack_id];r&&(n.member_name=[r.first_name,r.last_name].filter(Boolean).join(" ")||r.name||null)})}}return a}async function Y(){const{data:e}=await d.from("opportunities").select("id, is_draft, is_archived"),t=(e==null?void 0:e.length)||0,a=(e==null?void 0:e.filter(s=>s.is_draft&&!s.is_archived).length)||0,i=(e==null?void 0:e.filter(s=>!s.is_draft&&!s.is_archived).length)||0;return{total:t,pending:a,published:i}}async function G(){const{data:e,error:t}=await d.from("projects").select(`
+      `).not("subscription_status","in",'("active","lapsed","deleted")').neq("is_deleted",!0).order("created_at",{ascending:!1}).limit(30);return t?(console.error("Error loading failed signups:",t),[]):e||[]}async function Y(){const{data:e,error:t}=await m.from("events").select("id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);return t?(console.error("Error loading recent events:",t),[]):e||[]}async function G(){const{data:e}=await m.from("events").select("id, is_draft, is_archived, webflow_id"),t=(e==null?void 0:e.length)||0,i=(e==null?void 0:e.filter(r=>r.is_draft&&!r.is_archived).length)||0,o=(e==null?void 0:e.filter(r=>!r.is_draft&&!r.is_archived).length)||0;return{total:t,pending:i,published:o}}async function K(){const{data:e,error:t}=await m.from("opportunities").select("id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at").order("is_draft",{ascending:!1}).order("created_at",{ascending:!1}).limit(50);if(t)return console.error("Error loading recent opportunities:",t),[];const i=e||[],o=[...new Set(i.map(r=>r.memberstack_id).filter(Boolean))];if(o.length>0){const{data:r}=await m.from("members").select("memberstack_id, first_name, last_name, name").in("memberstack_id",o);if(r){const a=Object.fromEntries(r.map(n=>[n.memberstack_id,n]));i.forEach(n=>{const s=a[n.memberstack_id];s&&(n.member_name=[s.first_name,s.last_name].filter(Boolean).join(" ")||s.name||null)})}}return i}async function Q(){const{data:e}=await m.from("opportunities").select("id, is_draft, is_archived"),t=(e==null?void 0:e.length)||0,i=(e==null?void 0:e.filter(r=>r.is_draft&&!r.is_archived).length)||0,o=(e==null?void 0:e.filter(r=>!r.is_draft&&!r.is_archived).length)||0;return{total:t,pending:i,published:o}}async function X(){const{data:e,error:t}=await m.from("projects").select(`
         id, name, slug, member_id, webflow_id, is_draft, is_deleted,
         created_at, updated_at
-      `).eq("is_deleted",!1).order("updated_at",{ascending:!1}).limit(15);return t?(console.error("Error loading recent projects:",t),[]):e||[]}async function K(){const{data:e,error:t}=await d.from("activity_log").select(`
+      `).eq("is_deleted",!1).order("updated_at",{ascending:!1}).limit(15);return t?(console.error("Error loading recent projects:",t),[]):e||[]}async function Z(){const{data:e,error:t}=await m.from("activity_log").select(`
         id, member_id, memberstack_id, activity_type, description,
         entity_type, entity_id, entity_name,
         member_webflow_url, entity_webflow_url, created_at
-      `).order("created_at",{ascending:!1}).limit(50);if(t)return console.error("Error loading recent activity:",t),[];const a=[...new Set(e.filter(s=>s.member_id).map(s=>s.member_id))];let i={};if(a.length>0){const{data:s}=await d.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",a);s&&s.forEach(o=>{i[o.id]={name:o.name||`${o.first_name||""} ${o.last_name||""}`.trim()||"Unknown Member",profile_image_url:o.profile_image_url||null}})}return e.map(s=>{var o,n;return{...s,member_name:s.member_id&&((o=i[s.member_id])==null?void 0:o.name)||"Unknown Member",member_profile_image:s.member_id&&((n=i[s.member_id])==null?void 0:n.profile_image_url)||null}})}function Q(e){const t=T(e),a=D(e,t),i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
+      `).order("created_at",{ascending:!1}).limit(50);if(t)return console.error("Error loading recent activity:",t),[];const i=[...new Set(e.filter(r=>r.member_id).map(r=>r.member_id))];let o={};if(i.length>0){const{data:r}=await m.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",i);r&&r.forEach(a=>{o[a.id]={name:a.name||`${a.first_name||""} ${a.last_name||""}`.trim()||"Unknown Member",profile_image_url:a.profile_image_url||null}})}return e.map(r=>{var a,n;return{...r,member_name:r.member_id&&((a=o[r.member_id])==null?void 0:a.name)||"Unknown Member",member_profile_image:r.member_id&&((n=o[r.member_id])==null?void 0:n.profile_image_url)||null}})}function ee(e){const t=M(e),i=U(e,t),o=document.createElement("div");o.className="modal-overlay",o.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Contact Member</h3>
@@ -1004,24 +1062,25 @@ MTNS MADE Team`}async function q(){const[e,t,a,i,s,o,n,r,l,c,p,_]=await Promise.
           </div>
           <div class="form-field">
             <label class="form-label">Message</label>
-            <textarea class="form-input" id="modal-body">${a}</textarea>
+            <textarea class="form-input" id="modal-body">${i}</textarea>
             <div class="form-hint">Edit the message above as needed</div>
           </div>
           ${t.length>0?`
             <div class="form-field">
               <label class="form-label">Missing Fields Detected</label>
               <div class="missing-fields">
-                ${t.map(s=>`<span class="missing-field">${s}</span>`).join("")}
+                ${t.map(a=>`<span class="missing-field">${a}</span>`).join("")}
               </div>
             </div>
           `:""}
         </div>
         <div class="modal-footer">
           <button class="admin-btn" id="modal-cancel">Cancel</button>
+          ${e.memberstack_id?'<button class="admin-btn" id="modal-password-reset">Send Password Reset</button>':""}
           <button class="admin-btn primary" id="modal-send">Send Email</button>
         </div>
       </div>
-    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#modal-cancel").addEventListener("click",()=>i.remove()),i.addEventListener("click",s=>{s.target===i&&i.remove()}),i.querySelector("#modal-send").addEventListener("click",async()=>{const s=i.querySelector("#modal-to").value,o=i.querySelector("#modal-subject").value,n=i.querySelector("#modal-body").value;if(!s){alert("No email address available for this member");return}const r=i.querySelector("#modal-send");r.disabled=!0,r.textContent="Sending...";try{const c=await(await fetch(`${g}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:s,subject:o,text:n,html:n.replace(/\n/g,"<br>")})})).json();if(c.success){await d.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",e.id),alert("Email sent successfully!"),i.remove();const p=document.querySelector(".dashboard-feed");p&&y(p)}else alert("Failed to send email: "+(c.error||"Unknown error")),r.disabled=!1,r.textContent="Send Email"}catch(l){console.error("Error sending email:",l),alert("Error sending email. Check console for details."),r.disabled=!1,r.textContent="Send Email"}})}function X(e,t,a){var o;const i=((o=k.find(n=>n.id===a))==null?void 0:o.name)||"Not set",s=document.createElement("div");s.className="modal-overlay",s.innerHTML=`
+    `,document.body.appendChild(o),o.querySelector(".modal-close").addEventListener("click",()=>o.remove()),o.querySelector("#modal-cancel").addEventListener("click",()=>o.remove()),o.addEventListener("click",a=>{a.target===o&&o.remove()});const r=o.querySelector("#modal-password-reset");r&&r.addEventListener("click",async()=>{if(confirm(`Send a password reset email to ${e.email||e.first_name||"this member"}?`)){r.disabled=!0,r.textContent="Sending...";try{const n=await(await fetch(`${v}/functions/v1/admin-tools`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"send-password-reset",memberstackId:e.memberstack_id})})).json();n.success?(alert("Password reset email sent successfully."),r.textContent="Sent"):(alert(`Failed to send password reset: ${n.error}`),r.disabled=!1,r.textContent="Send Password Reset")}catch(a){console.error("Password reset error:",a),alert("Error sending password reset. Check console for details."),r.disabled=!1,r.textContent="Send Password Reset"}}}),o.querySelector("#modal-send").addEventListener("click",async()=>{const a=o.querySelector("#modal-to").value,n=o.querySelector("#modal-subject").value,s=o.querySelector("#modal-body").value;if(!a){alert("No email address available for this member");return}const d=o.querySelector("#modal-send");d.disabled=!0,d.textContent="Sending...";try{const p=await(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:a,subject:n,text:s,html:s.replace(/\n/g,"<br>")})})).json();if(p.success){await m.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",e.id),alert("Email sent successfully!"),o.remove();const c=document.querySelector(".dashboard-feed");c&&g(c)}else alert("Failed to send email: "+(p.error||"Unknown error")),d.disabled=!1,d.textContent="Send Email"}catch(l){console.error("Error sending email:",l),alert("Error sending email. Check console for details."),d.disabled=!1,d.textContent="Send Email"}})}function te(e,t,i){var a;const o=((a=T.find(n=>n.id===i))==null?void 0:a.name)||"Not set",r=document.createElement("div");r.className="modal-overlay",r.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Edit Member</h3>
@@ -1034,15 +1093,15 @@ MTNS MADE Team`}async function q(){const[e,t,a,i,s,o,n,r,l,c,p,_]=await Promise.
           </div>
           <div class="form-field">
             <label class="form-label">Current Type</label>
-            <input type="text" class="form-input" value="${i}" readonly>
+            <input type="text" class="form-input" value="${o}" readonly>
           </div>
           <div class="form-field">
             <label class="form-label">New Membership Type</label>
             <select class="form-input" id="modal-membership-type">
               <option value="">-- Select New Type --</option>
-              ${k.map(n=>`
-                <option value="${n.id}" ${n.id===a?"disabled":""}>
-                  ${n.name}${n.id===a?" (current)":""}
+              ${T.map(n=>`
+                <option value="${n.id}" ${n.id===i?"disabled":""}>
+                  ${n.name}${n.id===i?" (current)":""}
                 </option>
               `).join("")}
             </select>
@@ -1069,17 +1128,17 @@ MTNS MADE Team`}async function q(){const[e,t,a,i,s,o,n,r,l,c,p,_]=await Promise.
           <button class="admin-btn primary" id="modal-save">Update Membership</button>
         </div>
       </div>
-    `,document.body.appendChild(s),s.querySelector(".modal-close").addEventListener("click",()=>s.remove()),s.querySelector("#modal-cancel").addEventListener("click",()=>s.remove()),s.addEventListener("click",n=>{n.target===s&&s.remove()}),s.querySelector("#modal-save").addEventListener("click",async()=>{var _;const n=s.querySelector("#modal-membership-type").value,r=s.querySelector("#modal-skip-billing").checked;if(!n){alert("Please select a new membership type");return}const l=((_=k.find(f=>f.id===n))==null?void 0:_.name)||"Unknown",c=r?`Change ${t}'s type from "${i}" to "${l}"?
+    `,document.body.appendChild(r),r.querySelector(".modal-close").addEventListener("click",()=>r.remove()),r.querySelector("#modal-cancel").addEventListener("click",()=>r.remove()),r.addEventListener("click",n=>{n.target===r&&r.remove()}),r.querySelector("#modal-save").addEventListener("click",async()=>{var c;const n=r.querySelector("#modal-membership-type").value,s=r.querySelector("#modal-skip-billing").checked;if(!n){alert("Please select a new membership type");return}const d=((c=T.find(b=>b.id===n))==null?void 0:c.name)||"Unknown",l=s?`Change ${t}'s type from "${o}" to "${d}"?
 
-This will update the label only (no billing change).`:`Change ${t}'s type from "${i}" to "${l}"?
+This will update the label only (no billing change).`:`Change ${t}'s type from "${o}" to "${d}"?
 
-This WILL change their Stripe subscription and billing.`;if(!confirm(c))return;const p=s.querySelector("#modal-save");p.disabled=!0,p.textContent="Updating Memberstack...";try{const f=await fetch(`${g}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:e,newMembershipTypeId:n,skipPlanChange:r})}),v=await f.json();if(!f.ok)throw new Error(v.error||"Update failed");let N=`Membership type updated!
+This WILL change their Stripe subscription and billing.`;if(!confirm(l))return;const p=r.querySelector("#modal-save");p.disabled=!0,p.textContent="Updating Memberstack...";try{const b=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:e,newMembershipTypeId:n,skipPlanChange:s})}),f=await b.json();if(!b.ok)throw new Error(f.error||"Update failed");let _=`Membership type updated!
 
-${v.change.from} → ${v.change.to}`;v.results.warnings&&v.results.warnings.length>0&&(N+=`
+${f.change.from} → ${f.change.to}`;f.results.warnings&&f.results.warnings.length>0&&(_+=`
 
 Warnings:
-- ${v.results.warnings.join(`
-- `)}`),alert(N),s.remove();const z=document.querySelector(".dashboard-feed");z&&y(z)}catch(f){console.error("Error updating membership type:",f),alert("Error updating membership type: "+f.message),p.disabled=!1,p.textContent="Update Membership"}})}async function Z(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
+- ${f.results.warnings.join(`
+- `)}`),alert(_),r.remove();const k=document.querySelector(".dashboard-feed");k&&g(k)}catch(b){console.error("Error updating membership type:",b),alert("Error updating membership type: "+b.message),p.disabled=!1,p.textContent="Update Membership"}})}async function ae(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
       <div class="modal modal-preview">
         <div class="modal-header">
           <h3 class="modal-title">Event Preview</h3>
@@ -1091,35 +1150,35 @@ Warnings:
           </div>
         </div>
       </div>
-    `,document.body.appendChild(t),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.addEventListener("click",n=>{n.target===t&&t.remove()});const{data:a,error:i}=await d.from("events").select("*").eq("id",e).single();if(i||!a){t.querySelector(".modal-body").innerHTML='<div style="padding: 24px; color: #dc3545;">Failed to load event details.</div>';return}const s=n=>n?new Date(n).toLocaleDateString("en-AU",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"--",o=[a.location_name,a.location_address].filter(Boolean).join(", ")||"--";t.querySelector(".modal-title").textContent=a.name||"Event Preview",t.querySelector(".modal-body").innerHTML=`
-      ${a.feature_image_url?`<img src="${a.feature_image_url}" class="event-preview-image" alt="${a.name}">`:""}
+    `,document.body.appendChild(t),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.addEventListener("click",n=>{n.target===t&&t.remove()});const{data:i,error:o}=await m.from("events").select("*").eq("id",e).single();if(o||!i){t.querySelector(".modal-body").innerHTML='<div style="padding: 24px; color: #dc3545;">Failed to load event details.</div>';return}const r=n=>n?new Date(n).toLocaleDateString("en-AU",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"--",a=[i.location_name,i.location_address].filter(Boolean).join(", ")||"--";t.querySelector(".modal-title").textContent=i.name||"Event Preview",t.querySelector(".modal-body").innerHTML=`
+      ${i.feature_image_url?`<img src="${i.feature_image_url}" class="event-preview-image" alt="${i.name}">`:""}
       <div class="preview-grid">
         <div class="preview-field">
           <div class="preview-label">Start</div>
-          <div class="preview-value">${s(a.date_start)}</div>
+          <div class="preview-value">${r(i.date_start)}</div>
         </div>
         <div class="preview-field">
           <div class="preview-label">End</div>
-          <div class="preview-value">${s(a.date_end)}</div>
+          <div class="preview-value">${r(i.date_end)}</div>
         </div>
       </div>
       <div class="preview-field">
         <div class="preview-label">Location</div>
-        <div class="preview-value">${o}</div>
+        <div class="preview-value">${a}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">Description</div>
-        <div class="preview-value">${a.description||"--"}</div>
+        <div class="preview-value">${i.description||"--"}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">RSVP / Tickets</div>
-        <div class="preview-value">${a.rsvp_link?`<a href="${a.rsvp_link}" target="_blank">${a.rsvp_link}</a>`:"--"}</div>
+        <div class="preview-value">${i.rsvp_link?`<a href="${i.rsvp_link}" target="_blank">${i.rsvp_link}</a>`:"--"}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">Submitted by</div>
-        <div class="preview-value">${a.member_contact_email||"--"}</div>
+        <div class="preview-value">${i.member_contact_email||"--"}</div>
       </div>
-    `}async function ee(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
+    `}async function ie(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
       <div class="modal modal-preview">
         <div class="modal-header">
           <h3 class="modal-title">Opportunity Preview</h3>
@@ -1131,47 +1190,47 @@ Warnings:
           </div>
         </div>
       </div>
-    `,document.body.appendChild(t),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.addEventListener("click",o=>{o.target===t&&t.remove()});const{data:a,error:i}=await d.from("opportunities").select("*").eq("id",e).single();if(i||!a){t.querySelector(".modal-body").innerHTML='<div style="padding: 24px; color: #dc3545;">Failed to load opportunity details.</div>';return}const s=o=>o?new Date(o).toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"}):"--";t.querySelector(".modal-title").textContent=a.name||"Opportunity Preview",t.querySelector(".modal-body").innerHTML=`
+    `,document.body.appendChild(t),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.addEventListener("click",a=>{a.target===t&&t.remove()});const{data:i,error:o}=await m.from("opportunities").select("*").eq("id",e).single();if(o||!i){t.querySelector(".modal-body").innerHTML='<div style="padding: 24px; color: #dc3545;">Failed to load opportunity details.</div>';return}const r=a=>a?new Date(a).toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"}):"--";t.querySelector(".modal-title").textContent=i.name||"Opportunity Preview",t.querySelector(".modal-body").innerHTML=`
       <div class="preview-grid">
         <div class="preview-field">
           <div class="preview-label">Type</div>
-          <div class="preview-value">${a.opportunity_type||"--"}</div>
+          <div class="preview-value">${i.opportunity_type||"--"}</div>
         </div>
         <div class="preview-field">
           <div class="preview-label">Closes</div>
-          <div class="preview-value">${s(a.closing_date)}</div>
+          <div class="preview-value">${r(i.closing_date)}</div>
         </div>
       </div>
       <div class="preview-field">
         <div class="preview-label">Organisation</div>
-        <div class="preview-value">${a.organization||"--"}</div>
+        <div class="preview-value">${i.organization||"--"}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">Description</div>
-        <div class="preview-value">${a.description||"--"}</div>
+        <div class="preview-value">${i.description||"--"}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">How to Apply</div>
-        <div class="preview-value">${a.how_to_apply||"--"}</div>
+        <div class="preview-value">${i.how_to_apply||"--"}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">URL</div>
-        <div class="preview-value">${a.opportunity_url?`<a href="${a.opportunity_url}" target="_blank">${a.opportunity_url}</a>`:"--"}</div>
+        <div class="preview-value">${i.opportunity_url?`<a href="${i.opportunity_url}" target="_blank">${i.opportunity_url}</a>`:"--"}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">Remote</div>
-        <div class="preview-value">${a.is_remote?"Yes":"No"}</div>
+        <div class="preview-value">${i.is_remote?"Yes":"No"}</div>
       </div>
       <div class="preview-field">
         <div class="preview-label">Submitted by</div>
-        <div class="preview-value">${a.member_name||a.member_contact_email||"--"}</div>
+        <div class="preview-value">${i.member_name||i.member_contact_email||"--"}</div>
       </div>
-    `}function j(e,t){const a=t.incompleteProfiles.length,i=t.eventStats.pending,s=t.opportunityStats.pending;e.innerHTML=`
+    `}function A(e,t){const i=t.incompleteProfiles.length,o=t.eventStats.pending,r=t.opportunityStats.pending;e.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-header">
           <h1>MTNS MADE // System Dashboard</h1>
           <div style="display: flex; align-items: center; gap: 16px;">
-            <span class="admin-timestamp">Updated: ${I()}</span>
+            <span class="admin-timestamp">Updated: ${R()}</span>
             <button class="admin-btn" id="refresh-btn">Refresh</button>
           </div>
         </div>
@@ -1186,7 +1245,7 @@ Warnings:
             <div class="stat-value">${t.memberStats.active}</div>
             <div class="stat-label">Active</div>
           </div>
-          <div class="stat-cell ${a>5?"alert":""}">
+          <div class="stat-cell ${i>5?"alert":""}">
             <div class="stat-value">${t.memberStats.complete}/${t.memberStats.total}</div>
             <div class="stat-label">Profiles Complete</div>
           </div>
@@ -1197,47 +1256,47 @@ Warnings:
         </div>
 
         <!-- Issues Section -->
-        ${te(t)}
+        ${oe(t)}
 
         <!-- Activity Tabs -->
         <div class="admin-section">
           <div class="tabs-container">
             <button class="tab-btn active" data-tab="activity">Activity</button>
             <button class="tab-btn" data-tab="members">Recent Members</button>
-            <button class="tab-btn" data-tab="incomplete">Incomplete (${a})</button>
+            <button class="tab-btn" data-tab="incomplete">Incomplete (${i})</button>
             <button class="tab-btn" data-tab="failed">Failed Signups (${t.failedSignups.length})</button>
-            <button class="tab-btn" data-tab="events">Events ${i>0?`(${i})`:""}</button>
-            <button class="tab-btn" data-tab="opportunities">Opportunities ${s>0?`(${s})`:""}</button>
+            <button class="tab-btn" data-tab="events">Events ${o>0?`(${o})`:""}</button>
+            <button class="tab-btn" data-tab="opportunities">Opportunities ${r>0?`(${r})`:""}</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
             <button class="tab-btn" data-tab="support">Support</button>
           </div>
 
           <div class="tab-content active" id="tab-activity">
-            ${le(t.recentActivity)}
+            ${pe(t.recentActivity)}
           </div>
 
           <div class="tab-content" id="tab-members">
-            ${ae(t.recentMembers)}
+            ${ne(t.recentMembers)}
           </div>
 
           <div class="tab-content" id="tab-incomplete">
-            ${ie(t.incompleteProfiles)}
+            ${re(t.incompleteProfiles)}
           </div>
 
           <div class="tab-content" id="tab-failed">
-            ${oe(t.failedSignups)}
+            ${se(t.failedSignups)}
           </div>
 
           <div class="tab-content" id="tab-events">
-            ${se(t.recentEvents,t.eventStats)}
+            ${de(t.recentEvents,t.eventStats)}
           </div>
 
           <div class="tab-content" id="tab-opportunities">
-            ${ne(t.recentOpportunities,t.opportunityStats)}
+            ${le(t.recentOpportunities,t.opportunityStats)}
           </div>
 
           <div class="tab-content" id="tab-projects">
-            ${re(t.recentProjects)}
+            ${ce(t.recentProjects)}
           </div>
 
           <div class="tab-content" id="tab-support">
@@ -1245,25 +1304,27 @@ Warnings:
           </div>
         </div>
       </div>
-    `,e.querySelectorAll(".tab-btn").forEach(o=>{o.addEventListener("click",()=>{e.querySelectorAll(".tab-btn").forEach(n=>n.classList.remove("active")),e.querySelectorAll(".tab-content").forEach(n=>n.classList.remove("active")),o.classList.add("active"),e.querySelector(`#tab-${o.dataset.tab}`).classList.add("active"),o.dataset.tab==="support"&&w()})}),e.querySelector("#refresh-btn").addEventListener("click",()=>y(e)),e.querySelectorAll(".contact-btn").forEach(o=>{o.addEventListener("click",()=>{const n=o.dataset.memberId,r=t.incompleteProfiles.find(l=>l.id===n)||t.recentMembers.find(l=>l.id===n)||t.failedSignups.find(l=>l.id===n);r&&Q(r)})}),e.querySelectorAll(".approve-btn").forEach(o=>{o.addEventListener("click",async()=>{const n=o.dataset.eventId,r=o.dataset.eventName;if(confirm(`Approve event "${r}"?
+    `,e.querySelectorAll(".tab-btn").forEach(a=>{a.addEventListener("click",()=>{e.querySelectorAll(".tab-btn").forEach(n=>n.classList.remove("active")),e.querySelectorAll(".tab-content").forEach(n=>n.classList.remove("active")),a.classList.add("active"),e.querySelector(`#tab-${a.dataset.tab}`).classList.add("active"),a.dataset.tab==="support"&&w()})}),e.querySelector("#refresh-btn").addEventListener("click",()=>g(e)),e.querySelectorAll(".contact-btn").forEach(a=>{a.addEventListener("click",()=>{const n=a.dataset.memberId,s=t.incompleteProfiles.find(d=>d.id===n)||t.recentMembers.find(d=>d.id===n)||t.failedSignups.find(d=>d.id===n);s&&ee(s)})}),e.querySelectorAll(".approve-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.eventId,s=a.dataset.eventName;if(confirm(`Approve event "${s}"?
 
-This will publish the event and notify the member.`)){o.disabled=!0,o.textContent="Approving...";try{const c=await(await fetch(`${g}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b},body:JSON.stringify({eventId:n,action:"approve"})})).json();c.success?(alert(`Event "${r}" has been approved!
+This will publish the event and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const l=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({eventId:n,action:"approve"})})).json();l.success?(alert(`Event "${s}" has been approved!
 
-The member will be notified and the event will sync to Webflow.`),y(e)):(alert(`Failed to approve event: ${c.error}`),o.disabled=!1,o.textContent="Approve")}catch(l){console.error("Approve error:",l),alert("Error approving event. Please try again."),o.disabled=!1,o.textContent="Approve"}}})}),e.querySelectorAll(".reject-btn").forEach(o=>{o.addEventListener("click",async()=>{const n=o.dataset.eventId,r=o.dataset.eventName,l=prompt(`Reject event "${r}"?
+The member will be notified and the event will sync to Webflow.`),g(e)):(alert(`Failed to approve event: ${l.error}`),a.disabled=!1,a.textContent="Approve")}catch(d){console.error("Approve error:",d),alert("Error approving event. Please try again."),a.disabled=!1,a.textContent="Approve"}}})}),e.querySelectorAll(".reject-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.eventId,s=a.dataset.eventName,d=prompt(`Reject event "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(l!==null){o.disabled=!0,o.textContent="Rejecting...";try{const p=await(await fetch(`${g}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b},body:JSON.stringify({eventId:n,action:"reject",rejectionReason:l||void 0})})).json();p.success?(alert(`Event "${r}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(d!==null){a.disabled=!0,a.textContent="Rejecting...";try{const p=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({eventId:n,action:"reject",rejectionReason:d||void 0})})).json();p.success?(alert(`Event "${s}" has been rejected.
 
-The member will be notified.`),y(e)):(alert(`Failed to reject event: ${p.error}`),o.disabled=!1,o.textContent="Reject")}catch(c){console.error("Reject error:",c),alert("Error rejecting event. Please try again."),o.disabled=!1,o.textContent="Reject"}}})}),e.querySelectorAll(".preview-btn").forEach(o=>{o.addEventListener("click",()=>{Z(o.dataset.eventId)})}),e.querySelectorAll(".preview-opp-btn").forEach(o=>{o.addEventListener("click",()=>{ee(o.dataset.oppId)})}),e.querySelectorAll(".approve-opp-btn").forEach(o=>{o.addEventListener("click",async()=>{const n=o.dataset.oppId,r=o.dataset.oppName;if(confirm(`Approve opportunity "${r}"?
+The member will be notified.`),g(e)):(alert(`Failed to reject event: ${p.error}`),a.disabled=!1,a.textContent="Reject")}catch(l){console.error("Reject error:",l),alert("Error rejecting event. Please try again."),a.disabled=!1,a.textContent="Reject"}}})}),e.querySelectorAll(".preview-btn").forEach(a=>{a.addEventListener("click",()=>{ae(a.dataset.eventId)})}),e.querySelectorAll(".preview-opp-btn").forEach(a=>{a.addEventListener("click",()=>{ie(a.dataset.oppId)})}),e.querySelectorAll(".approve-opp-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.oppId,s=a.dataset.oppName;if(confirm(`Approve opportunity "${s}"?
 
-This will publish it and notify the member.`)){o.disabled=!0,o.textContent="Approving...";try{const c=await(await fetch(`${g}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b},body:JSON.stringify({opportunityId:n,action:"approve"})})).json();c.success?(alert(`Opportunity "${r}" has been approved!
+This will publish it and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const l=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({opportunityId:n,action:"approve"})})).json();l.success?(alert(`Opportunity "${s}" has been approved!
 
-The member will be notified.`),y(e)):(alert(`Failed to approve opportunity: ${c.error}`),o.disabled=!1,o.textContent="Approve")}catch(l){console.error("Opportunity approve error:",l),alert("Error approving opportunity. Please try again."),o.disabled=!1,o.textContent="Approve"}}})}),e.querySelectorAll(".reject-opp-btn").forEach(o=>{o.addEventListener("click",async()=>{const n=o.dataset.oppId,r=o.dataset.oppName,l=prompt(`Reject opportunity "${r}"?
+The member will be notified.`),g(e)):(alert(`Failed to approve opportunity: ${l.error}`),a.disabled=!1,a.textContent="Approve")}catch(d){console.error("Opportunity approve error:",d),alert("Error approving opportunity. Please try again."),a.disabled=!1,a.textContent="Approve"}}})}),e.querySelectorAll(".reject-opp-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.oppId,s=a.dataset.oppName,d=prompt(`Reject opportunity "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(l!==null){o.disabled=!0,o.textContent="Rejecting...";try{const p=await(await fetch(`${g}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${b}`,apikey:b},body:JSON.stringify({opportunityId:n,action:"reject",rejectionReason:l||void 0})})).json();p.success?(alert(`Opportunity "${r}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(d!==null){a.disabled=!0,a.textContent="Rejecting...";try{const p=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({opportunityId:n,action:"reject",rejectionReason:d||void 0})})).json();p.success?(alert(`Opportunity "${s}" has been rejected.
 
-The member will be notified.`),y(e)):(alert(`Failed to reject opportunity: ${p.error}`),o.disabled=!1,o.textContent="Reject")}catch(c){console.error("Opportunity reject error:",c),alert("Error rejecting opportunity. Please try again."),o.disabled=!1,o.textContent="Reject"}}})}),e.querySelectorAll(".edit-btn").forEach(o=>{o.addEventListener("click",()=>{const n=o.dataset.memberId,r=o.dataset.memberName,l=o.dataset.currentType;X(n,r,l)})}),e.querySelectorAll(".delete-btn").forEach(o=>{o.addEventListener("click",async()=>{const n=o.dataset.memberId,r=o.dataset.memberName;if(confirm(`Delete "${r}"?
+The member will be notified.`),g(e)):(alert(`Failed to reject opportunity: ${p.error}`),a.disabled=!1,a.textContent="Reject")}catch(l){console.error("Opportunity reject error:",l),alert("Error rejecting opportunity. Please try again."),a.disabled=!1,a.textContent="Reject"}}})}),e.querySelectorAll(".edit-btn").forEach(a=>{a.addEventListener("click",()=>{const n=a.dataset.memberId,s=a.dataset.memberName,d=a.dataset.currentType;te(n,s,d)})}),e.querySelectorAll(".delete-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.memberId,s=a.dataset.memberName;if(confirm(`Delete "${s}"?
 
-This will remove them from the dashboard and Webflow directory. This action cannot be undone.`)){o.disabled=!0,o.textContent="Deleting...";try{const{error:l}=await d.from("members").update({is_deleted:!0,subscription_status:"deleted",updated_at:new Date().toISOString()}).eq("id",n);if(l)throw l;alert(`"${r}" has been deleted.`),y(e)}catch(l){console.error("Delete error:",l),alert("Error deleting member. Please try again."),o.disabled=!1,o.textContent="Delete"}}})})}function te(e){const t=[];e.memberStats.pendingSync>0&&t.push({type:"warning",text:"Members pending Webflow sync",count:e.memberStats.pendingSync});const a=e.incompleteProfiles.filter(i=>(Date.now()-new Date(i.created_at))/864e5>7&&!i.profile_reminder_sent_at);return a.length>0&&t.push({type:"info",text:"Incomplete profiles (7+ days, no reminder sent)",count:a.length}),e.eventStats.pending>0&&t.push({type:"info",text:"Events pending review",count:e.eventStats.pending}),e.opportunityStats.pending>0&&t.push({type:"info",text:"Opportunities pending review",count:e.opportunityStats.pending}),e.memberStats.lapsed>0&&t.push({type:"error",text:"Lapsed subscriptions",count:e.memberStats.lapsed}),t.length===0?`
+This will remove them from the dashboard and Webflow directory. This action cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const{error:d}=await m.from("members").update({is_deleted:!0,subscription_status:"deleted",updated_at:new Date().toISOString()}).eq("id",n);if(d)throw d;alert(`"${s}" has been deleted.`),g(e)}catch(d){console.error("Delete error:",d),alert("Error deleting member. Please try again."),a.disabled=!1,a.textContent="Delete"}}})}),e.querySelectorAll(".delete-project-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.projectId,s=a.dataset.projectName;if(confirm(`Delete project "${s}"?
+
+This will remove it from Webflow and the directory. This cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const l=await(await fetch(`${v}/functions/v1/admin-tools`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete-project",projectId:n})})).json();l.success?(alert(`Project "${s}" has been deleted.`),g(e)):(alert(`Failed to delete project: ${l.error}`),a.disabled=!1,a.textContent="Delete")}catch(d){console.error("Delete project error:",d),alert("Error deleting project. Please try again."),a.disabled=!1,a.textContent="Delete"}}})})}function oe(e){const t=[];e.memberStats.pendingSync>0&&t.push({type:"warning",text:"Members pending Webflow sync",count:e.memberStats.pendingSync});const i=e.incompleteProfiles.filter(o=>(Date.now()-new Date(o.created_at))/864e5>7&&!o.profile_reminder_sent_at);return i.length>0&&t.push({type:"info",text:"Incomplete profiles (7+ days, no reminder sent)",count:i.length}),e.eventStats.pending>0&&t.push({type:"info",text:"Events pending review",count:e.eventStats.pending}),e.opportunityStats.pending>0&&t.push({type:"info",text:"Opportunities pending review",count:e.opportunityStats.pending}),e.memberStats.lapsed>0&&t.push({type:"error",text:"Lapsed subscriptions",count:e.memberStats.lapsed}),t.length===0?`
         <div class="admin-section">
           <div class="section-header">
             <h2 class="section-title">System Status</h2>
@@ -1278,16 +1339,16 @@ This will remove them from the dashboard and Webflow directory. This action cann
           <span class="section-badge alert">${t.length} Issue${t.length>1?"s":""}</span>
         </div>
         <div class="issues-list">
-          ${t.map(i=>`
+          ${t.map(o=>`
             <div class="issue-item">
-              <div class="issue-icon ${i.type}"></div>
-              <div class="issue-text">${i.text}</div>
-              <div class="issue-count">${i.count}</div>
+              <div class="issue-icon ${o.type}"></div>
+              <div class="issue-text">${o.text}</div>
+              <div class="issue-count">${o.count}</div>
             </div>
           `).join("")}
         </div>
       </div>
-    `}function ae(e){return e.length===0?'<div class="empty-state">No members found</div>':`
+    `}function ne(e){return e.length===0?'<div class="empty-state">No members found</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1300,14 +1361,14 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tr>
         </thead>
         <tbody>
-          ${e.map(t=>{var a;return`
+          ${e.map(t=>{var i;return`
             <tr>
               <td>
                 <div class="name-cell">${t.name||t.first_name||"No name"}</div>
                 <div class="email-cell">${t.email||"--"}</div>
               </td>
               <td>
-                <span class="type-cell">${((a=t.membership_types)==null?void 0:a.name)||"Not set"}</span>
+                <span class="type-cell">${((i=t.membership_types)==null?void 0:i.name)||"Not set"}</span>
               </td>
               <td>
                 <span class="status ${t.subscription_status||"active"}">
@@ -1319,12 +1380,12 @@ This will remove them from the dashboard and Webflow directory. This action cann
                   ${t.profile_complete?"Complete":"Incomplete"}
                 </span>
               </td>
-              <td class="time-cell">${h(t.created_at)}</td>
+              <td class="time-cell">${x(t.created_at)}</td>
               <td>
                 <div class="action-btns">
                   <button class="action-btn edit-btn" data-member-id="${t.id}" data-member-name="${t.name||t.first_name||"this member"}" data-current-type="${t.membership_type_id||""}">Edit</button>
                   ${t.webflow_id&&t.slug?`
-                    <a href="${x}/members/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
+                    <a href="${y}/members/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
                   `:""}
                   <button class="action-btn delete-btn" data-member-id="${t.id}" data-member-name="${t.name||t.first_name||"this member"}">Delete</button>
                 </div>
@@ -1333,7 +1394,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           `}).join("")}
         </tbody>
       </table>
-    `}function ie(e){return e.length===0?'<div class="empty-state">All active members have complete profiles</div>':`
+    `}function re(e){return e.length===0?'<div class="empty-state">All active members have complete profiles</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1345,7 +1406,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tr>
         </thead>
         <tbody>
-          ${e.map(t=>{const a=T(t);return`
+          ${e.map(t=>{const i=M(t);return`
               <tr>
                 <td>
                   <div class="name-cell">${t.name||t.first_name||"No name"}</div>
@@ -1353,14 +1414,14 @@ This will remove them from the dashboard and Webflow directory. This action cann
                 </td>
                 <td>
                   <div class="missing-fields">
-                    ${a.slice(0,3).map(i=>`<span class="missing-field">${i}</span>`).join("")}
-                    ${a.length>3?`<span class="missing-field">+${a.length-3}</span>`:""}
+                    ${i.slice(0,3).map(o=>`<span class="missing-field">${o}</span>`).join("")}
+                    ${i.length>3?`<span class="missing-field">+${i.length-3}</span>`:""}
                   </div>
                 </td>
                 <td class="time-cell">
-                  ${t.profile_reminder_sent_at?h(t.profile_reminder_sent_at):"--"}
+                  ${t.profile_reminder_sent_at?x(t.profile_reminder_sent_at):"--"}
                 </td>
-                <td class="time-cell">${h(t.created_at)}</td>
+                <td class="time-cell">${x(t.created_at)}</td>
                 <td>
                   <div class="action-btns">
                     ${t.profile_reminder_sent_at?`
@@ -1369,7 +1430,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
                       <button class="action-btn contact-btn" data-member-id="${t.id}">Contact</button>
                     `}
                     ${t.webflow_id&&t.slug?`
-                      <a href="${x}/members/${t.slug}" target="_blank" class="action-btn">View</a>
+                      <a href="${y}/members/${t.slug}" target="_blank" class="action-btn">View</a>
                     `:""}
                   </div>
                 </td>
@@ -1377,7 +1438,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
             `}).join("")}
         </tbody>
       </table>
-    `}function oe(e){return e.length===0?'<div class="empty-state">No failed signups found</div>':`
+    `}function se(e){return e.length===0?'<div class="empty-state">No failed signups found</div>':`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 12px; color: #666;">
         Members who started signup but never completed payment (not active, not lapsed)
       </div>
@@ -1402,7 +1463,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
                   ${t.subscription_status||"no status"}
                 </span>
               </td>
-              <td class="time-cell">${h(t.created_at)}</td>
+              <td class="time-cell">${x(t.created_at)}</td>
               <td>
                 <div class="action-btns">
                   ${t.profile_reminder_sent_at?`
@@ -1417,7 +1478,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           `).join("")}
         </tbody>
       </table>
-    `}function se(e,t){return`
+    `}function de(e,t){return`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
         <span style="margin-right: 24px;"><strong style="color: #f59f00;">${t.pending}</strong> Pending</span>
         <span><strong style="color: #1a1a1a;">${t.published}</strong> Published</span>
@@ -1434,32 +1495,32 @@ This will remove them from the dashboard and Webflow directory. This action cann
             </tr>
           </thead>
           <tbody>
-            ${e.map(a=>{let i="draft";return a.is_archived?i="archived":a.is_draft?i="pending":i="published",`
+            ${e.map(i=>{let o="draft";return i.is_archived?o="archived":i.is_draft?o="pending":o="published",`
                 <tr>
                   <td>
-                    <div class="name-cell">${a.name||"Untitled"}</div>
-                    <div class="email-cell">${a.member_contact_email||"--"}</div>
+                    <div class="name-cell">${i.name||"Untitled"}</div>
+                    <div class="email-cell">${i.member_contact_email||"--"}</div>
                   </td>
                   <td>
-                    <span class="status ${i==="published"?"complete":i==="pending"?"pending":"draft"}">
-                      ${i}
+                    <span class="status ${o==="published"?"complete":o==="pending"?"pending":"draft"}">
+                      ${o}
                     </span>
                   </td>
                   <td>
-                    <span class="status ${a.webflow_id?"synced":"pending"}">
-                      ${a.webflow_id?"Synced":"--"}
+                    <span class="status ${i.webflow_id?"synced":"pending"}">
+                      ${i.webflow_id?"Synced":"--"}
                     </span>
                   </td>
-                  <td class="time-cell">${h(a.created_at)}</td>
+                  <td class="time-cell">${x(i.created_at)}</td>
                   <td>
                     <div class="action-btns">
-                      ${i==="pending"?`
-                        <button class="action-btn preview-btn" data-event-id="${a.id}">Preview</button>
-                        <button class="action-btn approve-btn" data-event-id="${a.id}" data-event-name="${a.name}">Approve</button>
-                        <button class="action-btn reject-btn" data-event-id="${a.id}" data-event-name="${a.name}">Reject</button>
+                      ${o==="pending"?`
+                        <button class="action-btn preview-btn" data-event-id="${i.id}">Preview</button>
+                        <button class="action-btn approve-btn" data-event-id="${i.id}" data-event-name="${i.name}">Approve</button>
+                        <button class="action-btn reject-btn" data-event-id="${i.id}" data-event-name="${i.name}">Reject</button>
                       `:""}
-                      ${a.webflow_id&&a.slug?`
-                        <a href="${x}/event/${a.slug}" target="_blank" class="action-btn view-btn">View</a>
+                      ${i.webflow_id&&i.slug?`
+                        <a href="${y}/event/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
                       `:""}
                     </div>
                   </td>
@@ -1468,7 +1529,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tbody>
         </table>
       `}
-    `}function ne(e,t){return`
+    `}function le(e,t){return`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
         <span style="margin-right: 24px;"><strong style="color: #f59f00;">${t.pending}</strong> Pending</span>
         <span><strong style="color: #1a1a1a;">${t.published}</strong> Published</span>
@@ -1485,30 +1546,30 @@ This will remove them from the dashboard and Webflow directory. This action cann
             </tr>
           </thead>
           <tbody>
-            ${e.map(a=>{let i="draft";return a.is_archived?i="archived":a.is_draft?i="pending":i="published",`
+            ${e.map(i=>{let o="draft";return i.is_archived?o="archived":i.is_draft?o="pending":o="published",`
                 <tr>
                   <td>
-                    <div class="name-cell">${a.name||"Untitled"}</div>
-                    <div class="email-cell">${a.member_contact_email||"--"}</div>
+                    <div class="name-cell">${i.name||"Untitled"}</div>
+                    <div class="email-cell">${i.member_contact_email||"--"}</div>
                   </td>
                   <td>
-                    <span class="type-cell">${a.opportunity_type||"--"}</span>
+                    <span class="type-cell">${i.opportunity_type||"--"}</span>
                   </td>
                   <td>
-                    <span class="status ${i==="published"?"complete":i==="pending"?"pending":"draft"}">
-                      ${i}
+                    <span class="status ${o==="published"?"complete":o==="pending"?"pending":"draft"}">
+                      ${o}
                     </span>
                   </td>
-                  <td class="time-cell">${h(a.created_at)}</td>
+                  <td class="time-cell">${x(i.created_at)}</td>
                   <td>
                     <div class="action-btns">
-                      ${i==="pending"?`
-                        <button class="action-btn preview-opp-btn" data-opp-id="${a.id}">Preview</button>
-                        <button class="action-btn approve-opp-btn" data-opp-id="${a.id}" data-opp-name="${a.name}">Approve</button>
-                        <button class="action-btn reject-opp-btn" data-opp-id="${a.id}" data-opp-name="${a.name}">Reject</button>
+                      ${o==="pending"?`
+                        <button class="action-btn preview-opp-btn" data-opp-id="${i.id}">Preview</button>
+                        <button class="action-btn approve-opp-btn" data-opp-id="${i.id}" data-opp-name="${i.name}">Approve</button>
+                        <button class="action-btn reject-opp-btn" data-opp-id="${i.id}" data-opp-name="${i.name}">Reject</button>
                       `:""}
-                      ${a.webflow_id&&a.slug?`
-                        <a href="${x}/opportunities/${a.slug}" target="_blank" class="action-btn view-btn">View</a>
+                      ${i.webflow_id&&i.slug?`
+                        <a href="${y}/opportunities/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
                       `:""}
                     </div>
                   </td>
@@ -1517,7 +1578,7 @@ This will remove them from the dashboard and Webflow directory. This action cann
           </tbody>
         </table>
       `}
-    `}function re(e){return e.length===0?'<div class="empty-state">No projects found</div>':`
+    `}function ce(e){return e.length===0?'<div class="empty-state">No projects found</div>':`
       <table class="admin-table">
         <thead>
           <tr>
@@ -1538,62 +1599,62 @@ This will remove them from the dashboard and Webflow directory. This action cann
                   ${t.webflow_id?"Synced":"Pending"}
                 </span>
               </td>
-              <td class="time-cell">${h(t.updated_at)}</td>
+              <td class="time-cell">${x(t.updated_at)}</td>
               <td>
-                ${t.webflow_id&&t.slug?`
-                  <a href="${x}/projects/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
-                `:"--"}
+                <div class="action-btns">
+                  ${t.webflow_id&&t.slug?`
+                    <a href="${y}/projects/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
+                  `:""}
+                  <button class="action-btn delete-project-btn" data-project-id="${t.id}" data-project-name="${(t.name||"this project").replace(/"/g,"&quot;")}">Delete</button>
+                </div>
               </td>
             </tr>
           `).join("")}
         </tbody>
       </table>
-    `}function le(e){if(!e||e.length===0)return'<div class="empty-state">No recent activity</div>';const t=i=>i==="member_signup"?{class:"signup",icon:"🎉"}:i==="profile_update"?{class:"profile",icon:"👤"}:i.startsWith("project_")?{class:"project",icon:"📁"}:i.startsWith("event_")?{class:"event",icon:"📅"}:i.startsWith("opportunity_")?{class:"event",icon:"💼"}:i==="subscription_canceled"?{class:"canceled",icon:"🚫"}:i==="subscription_reactivated"?{class:"reactivated",icon:"✅"}:{class:"",icon:"📝"},a=i=>i.activity_type==="member_signup"?null:i.entity_webflow_url?i.entity_webflow_url:i.member_webflow_url?i.member_webflow_url:null;return`
+    `}function pe(e){if(!e||e.length===0)return'<div class="empty-state">No recent activity</div>';const t=o=>o==="member_signup"?{class:"signup",icon:"🎉"}:o==="profile_update"?{class:"profile",icon:"👤"}:o.startsWith("project_")?{class:"project",icon:"📁"}:o.startsWith("event_")?{class:"event",icon:"📅"}:o.startsWith("opportunity_")?{class:"event",icon:"💼"}:o==="subscription_canceled"?{class:"canceled",icon:"🚫"}:o==="subscription_reactivated"?{class:"reactivated",icon:"✅"}:{class:"",icon:"📝"},i=o=>o.activity_type==="member_signup"?null:o.entity_webflow_url?o.entity_webflow_url:o.member_webflow_url?o.member_webflow_url:null;return`
       <div class="activity-feed">
-        ${e.map(i=>{const s=t(i.activity_type),o=a(i);return`
+        ${e.map(o=>{const r=t(o.activity_type),a=i(o);return`
             <div class="activity-item">
-              ${i.member_profile_image?`
+              ${o.member_profile_image?`
                 <div class="activity-avatar">
-                  <img src="${i.member_profile_image}" alt="${i.member_name}">
+                  <img src="${o.member_profile_image}" alt="${o.member_name}">
                 </div>
               `:`
-                <div class="activity-icon ${s.class}">${s.icon}</div>
+                <div class="activity-icon ${r.class}">${r.icon}</div>
               `}
               <div class="activity-content">
                 <div class="activity-text">
-                  <strong>${i.member_name}</strong> ${i.description}
+                  <strong>${o.member_name}</strong> ${o.description}
                 </div>
                 <div class="activity-meta">
-                  <span class="activity-time">${h(i.created_at)}</span>
+                  <span class="activity-time">${x(o.created_at)}</span>
                 </div>
               </div>
               <div class="activity-action">
-                ${o?`
-                  <a href="${o}" target="_blank" class="action-btn">View</a>
+                ${a?`
+                  <a href="${a}" target="_blank" class="action-btn">View</a>
                 `:""}
               </div>
             </div>
           `}).join("")}
       </div>
-    `}const M={member_support:"Member Support",website_bug:"Website Bug",feature_request:"Feature Request"},E={not_started:"Not Started",in_progress:"In Progress",feedback_needed:"Feedback Needed",complete:"Complete",stalled:"Stalled"};let m={category:"all",status:"all"};async function de(){const{data:e,error:t}=await d.from("support_tasks").select("*, support_task_comments(*)").order("created_at",{ascending:!1});return t?(console.error("loadSupportTasks:",t),[]):((e||[]).forEach(a=>{var i;return(i=a.support_task_comments)==null?void 0:i.sort((s,o)=>new Date(s.created_at)-new Date(o.created_at))}),e||[])}async function w(){const e=document.getElementById("support-tracker-root");if(!e)return;e.innerHTML='<div class="support-empty">Loading...</div>';const t=await de();ce(e,t)}function ce(e,t){var i;const a=t.filter(s=>{const o=m.category==="all"||s.category===m.category,n=m.status==="all"||s.status===m.status;return o&&n});e.innerHTML=`
-      <div class="support-toolbar">
-        <div class="support-filters">
-          <span class="filter-pill ${m.category==="all"?"active":""}" data-cat="all">All</span>
-          <span class="filter-pill ${m.category==="member_support"?"active":""}" data-cat="member_support">Member Support</span>
-          <span class="filter-pill ${m.category==="website_bug"?"active":""}" data-cat="website_bug">Website Bug</span>
-          <span class="filter-pill ${m.category==="feature_request"?"active":""}" data-cat="feature_request">Feature Request</span>
-          <span style="width:1px;background:#e0e0e0;margin:0 4px;"></span>
-          <span class="filter-pill ${m.status==="all"?"active":""}" data-status="all">Any Status</span>
-          <span class="filter-pill ${m.status==="not_started"?"active":""}" data-status="not_started">Not Started</span>
-          <span class="filter-pill ${m.status==="in_progress"?"active":""}" data-status="in_progress">In Progress</span>
-          <span class="filter-pill ${m.status==="feedback_needed"?"active":""}" data-status="feedback_needed">Feedback Needed</span>
-          <span class="filter-pill ${m.status==="complete"?"active":""}" data-status="complete">Complete</span>
-          <span class="filter-pill ${m.status==="stalled"?"active":""}" data-status="stalled">Stalled</span>
-        </div>
-        <button class="admin-btn primary" id="new-task-btn">+ New Task</button>
+    `}const q={member_support:"Member Support",website_bug:"Website Bug",feature_request:"Feature Request"},N={not_started:"Not Started",in_progress:"In Progress",feedback_needed:"Feedback Needed",complete:"Complete",stalled:"Stalled"};let j="main";const me=new Set(["not_started","in_progress","feedback_needed"]),ue=new Set(["complete","stalled"]);async function be(){const{data:e,error:t}=await m.from("support_tasks").select("*, support_task_comments(*)").order("created_at",{ascending:!1});return t?(console.error("loadSupportTasks:",t),[]):((e||[]).forEach(i=>{var o;return(o=i.support_task_comments)==null?void 0:o.sort((r,a)=>new Date(r.created_at)-new Date(a.created_at))}),e||[])}const $=7;function fe(e){const t=new Date,i=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0"),o=e.filter(c=>{const b=new Date(c.created_at);return b.getFullYear()+"-"+String(b.getMonth()+1).padStart(2,"0")===i}).reduce((c,b)=>c+(parseFloat(b.hours)||0),0),r=Math.min(o/$*100,100),a=$-o,n=t.toLocaleDateString("en-AU",{month:"long"});let s="",d=`${a%1===0?a:a.toFixed(1)}h remaining`;if(o>$){s="over";const c=o-$;d=`${c%1===0?c:c.toFixed(1)}h over this month's limit`}else o>=5&&(s="approaching",d=`${a%1===0?a:a.toFixed(1)}h remaining — approaching limit`);const l=o%1===0?o:o.toFixed(1),p=document.createElement("div");return p.className=`retainer-banner${s?" "+s:""}`,p.innerHTML=`
+      <div class="retainer-label">Retainer &mdash; ${n}</div>
+      <div class="retainer-bar-wrap">
+        <div class="retainer-bar-fill" style="width:${r}%"></div>
       </div>
-
-      ${a.length===0?'<div class="support-empty">No tasks yet.</div>':`<table class="admin-table" id="support-table">
+      <div class="retainer-hours">${l}h / ${$}h</div>
+      <div class="retainer-status">${d}</div>
+    `,p}async function w(){const e=document.getElementById("support-tracker-root");if(!e)return;e.innerHTML='<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';const t=await be();ve(e,t)}function ve(e,t){var o,r;const i=j==="archive";if(e.innerHTML=`
+      <div class="support-toolbar">
+        <div class="support-toolbar-actions">
+          <button class="admin-btn primary" id="new-task-btn">+ New Task</button>
+          <button class="admin-btn ${i?"primary":""}" id="archive-view-btn">Archive</button>
+        </div>
+        ${i?'<span style="font-size:12px;color:#888;">Completed &amp; stalled tasks</span>':'<span style="font-size:12px;color:#888;">Active tasks</span>'}
+      </div>
+    `,e.appendChild(fe(t)),i)he(e,t.filter(a=>ue.has(a.status)));else{const a=t.filter(s=>me.has(s.status)),n=document.createElement("div");n.innerHTML=a.length===0?'<div class="empty-state" style="padding:40px 20px;">No active tasks.</div>':`<table class="admin-table" id="support-table">
             <thead>
               <tr>
                 <th>Category</th>
@@ -1606,82 +1667,155 @@ This will remove them from the dashboard and Webflow directory. This action cann
               </tr>
             </thead>
             <tbody>
-              ${a.map(s=>pe(s)).join("")}
+              ${a.map(s=>ge(s)).join("")}
             </tbody>
-          </table>`}
-    `,e.querySelectorAll("[data-cat]").forEach(s=>{s.addEventListener("click",()=>{m.category=s.dataset.cat,w()})}),e.querySelectorAll("[data-status]").forEach(s=>{s.addEventListener("click",()=>{m.status=s.dataset.status,w()})}),(i=e.querySelector("#new-task-btn"))==null||i.addEventListener("click",()=>ve()),e.querySelectorAll(".task-expand-btn").forEach(s=>{s.addEventListener("click",()=>ue(s.dataset.taskId))}),e.querySelectorAll(".status-select").forEach(s=>{s.addEventListener("change",async o=>{const n=s.dataset.taskId,r=s.value,l=t.find(c=>c.id===n);await be(n,r,l),await w()})}),e.querySelectorAll(".task-edit-btn").forEach(s=>{s.addEventListener("click",()=>{const o=t.find(n=>n.id===s.dataset.taskId);o&&ge(o)})})}function pe(e){const t=e.support_task_comments||[];return`
-      <tr>
-        <td><span class="task-category ${e.category}">${M[e.category]||e.category}</span></td>
-        <td class="time-cell">${C(e.created_at)}</td>
-        <td>
-          <div class="task-title-cell">${u(e.title)}</div>
-          ${e.description?`<div class="task-desc">${u(e.description.substring(0,80))}${e.description.length>80?"…":""}</div>`:""}
-        </td>
-        <td>
-          ${e.member_name?e.member_profile_url?`<a class="task-member-link" href="${e.member_profile_url}" target="_blank">${u(e.member_name)}</a>`:u(e.member_name):""}
-        </td>
-        <td>
-          <select class="status-select" data-task-id="${e.id}">
-            ${Object.entries(E).map(([a,i])=>`<option value="${a}" ${e.status===a?"selected":""}>${i}</option>`).join("")}
-          </select>
-        </td>
-        <td>${e.hours!=null?e.hours:""}</td>
-        <td style="white-space:nowrap;">
-          <button class="action-btn task-expand-btn" data-task-id="${e.id}" style="margin-right:4px;">
-            ${t.length>0?`Notes (${t.length})`:"Notes"}
-          </button>
-          <button class="action-btn task-edit-btn" data-task-id="${e.id}">Edit</button>
-        </td>
-      </tr>
-      <tr class="task-row-expand" id="task-detail-${e.id}" style="display:none;">
-        <td colspan="7">
-          ${me(e)}
-        </td>
-      </tr>
-    `}function me(e){const t=e.support_task_comments||[];return`
-      <div class="task-detail-panel">
-        ${e.description?`<div style="font-size:13px;line-height:1.6;margin-bottom:12px;">${u(e.description)}</div>`:""}
-        ${e.notes?`<div style="font-size:12px;color:#666;border-top:1px solid #eee;padding-top:10px;margin-top:10px;">${u(e.notes)}</div>`:""}
-
-        <div class="comments-section">
-          <div class="comments-title">Comments (${t.length}/5)</div>
-          ${t.map(a=>`
-            <div class="comment-item">
-              <div class="comment-author-badge ${a.author.toLowerCase()==="hannah"?"hannah":""}">${a.author.charAt(0).toUpperCase()}</div>
-              <div class="comment-body">
-                <div class="comment-meta">${u(a.author)} &middot; ${C(a.created_at)}</div>
-                <div class="comment-text">${u(a.body)}</div>
+          </table>`,e.appendChild(n),e.querySelectorAll(".task-detail-btn").forEach(s=>{s.addEventListener("click",()=>{const d=t.find(l=>l.id===s.dataset.taskId);d&&z(d)})}),e.querySelectorAll(".form-input[data-task-id]").forEach(s=>{s.addEventListener("change",async()=>{const d=t.find(l=>l.id===s.dataset.taskId);await ye(s.dataset.taskId,s.value,d),await w()})}),e.querySelectorAll(".task-edit-btn").forEach(s=>{s.addEventListener("click",()=>{const d=t.find(l=>l.id===s.dataset.taskId);d&&we(d)})})}(o=e.querySelector("#new-task-btn"))==null||o.addEventListener("click",()=>xe()),(r=e.querySelector("#archive-view-btn"))==null||r.addEventListener("click",()=>{j=j==="archive"?"main":"archive",w()})}function he(e,t){const i={};t.forEach(n=>{const s=new Date(n.created_at),d=`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,"0")}`;i[d]||(i[d]=[]),i[d].push(n)});const o=Object.keys(i).sort((n,s)=>s.localeCompare(n));if(o.length===0){const n=document.createElement("div");n.className="empty-state",n.style.padding="40px 20px",n.textContent="No archived tasks yet.",e.appendChild(n);return}function r(n){const[s,d]=n.split("-");return new Date(parseInt(s),parseInt(d)-1,1).toLocaleDateString("en-AU",{month:"long",year:"numeric"})}const a=document.createElement("div");a.className="archive-month-grid",o.forEach(n=>{const s=i[n].slice().sort((c,b)=>new Date(b.updated_at)-new Date(c.updated_at)),d=s.reduce((c,b)=>c+(parseFloat(b.hours)||0),0),l=d>0?`${d%1===0?d:d.toFixed(2)}h`:"—",p=document.createElement("div");p.className="month-card expanded",p.innerHTML=`
+        <div class="month-card-header">
+          <div class="month-card-name">${r(n)}</div>
+          <div class="month-card-chevron">▼</div>
+        </div>
+        <div class="month-card-stats">
+          <div class="month-card-stat"><strong>${s.length}</strong> task${s.length!==1?"s":""}</div>
+          <div class="month-card-stat"><strong>${l}</strong></div>
+        </div>
+        <div class="month-tasks">
+          ${s.map(c=>`
+            <div class="month-task-item">
+              <div class="month-task-title" data-task-id="${c.id}">
+                <span class="status ${c.category}" style="font-size:10px;padding:2px 6px;margin-right:4px;">${q[c.category]||c.category}</span>
+                ${u(c.title.length>80?c.title.substring(0,77)+"…":c.title)}
               </div>
+              <div class="month-task-meta">${c.hours!=null?c.hours+"h":""}</div>
             </div>
           `).join("")}
-
-          ${t.length<5?`
-            <div class="comment-input-row">
-              <textarea class="comment-textarea" id="comment-input-${e.id}" placeholder="Add a comment..."></textarea>
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <button class="admin-btn primary add-comment-btn" data-task-id="${e.id}" style="white-space:nowrap;">Add</button>
+        </div>
+      `,p.addEventListener("click",()=>{p.classList.toggle("expanded")}),p.querySelectorAll(".month-task-title").forEach(c=>{c.addEventListener("click",b=>{b.stopPropagation();const f=c.dataset.taskId;m.from("support_tasks").select("*, support_task_comments(*)").eq("id",f).single().then(({data:_})=>{var k;_&&((k=_.support_task_comments)==null||k.sort((_e,$e)=>new Date(_e.created_at)-new Date($e.created_at)),z(_))})})}),a.appendChild(p)}),e.appendChild(a)}function ge(e){const t=e.support_task_comments||[];return`
+      <tr>
+        <td><span class="status ${e.category}">${q[e.category]||e.category}</span></td>
+        <td class="time-cell">${P(e.created_at)}</td>
+        <td>
+          <div class="name-cell" title="${u(e.title)}" style="cursor:default;">${u(e.title.length>80?e.title.substring(0,77)+"…":e.title)}</div>
+        </td>
+        <td>
+          ${e.member_name?e.member_profile_url?`<a class="email-cell" href="${e.member_profile_url}" target="_blank" style="color:#0066cc;text-decoration:none;">${u(e.member_name)}</a>`:`<span class="email-cell">${u(e.member_name)}</span>`:""}
+        </td>
+        <td>
+          <select class="form-input" data-task-id="${e.id}" style="padding:4px 8px;font-size:12px;width:auto;">
+            ${Object.entries(N).map(([i,o])=>`<option value="${i}" ${e.status===i?"selected":""}>${o}</option>`).join("")}
+          </select>
+        </td>
+        <td class="time-cell">${e.hours!=null?e.hours+"h":""}</td>
+        <td>
+          <div class="action-btns">
+            <button class="action-btn task-detail-btn" data-task-id="${e.id}">
+              ${t.length>0?`Notes (${t.length})`:"Notes"}
+            </button>
+            <button class="action-btn edit-btn task-edit-btn" data-task-id="${e.id}">Edit</button>
+          </div>
+        </td>
+      </tr>
+    `}function z(e){const t=e.support_task_comments||[],i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
+      <div class="modal" style="max-width:620px;">
+        <div class="modal-header">
+          <div>
+            <span class="status ${e.category}" style="margin-bottom:6px;display:inline-block;">${q[e.category]||e.category}</span>
+            <h3 class="modal-title" style="margin-top:6px;">${u(e.title)}</h3>
+          </div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          ${e.description?`
+            <div class="form-field">
+              <div class="form-label">Description</div>
+              <div style="font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;">${u(e.description)}</div>
+            </div>
+          `:""}
+          ${e.notes?`
+            <div class="form-field">
+              <div class="form-label">Notes</div>
+              <div style="font-size:13px;line-height:1.7;color:#555;white-space:pre-wrap;">${u(e.notes)}</div>
+            </div>
+          `:""}
+          ${e.member_name?`
+            <div class="form-field">
+              <div class="form-label">Member</div>
+              <div style="font-size:13px;">
+                ${e.member_profile_url?`<a href="${e.member_profile_url}" target="_blank" style="color:#0066cc;">${u(e.member_name)}</a>`:u(e.member_name)}
               </div>
             </div>
-          `:'<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
+          `:""}
+
+          <div class="comments-section">
+            <div class="comments-title">Comments (${t.length}/5)</div>
+            <div id="task-comments-list">
+              ${t.map(a=>`
+                <div class="comment-item">
+                  <div class="comment-author-badge ${a.author.toLowerCase()==="hannah"||a.author==="MTNS MADE"?"hannah":""}">${a.author.charAt(0).toUpperCase()}</div>
+                  <div class="comment-body">
+                    <div class="comment-meta">${u(a.author)} &middot; ${P(a.created_at)}</div>
+                    <div class="comment-text">${u(a.body)}</div>
+                    ${a.image_url?`<img src="${u(a.image_url)}" style="max-width:100%;border-radius:4px;margin-top:8px;display:block;" loading="lazy">`:""}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+            ${t.length<5?`
+              <div class="comment-input-row" style="margin-top:16px;">
+                <textarea class="form-input" id="task-comment-input" placeholder="Add a comment..." style="min-height:70px;resize:none;flex:1;"></textarea>
+                <div style="margin-top:8px;">
+                  <label style="font-size:12px;color:#666;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                    <input type="file" id="task-comment-image" accept="image/*" style="display:none;">
+                    <span style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;background:#fafafa;">Attach screenshot</span>
+                    <span id="task-comment-image-name" style="color:#888;"></span>
+                  </label>
+                </div>
+              </div>
+            `:'<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="admin-btn" id="td-close">Close</button>
+          ${t.length<5?'<button class="admin-btn primary" id="td-add-comment">Add Comment</button>':""}
         </div>
       </div>
-    `}function ue(e){const t=document.getElementById(`task-detail-${e}`);if(!t)return;const a=t.style.display==="none";if(t.style.display=a?"table-row":"none",a){const i=t.querySelector(`.add-comment-btn[data-task-id="${e}"]`);i&&i.addEventListener("click",async()=>{const s=document.getElementById(`comment-input-${e}`),o=s==null?void 0:s.value.trim();o&&(i.disabled=!0,i.textContent="Saving...",await d.from("support_task_comments").insert({task_id:e,author:"Racket",body:o}),await w(),setTimeout(()=>{const n=document.getElementById(`task-detail-${e}`);n&&(n.style.display="table-row")},100))})}}async function be(e,t,a){await d.from("support_tasks").update({status:t}).eq("id",e),t==="feedback_needed"?await S("feedback_needed",a||{title:"(task)"}):t==="complete"&&await S("complete",a||{title:"(task)"})}async function S(e,t){const a=M[t.category]||t.category||"",i=t.member_name?`
-Member: ${t.member_name}${t.member_profile_url?" — "+t.member_profile_url:""}`:"";let s,o,n;if(e==="created")s="contact@racket.net.au",o=`New MTNS MADE support task: ${t.title}`,n=`A new support task has been logged.
+    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#td-close").addEventListener("click",()=>i.remove()),i.addEventListener("click",a=>{a.target===i&&i.remove()});const o=i.querySelector("#task-comment-image");o&&o.addEventListener("change",()=>{var n;const a=i.querySelector("#task-comment-image-name");a&&(a.textContent=((n=o.files[0])==null?void 0:n.name)||"")});const r=i.querySelector("#td-add-comment");r&&r.addEventListener("click",async()=>{var d;const a=i.querySelector("#task-comment-input"),n=a==null?void 0:a.value.trim();if(!n)return;r.disabled=!0,r.textContent="Saving...";let s=null;if((d=o==null?void 0:o.files)!=null&&d[0]){const l=o.files[0],p=l.name.split(".").pop()||"png",c=`${e.id}/${Date.now()}.${p}`,{error:b}=await m.storage.from("support-screenshots").upload(c,l,{contentType:l.type});if(!b){const{data:f}=m.storage.from("support-screenshots").getPublicUrl(c);s=(f==null?void 0:f.publicUrl)||null}}await m.from("support_task_comments").insert({task_id:e.id,author:"Racket",body:n,image_url:s}),i.remove(),await S("comment",e,n),await w()})}async function ye(e,t,i){await m.from("support_tasks").update({status:t}).eq("id",e),t==="feedback_needed"?await S("feedback_needed",i||{id:e,title:"(task)",status:t}):t==="complete"&&await S("complete",i||{id:e,title:"(task)",status:t})}async function S(e,t,i){var l;const o=q[t.category]||t.category||"",r=t.member_name?`
+Member: ${t.member_name}${t.member_profile_url?" — "+t.member_profile_url:""}`:"";let a,n,s;const d="https://www.mtnsmade.com.au/admin/dashboard";if(e==="created")a="contact@racket.net.au",n=`New MTNS MADE support task: ${t.title}`,s=`A new support task has been logged.
 
-Category: ${a}${i}
-Task: ${t.title}
-${t.description?`
-`+t.description:""}`;else if(e==="feedback_needed")s="hello@mtnsmade.com.au",o=`Feedback needed: ${t.title}`,n=`A support task requires your feedback.
-
-Category: ${a}${i}
+Category: ${o}${r}
 Task: ${t.title}
 ${t.description?`
 `+t.description:""}
 
-Please log in to the admin dashboard to respond.`;else if(e==="complete")s="hello@mtnsmade.com.au",o=`Task complete: ${t.title}`,n=`A support task has been marked complete.
+View on dashboard: ${d}`;else if(e==="comment")a="hello@mtnsmade.com.au",n=`New comment on: ${t.title}`,s=`Racket has added a comment to a support task.
 
-Category: ${a}${i}
-Task: ${t.title}`;else return;try{await fetch(`${g}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:s,subject:o,text:n,html:n.replace(/\n/g,"<br>")})})}catch(r){console.error("sendTaskNotification error:",r)}}let L=null;async function fe(e){if(!e||e.length<2)return[];const{data:t}=await d.from("members").select("id, name, slug").ilike("name",`%${e}%`).eq("subscription_status","active").limit(8);return t||[]}function ve(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
+Category: ${o}${r}
+Task: ${t.title}
+
+Comment:
+${i}
+
+View on dashboard: ${d}`;else if(e==="feedback_needed")a="hello@mtnsmade.com.au",n=`Feedback needed: ${t.title}`,s=`A support task requires your feedback.
+
+Category: ${o}${r}
+Task: ${t.title}
+${t.description?`
+`+t.description:""}
+
+View on dashboard: ${d}`;else if(e==="complete")a="hello@mtnsmade.com.au",n=`Task complete: ${t.title}`,s=`A support task has been marked complete.
+
+Category: ${o}${r}
+Task: ${t.title}
+
+View on dashboard: ${d}`;else return;try{if(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:a,subject:n,text:s,html:s.replace(/\n/g,"<br>")})}),e==="complete"&&t.member_id&&t.category==="member_support"){const{data:p}=await m.from("members").select("email, name").eq("id",t.member_id).single();if(p!=null&&p.email){const c=((l=p.name)==null?void 0:l.split(" ")[0])||"there",b=`Your support request has been resolved: ${t.title}`,f=`Hi ${c},
+
+We wanted to let you know that your support request has been resolved.
+
+Request: ${t.title}
+
+If you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.
+
+Thanks,
+The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:p.email,subject:b,text:f,html:f.replace(/\n/g,"<br>")})})}}}catch(p){console.error("sendTaskNotification error:",p)}}let C=null;async function D(e){if(!e||e.length<2)return[];const{data:t}=await m.from("members").select("id, name, slug, business_name").or(`name.ilike.%${e}%,business_name.ilike.%${e}%`).eq("subscription_status","active").limit(8);return t||[]}function xe(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
       <div class="modal" style="max-width:560px;">
         <div class="modal-header">
           <h3 class="modal-title">New Support Task</h3>
@@ -1699,7 +1833,7 @@ Task: ${t.title}`;else return;try{await fetch(`${g}/functions/v1/send-email`,{me
           <div class="form-field" id="st-member-field">
             <label class="form-label">Member</label>
             <div class="member-search-wrap">
-              <input type="text" class="form-input" id="st-member-search" placeholder="Search by name..." autocomplete="off">
+              <input type="text" class="form-input" id="st-member-search" placeholder="Search by name or trading name..." autocomplete="off">
               <div class="member-suggestions" id="st-member-suggestions" style="display:none;"></div>
             </div>
             <input type="hidden" id="st-member-id">
@@ -1714,23 +1848,16 @@ Task: ${t.title}`;else return;try{await fetch(`${g}/functions/v1/send-email`,{me
             <label class="form-label">Description</label>
             <textarea class="form-input" id="st-description" style="min-height:80px;" placeholder="Full details, context, links..."></textarea>
           </div>
-          <div class="form-field">
-            <label class="form-label">Status</label>
-            <select class="form-input" id="st-status">
-              ${Object.entries(E).map(([n,r])=>`<option value="${n}" ${n==="not_started"?"selected":""}>${r}</option>`).join("")}
-            </select>
-          </div>
-          <div class="form-field">
-            <label class="form-label">Hours</label>
-            <input type="number" class="form-input" id="st-hours" placeholder="e.g. 0.25" step="0.25" min="0" style="max-width:120px;">
-          </div>
         </div>
         <div class="modal-footer">
           <button class="admin-btn" id="st-cancel">Cancel</button>
           <button class="admin-btn primary" id="st-save">Create Task</button>
         </div>
       </div>
-    `,document.body.appendChild(e);const t=e.querySelector("#st-category"),a=e.querySelector("#st-member-field"),i=()=>{a.style.display=t.value==="member_support"?"block":"none"};i(),t.addEventListener("change",i);const s=e.querySelector("#st-member-search"),o=e.querySelector("#st-member-suggestions");s.addEventListener("input",()=>{clearTimeout(L);const n=s.value.trim();if(n.length<2){o.style.display="none";return}L=setTimeout(async()=>{const r=await fe(n);if(r.length===0){o.style.display="none";return}o.innerHTML=r.map(l=>`<div class="member-suggestion-item" data-id="${l.id}" data-name="${u(l.name||"")}" data-slug="${l.slug||""}">${u(l.name||l.id)}</div>`).join(""),o.style.display="block",o.querySelectorAll(".member-suggestion-item").forEach(l=>{l.addEventListener("click",()=>{e.querySelector("#st-member-id").value=l.dataset.id,e.querySelector("#st-member-name").value=l.dataset.name,e.querySelector("#st-member-url").value=l.dataset.slug?`${x}/members/${l.dataset.slug}`:"",s.value=l.dataset.name,o.style.display="none"})})},250)}),e.querySelector(".modal-close").addEventListener("click",()=>e.remove()),e.querySelector("#st-cancel").addEventListener("click",()=>e.remove()),e.addEventListener("click",n=>{n.target===e&&e.remove()}),e.querySelector("#st-save").addEventListener("click",async()=>{const n=e.querySelector("#st-title").value.trim(),r=e.querySelector("#st-category").value;if(!n){alert("Please enter a task title.");return}const l=e.querySelector("#st-save");l.disabled=!0,l.textContent="Saving...";const c=e.querySelector("#st-hours").value,p=e.querySelector("#st-member-id").value,_={category:r,title:n,description:e.querySelector("#st-description").value.trim()||null,status:e.querySelector("#st-status").value,hours:c?parseFloat(c):null,member_id:p||null,member_name:e.querySelector("#st-member-name").value||null,member_profile_url:e.querySelector("#st-member-url").value||null},{data:f,error:v}=await d.from("support_tasks").insert(_).select().single();if(v){alert("Error creating task: "+v.message),l.disabled=!1,l.textContent="Create Task";return}e.remove(),await S("created",f),await w()})}function ge(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
+    `,document.body.appendChild(e);const t=e.querySelector("#st-category"),i=e.querySelector("#st-member-field"),o=()=>{i.style.display=t.value==="member_support"?"block":"none"};o(),t.addEventListener("change",o);const r=e.querySelector("#st-member-search"),a=e.querySelector("#st-member-suggestions");r.addEventListener("input",()=>{clearTimeout(C);const n=r.value.trim();if(n.length<2){a.style.display="none";return}C=setTimeout(async()=>{const s=await D(n);if(s.length===0){a.style.display="none";return}a.innerHTML=s.map(d=>`<div class="member-suggestion-item" data-id="${d.id}" data-name="${u(d.name||"")}" data-slug="${d.slug||""}">
+            ${u(d.name||d.id)}
+            ${d.business_name?`<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${u(d.business_name)}</span>`:""}
+          </div>`).join(""),a.style.display="block",a.querySelectorAll(".member-suggestion-item").forEach(d=>{d.addEventListener("click",()=>{e.querySelector("#st-member-id").value=d.dataset.id,e.querySelector("#st-member-name").value=d.dataset.name,e.querySelector("#st-member-url").value=d.dataset.slug?`${y}/members/${d.dataset.slug}`:"",r.value=d.dataset.name,a.style.display="none"})})},250)}),e.querySelector(".modal-close").addEventListener("click",()=>e.remove()),e.querySelector("#st-cancel").addEventListener("click",()=>e.remove()),e.addEventListener("click",n=>{n.target===e&&e.remove()}),e.querySelector("#st-save").addEventListener("click",async()=>{const n=e.querySelector("#st-title").value.trim(),s=e.querySelector("#st-category").value;if(!n){alert("Please enter a task title.");return}const d=e.querySelector("#st-save");d.disabled=!0,d.textContent="Saving...";const l=e.querySelector("#st-member-id").value,p={category:s,title:n,description:e.querySelector("#st-description").value.trim()||null,status:"not_started",hours:null,member_id:l||null,member_name:e.querySelector("#st-member-name").value||null,member_profile_url:e.querySelector("#st-member-url").value||null},{data:c,error:b}=await m.from("support_tasks").insert(p).select().single();if(b){alert("Error creating task: "+b.message),d.disabled=!1,d.textContent="Create Task";return}e.remove(),await S("created",c),await w()})}function we(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
       <div class="modal" style="max-width:560px;">
         <div class="modal-header">
           <h3 class="modal-title">Edit Task</h3>
@@ -1750,6 +1877,16 @@ Task: ${t.title}`;else return;try{await fetch(`${g}/functions/v1/send-email`,{me
             <input type="text" class="form-input" id="et-title" value="${u(e.title)}">
           </div>
           <div class="form-field">
+            <label class="form-label">Member</label>
+            <div class="member-search-wrap">
+              <input type="text" class="form-input" id="et-member-search" placeholder="Search by name or trading name..." autocomplete="off" value="${u(e.member_name||"")}">
+              <div class="member-suggestions" id="et-member-suggestions" style="display:none;"></div>
+            </div>
+            <input type="hidden" id="et-member-id" value="${u(e.member_id||"")}">
+            <input type="hidden" id="et-member-name" value="${u(e.member_name||"")}">
+            <input type="hidden" id="et-member-url" value="${u(e.member_profile_url||"")}">
+          </div>
+          <div class="form-field">
             <label class="form-label">Description</label>
             <textarea class="form-input" id="et-description" style="min-height:80px;">${u(e.description||"")}</textarea>
           </div>
@@ -1760,7 +1897,7 @@ Task: ${t.title}`;else return;try{await fetch(`${g}/functions/v1/send-email`,{me
           <div class="form-field">
             <label class="form-label">Status</label>
             <select class="form-input" id="et-status">
-              ${Object.entries(E).map(([a,i])=>`<option value="${a}" ${e.status===a?"selected":""}>${i}</option>`).join("")}
+              ${Object.entries(N).map(([r,a])=>`<option value="${r}" ${e.status===r?"selected":""}>${a}</option>`).join("")}
             </select>
           </div>
           <div class="form-field">
@@ -1769,28 +1906,32 @@ Task: ${t.title}`;else return;try{await fetch(`${g}/functions/v1/send-email`,{me
           </div>
         </div>
         <div class="modal-footer">
+          <button class="admin-btn" id="et-delete" style="color:#dc3545;border-color:#dc3545;margin-right:auto;">Delete</button>
           <button class="admin-btn" id="et-cancel">Cancel</button>
           <button class="admin-btn primary" id="et-save">Save Changes</button>
         </div>
       </div>
-    `,document.body.appendChild(t),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.querySelector("#et-cancel").addEventListener("click",()=>t.remove()),t.addEventListener("click",a=>{a.target===t&&t.remove()}),t.querySelector("#et-save").addEventListener("click",async()=>{const a=t.querySelector("#et-save"),i=t.querySelector("#et-status").value,s=i!==e.status;a.disabled=!0,a.textContent="Saving...";const o=t.querySelector("#et-hours").value,{error:n}=await d.from("support_tasks").update({category:t.querySelector("#et-category").value,title:t.querySelector("#et-title").value.trim(),description:t.querySelector("#et-description").value.trim()||null,notes:t.querySelector("#et-notes").value.trim()||null,status:i,hours:o?parseFloat(o):null}).eq("id",e.id);if(n){alert("Error saving: "+n.message),a.disabled=!1,a.textContent="Save Changes";return}s&&await S(i==="feedback_needed"?"feedback_needed":i==="complete"?"complete":null,e),t.remove(),await w()})}function C(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"2-digit"}):""}function u(e){return e?String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):""}async function y(e){const t=e.querySelector("#refresh-btn");t&&(t.disabled=!0,t.textContent="Loading...");try{$=await q(),j(e,$)}catch(a){console.error("Error refreshing dashboard:",a),t&&(t.disabled=!1,t.textContent="Refresh")}}async function A(){const e=document.querySelector(".dashboard-feed");if(!e){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){e.innerHTML=`
+    `,document.body.appendChild(t);const i=t.querySelector("#et-member-search"),o=t.querySelector("#et-member-suggestions");i.addEventListener("input",()=>{clearTimeout(C);const r=i.value.trim();if(r.length<2){o.style.display="none";return}C=setTimeout(async()=>{const a=await D(r);if(a.length===0){o.style.display="none";return}o.innerHTML=a.map(n=>`<div class="member-suggestion-item" data-id="${n.id}" data-name="${u(n.name||"")}" data-slug="${n.slug||""}">
+            ${u(n.name||n.id)}
+            ${n.business_name?`<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${u(n.business_name)}</span>`:""}
+          </div>`).join(""),o.style.display="block",o.querySelectorAll(".member-suggestion-item").forEach(n=>{n.addEventListener("click",()=>{t.querySelector("#et-member-id").value=n.dataset.id,t.querySelector("#et-member-name").value=n.dataset.name,t.querySelector("#et-member-url").value=n.dataset.slug?`${y}/members/${n.dataset.slug}`:"",i.value=n.dataset.name,o.style.display="none"})})},250)}),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.querySelector("#et-cancel").addEventListener("click",()=>t.remove()),t.addEventListener("click",r=>{r.target===t&&t.remove()}),t.querySelector("#et-delete").addEventListener("click",async()=>{if(!confirm(`Delete "${e.title}"? This cannot be undone.`))return;const r=t.querySelector("#et-delete");r.disabled=!0,r.textContent="Deleting...",await m.from("support_task_comments").delete().eq("task_id",e.id),await m.from("support_tasks").delete().eq("id",e.id),t.remove(),await w()}),t.querySelector("#et-save").addEventListener("click",async()=>{const r=t.querySelector("#et-save"),a=t.querySelector("#et-status").value,n=a!==e.status;r.disabled=!0,r.textContent="Saving...";const s=t.querySelector("#et-hours").value,d=t.querySelector("#et-member-name").value||t.querySelector("#et-member-search").value.trim()||null,{error:l}=await m.from("support_tasks").update({category:t.querySelector("#et-category").value,title:t.querySelector("#et-title").value.trim(),description:t.querySelector("#et-description").value.trim()||null,notes:t.querySelector("#et-notes").value.trim()||null,status:a,hours:s?parseFloat(s):null,member_id:t.querySelector("#et-member-id").value||null,member_name:d,member_profile_url:t.querySelector("#et-member-url").value||null}).eq("id",e.id);if(l){alert("Error saving: "+l.message),r.disabled=!1,r.textContent="Save Changes";return}n&&await S(a==="feedback_needed"?"feedback_needed":a==="complete"?"complete":null,e),t.remove(),await w()})}function P(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"2-digit"}):""}function u(e){return e?String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):""}async function g(e){const t=e.querySelector("#refresh-btn");t&&(t.disabled=!0,t.textContent="Loading...");try{E=await L(),A(e,E)}catch(i){console.error("Error refreshing dashboard:",i),t&&(t.disabled=!1,t.textContent="Refresh")}}async function I(){const e=document.querySelector(".dashboard-feed");if(!e){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){e.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error: Supabase library not loaded</div>
           </div>
         </div>
-      `;return}if(d=window.supabase.createClient(g,b),!document.querySelector("#admin-dashboard-styles")){const t=document.createElement("style");t.id="admin-dashboard-styles",t.textContent=P,document.head.appendChild(t)}e.innerHTML=`
+      `;return}if(m=window.supabase.createClient(v,h),!document.querySelector("#admin-dashboard-styles")){const t=document.createElement("style");t.id="admin-dashboard-styles",t.textContent=O,document.head.appendChild(t)}e.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-loading">
           <div class="loader"></div>
           <div class="loading-text">Loading system data...</div>
         </div>
       </div>
-    `;try{$=await q(),j(e,$)}catch(t){console.error("Error loading dashboard:",t),e.innerHTML=`
+    `;try{E=await L(),A(e,E)}catch(t){console.error("Error loading dashboard:",t),e.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error loading dashboard</div>
             <div style="color: #666; font-size: 11px; margin-top: 8px;">${t.message}</div>
           </div>
         </div>
-      `}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",A):A()})();
+      `}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",I):I()})();

@@ -829,6 +829,71 @@
     .status.feedback_needed { border-color: #1565c0; color: #1565c0; }
     .status.stalled         { border-color: #dc3545; color: #dc3545; }
 
+    /* Retainer banner */
+    .retainer-banner {
+      margin: 0 20px 12px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      background: #f9f9f9;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .retainer-banner.approaching {
+      background: #fff8e1;
+      border-color: #f9a825;
+    }
+
+    .retainer-banner.over {
+      background: #fce4ec;
+      border-color: #c62828;
+    }
+
+    .retainer-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .retainer-bar-wrap {
+      flex: 1;
+      min-width: 120px;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .retainer-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: #4caf50;
+      transition: width 0.3s;
+    }
+
+    .retainer-banner.approaching .retainer-bar-fill { background: #f9a825; }
+    .retainer-banner.over .retainer-bar-fill { background: #e53935; }
+
+    .retainer-hours {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      color: #1a1a1a;
+    }
+
+    .retainer-status {
+      font-size: 12px;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .retainer-banner.approaching .retainer-status { color: #e65100; font-weight: 600; }
+    .retainer-banner.over .retainer-status { color: #c62828; font-weight: 600; }
+
     /* Support toolbar — two-button layout */
     .support-toolbar {
       display: flex;
@@ -1371,6 +1436,7 @@ MTNS MADE Team`;
         </div>
         <div class="modal-footer">
           <button class="admin-btn" id="modal-cancel">Cancel</button>
+          ${member.memberstack_id ? `<button class="admin-btn" id="modal-password-reset">Send Password Reset</button>` : ''}
           <button class="admin-btn primary" id="modal-send">Send Email</button>
         </div>
       </div>
@@ -1384,6 +1450,40 @@ MTNS MADE Team`;
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
+
+    const passwordResetBtn = modal.querySelector('#modal-password-reset');
+    if (passwordResetBtn) {
+      passwordResetBtn.addEventListener('click', async () => {
+        if (!confirm(`Send a password reset email to ${member.email || member.first_name || 'this member'}?`)) return;
+
+        passwordResetBtn.disabled = true;
+        passwordResetBtn.textContent = 'Sending...';
+
+        try {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-tools`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'send-password-reset', memberstackId: member.memberstack_id }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            alert('Password reset email sent successfully.');
+            passwordResetBtn.textContent = 'Sent';
+          } else {
+            alert(`Failed to send password reset: ${result.error}`);
+            passwordResetBtn.disabled = false;
+            passwordResetBtn.textContent = 'Send Password Reset';
+          }
+        } catch (error) {
+          console.error('Password reset error:', error);
+          alert('Error sending password reset. Check console for details.');
+          passwordResetBtn.disabled = false;
+          passwordResetBtn.textContent = 'Send Password Reset';
+        }
+      });
+    }
 
     modal.querySelector('#modal-send').addEventListener('click', async () => {
       const to = modal.querySelector('#modal-to').value;
@@ -2086,6 +2186,45 @@ MTNS MADE Team`;
         }
       });
     });
+
+    // Setup project delete buttons
+    container.querySelectorAll('.delete-project-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const projectId = btn.dataset.projectId;
+        const projectName = btn.dataset.projectName;
+
+        if (!confirm(`Delete project "${projectName}"?\n\nThis will remove it from Webflow and the directory. This cannot be undone.`)) {
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        try {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-tools`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete-project', projectId }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            alert(`Project "${projectName}" has been deleted.`);
+            refreshDashboard(container);
+          } else {
+            alert(`Failed to delete project: ${result.error}`);
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+          }
+        } catch (error) {
+          console.error('Delete project error:', error);
+          alert('Error deleting project. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Delete';
+        }
+      });
+    });
   }
 
   function renderIssuesSection(data) {
@@ -2474,9 +2613,12 @@ MTNS MADE Team`;
               </td>
               <td class="time-cell">${timeAgo(project.updated_at)}</td>
               <td>
-                ${project.webflow_id && project.slug ? `
-                  <a href="${SITE_URL}/projects/${project.slug}" target="_blank" class="action-btn view-btn">View</a>
-                ` : '--'}
+                <div class="action-btns">
+                  ${project.webflow_id && project.slug ? `
+                    <a href="${SITE_URL}/projects/${project.slug}" target="_blank" class="action-btn view-btn">View</a>
+                  ` : ''}
+                  <button class="action-btn delete-project-btn" data-project-id="${project.id}" data-project-name="${(project.name || 'this project').replace(/"/g, '&quot;')}">Delete</button>
+                </div>
               </td>
             </tr>
           `).join('')}
@@ -2579,6 +2721,49 @@ MTNS MADE Team`;
     return data || [];
   }
 
+  const RETAINER_HOURS = 7;
+
+  function renderRetainerBanner(tasks) {
+    const now = new Date();
+    const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const monthHours = tasks
+      .filter(t => {
+        const d = new Date(t.created_at);
+        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        return key === currentMonth;
+      })
+      .reduce((sum, t) => sum + (parseFloat(t.hours) || 0), 0);
+
+    const pct = Math.min((monthHours / RETAINER_HOURS) * 100, 100);
+    const remaining = RETAINER_HOURS - monthHours;
+    const monthName = now.toLocaleDateString('en-AU', { month: 'long' });
+
+    let state = '';
+    let statusText = `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}h remaining`;
+    if (monthHours > RETAINER_HOURS) {
+      state = 'over';
+      const over = monthHours - RETAINER_HOURS;
+      statusText = `${over % 1 === 0 ? over : over.toFixed(1)}h over this month's limit`;
+    } else if (monthHours >= 5) {
+      state = 'approaching';
+      statusText = `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}h remaining — approaching limit`;
+    }
+
+    const used = monthHours % 1 === 0 ? monthHours : monthHours.toFixed(1);
+
+    const el = document.createElement('div');
+    el.className = `retainer-banner${state ? ' ' + state : ''}`;
+    el.innerHTML = `
+      <div class="retainer-label">Retainer &mdash; ${monthName}</div>
+      <div class="retainer-bar-wrap">
+        <div class="retainer-bar-fill" style="width:${pct}%"></div>
+      </div>
+      <div class="retainer-hours">${used}h / ${RETAINER_HOURS}h</div>
+      <div class="retainer-status">${statusText}</div>
+    `;
+    return el;
+  }
+
   async function initSupportTracker() {
     const root = document.getElementById('support-tracker-root');
     if (!root) return;
@@ -2601,6 +2786,8 @@ MTNS MADE Team`;
           : '<span style="font-size:12px;color:#888;">Active tasks</span>'}
       </div>
     `;
+
+    root.appendChild(renderRetainerBanner(tasks));
 
     if (isArchive) {
       renderMonthlyArchive(root, tasks.filter(t => SUPPORT_ARCHIVED_STATUSES.has(t.status)));
@@ -2828,6 +3015,7 @@ MTNS MADE Team`;
                   <div class="comment-body">
                     <div class="comment-meta">${escHtml(c.author)} &middot; ${formatDate(c.created_at)}</div>
                     <div class="comment-text">${escHtml(c.body)}</div>
+                    ${c.image_url ? `<img src="${escHtml(c.image_url)}" style="max-width:100%;border-radius:4px;margin-top:8px;display:block;" loading="lazy">` : ''}
                   </div>
                 </div>
               `).join('')}
@@ -2835,6 +3023,13 @@ MTNS MADE Team`;
             ${comments.length < 5 ? `
               <div class="comment-input-row" style="margin-top:16px;">
                 <textarea class="form-input" id="task-comment-input" placeholder="Add a comment..." style="min-height:70px;resize:none;flex:1;"></textarea>
+                <div style="margin-top:8px;">
+                  <label style="font-size:12px;color:#666;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                    <input type="file" id="task-comment-image" accept="image/*" style="display:none;">
+                    <span style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;background:#fafafa;">Attach screenshot</span>
+                    <span id="task-comment-image-name" style="color:#888;"></span>
+                  </label>
+                </div>
               </div>
             ` : '<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
           </div>
@@ -2852,6 +3047,15 @@ MTNS MADE Team`;
     modal.querySelector('#td-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
+    // Show filename when file selected
+    const fileInput = modal.querySelector('#task-comment-image');
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        const nameEl = modal.querySelector('#task-comment-image-name');
+        if (nameEl) nameEl.textContent = fileInput.files[0]?.name || '';
+      });
+    }
+
     const addBtn = modal.querySelector('#td-add-comment');
     if (addBtn) {
       addBtn.addEventListener('click', async () => {
@@ -2860,10 +3064,26 @@ MTNS MADE Team`;
         if (!text) return;
         addBtn.disabled = true;
         addBtn.textContent = 'Saving...';
+
+        let imageUrl = null;
+        if (fileInput?.files?.[0]) {
+          const file = fileInput.files[0];
+          const ext = file.name.split('.').pop() || 'png';
+          const path = `${task.id}/${Date.now()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from('support-screenshots')
+            .upload(path, file, { contentType: file.type });
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('support-screenshots').getPublicUrl(path);
+            imageUrl = urlData?.publicUrl || null;
+          }
+        }
+
         await supabase.from('support_task_comments').insert({
           task_id: task.id,
           author: 'Racket',
           body: text,
+          image_url: imageUrl,
         });
         modal.remove();
         await sendTaskNotification('comment', task, text);
@@ -2917,8 +3137,8 @@ MTNS MADE Team`;
         body: JSON.stringify({ to, subject, text: body, html: body.replace(/\n/g, '<br>') }),
       });
 
-      // If a task is complete and has a linked member, also notify them
-      if (event === 'complete' && task.member_id) {
+      // If a task is complete, has a linked member, and is a member support ticket, notify them
+      if (event === 'complete' && task.member_id && task.category === 'member_support') {
         const { data: member } = await supabase
           .from('members')
           .select('email, name')
@@ -3102,6 +3322,16 @@ MTNS MADE Team`;
             <input type="text" class="form-input" id="et-title" value="${escHtml(task.title)}">
           </div>
           <div class="form-field">
+            <label class="form-label">Member</label>
+            <div class="member-search-wrap">
+              <input type="text" class="form-input" id="et-member-search" placeholder="Search by name or trading name..." autocomplete="off" value="${escHtml(task.member_name || '')}">
+              <div class="member-suggestions" id="et-member-suggestions" style="display:none;"></div>
+            </div>
+            <input type="hidden" id="et-member-id" value="${escHtml(task.member_id || '')}">
+            <input type="hidden" id="et-member-name" value="${escHtml(task.member_name || '')}">
+            <input type="hidden" id="et-member-url" value="${escHtml(task.member_profile_url || '')}">
+          </div>
+          <div class="form-field">
             <label class="form-label">Description</label>
             <textarea class="form-input" id="et-description" style="min-height:80px;">${escHtml(task.description || '')}</textarea>
           </div>
@@ -3132,6 +3362,35 @@ MTNS MADE Team`;
 
     document.body.appendChild(modal);
 
+    // Member search autocomplete
+    const etMemberInput = modal.querySelector('#et-member-search');
+    const etSuggestions = modal.querySelector('#et-member-suggestions');
+    etMemberInput.addEventListener('input', () => {
+      clearTimeout(memberSearchTimer);
+      const q = etMemberInput.value.trim();
+      if (q.length < 2) { etSuggestions.style.display = 'none'; return; }
+      memberSearchTimer = setTimeout(async () => {
+        const results = await searchMembers(q);
+        if (results.length === 0) { etSuggestions.style.display = 'none'; return; }
+        etSuggestions.innerHTML = results.map(m =>
+          `<div class="member-suggestion-item" data-id="${m.id}" data-name="${escHtml(m.name || '')}" data-slug="${m.slug || ''}">
+            ${escHtml(m.name || m.id)}
+            ${m.business_name ? `<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${escHtml(m.business_name)}</span>` : ''}
+          </div>`
+        ).join('');
+        etSuggestions.style.display = 'block';
+        etSuggestions.querySelectorAll('.member-suggestion-item').forEach(item => {
+          item.addEventListener('click', () => {
+            modal.querySelector('#et-member-id').value = item.dataset.id;
+            modal.querySelector('#et-member-name').value = item.dataset.name;
+            modal.querySelector('#et-member-url').value = item.dataset.slug ? `${SITE_URL}/members/${item.dataset.slug}` : '';
+            etMemberInput.value = item.dataset.name;
+            etSuggestions.style.display = 'none';
+          });
+        });
+      }, 250);
+    });
+
     modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
     modal.querySelector('#et-cancel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
@@ -3156,13 +3415,17 @@ MTNS MADE Team`;
       saveBtn.textContent = 'Saving...';
 
       const hours = modal.querySelector('#et-hours').value;
+      const memberName = modal.querySelector('#et-member-name').value || modal.querySelector('#et-member-search').value.trim() || null;
       const { error } = await supabase.from('support_tasks').update({
-        category:    modal.querySelector('#et-category').value,
-        title:       modal.querySelector('#et-title').value.trim(),
-        description: modal.querySelector('#et-description').value.trim() || null,
-        notes:       modal.querySelector('#et-notes').value.trim() || null,
-        status:      newStatus,
-        hours:       hours ? parseFloat(hours) : null,
+        category:           modal.querySelector('#et-category').value,
+        title:              modal.querySelector('#et-title').value.trim(),
+        description:        modal.querySelector('#et-description').value.trim() || null,
+        notes:              modal.querySelector('#et-notes').value.trim() || null,
+        status:             newStatus,
+        hours:              hours ? parseFloat(hours) : null,
+        member_id:          modal.querySelector('#et-member-id').value || null,
+        member_name:        memberName,
+        member_profile_url: modal.querySelector('#et-member-url').value || null,
       }).eq('id', task.id);
 
       if (error) {
