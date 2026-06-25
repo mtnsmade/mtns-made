@@ -22,7 +22,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { action, projectId, memberstackId } = await req.json();
+    const { action, projectId, memberstackId, opportunityId } = await req.json();
 
     if (action === 'delete-project') {
       if (!projectId) {
@@ -45,6 +45,48 @@ serve(async (req: Request) => {
       }
 
       console.log('Project soft-deleted by admin:', projectId);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'delete-opportunity') {
+      if (!opportunityId) {
+        return new Response(JSON.stringify({ error: 'opportunityId required' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+      const { data: opp } = await supabase
+        .from('opportunities')
+        .select('id, name, webflow_id')
+        .eq('id', opportunityId)
+        .single();
+
+      if (opp?.webflow_id) {
+        const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
+        const WEBFLOW_OPPORTUNITIES_COLLECTION_ID = '64a9f30abaf5ea96e9180239';
+        await fetch(
+          `https://api.webflow.com/v2/collections/${WEBFLOW_OPPORTUNITIES_COLLECTION_ID}/items/${opp.webflow_id}`,
+          {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${WEBFLOW_API_TOKEN}` },
+          }
+        );
+      }
+
+      const { error } = await supabase.from('opportunities').delete().eq('id', opportunityId);
+
+      if (error) {
+        console.error('Error deleting opportunity:', error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log('Opportunity deleted by admin:', opp?.name, opportunityId);
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

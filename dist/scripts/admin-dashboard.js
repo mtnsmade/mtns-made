@@ -1,4 +1,4 @@
-(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",h="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",y="https://www.mtnsmade.com.au";let m=null,E=null,T=[];const O=`
+(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",g="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",y="https://www.mtnsmade.com.au";let m=null,E=null,T=[];const O=`
     .admin-dashboard {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
@@ -1011,7 +1011,7 @@
     @media (max-width: 768px) {
       .support-toolbar { flex-direction: column; align-items: flex-start; }
     }
-  `;function x(e){if(!e)return"--";const t=new Date(e),o=Math.floor((new Date-t)/1e3);return o<60?"now":o<3600?`${Math.floor(o/60)}m`:o<86400?`${Math.floor(o/3600)}h`:o<604800?`${Math.floor(o/86400)}d`:t.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function R(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function M(e){const t=[];return e.profile_image_url||t.push("Profile Image"),e.header_image_url||t.push("Header Image"),(!e.bio||e.bio.length<50)&&t.push("Bio"),e.suburb_id||t.push("Location"),t}function U(e,t){const i=e.first_name||e.name||"there",o=t.length>0?`
+  `;function x(e){if(!e)return"--";const t=new Date(e),o=Math.floor((new Date-t)/1e3);return o<60?"now":o<3600?`${Math.floor(o/60)}m`:o<86400?`${Math.floor(o/3600)}h`:o<604800?`${Math.floor(o/86400)}d`:t.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function R(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function L(e){const t=[];return e.profile_image_url||t.push("Profile Image"),e.header_image_url||t.push("Header Image"),(!e.bio||e.bio.length<50)&&t.push("Bio"),e.suburb_id||t.push("Location"),t}function U(e,t){const i=e.first_name||e.name||"there",o=t.length>0?`
 
 To complete your profile, you'll need:
 ${t.map(r=>`- ${r}`).join(`
@@ -1025,7 +1025,7 @@ Complete your profile here: ${y}/profile/start
 
 Let us know if you need any help!
 
-MTNS MADE Team`}async function L(){const[e,t,i,o,r,a,n,s,d,l,p,c]=await Promise.all([F(),H(),V(),J(),Y(),G(),K(),Q(),X(),W(),Z(),B()]);return T=c,{recentMembers:e,memberStats:t,incompleteProfiles:i,failedSignups:o,recentEvents:r,eventStats:a,recentOpportunities:n,opportunityStats:s,recentProjects:d,messageStats:l,recentActivity:p,membershipTypes:c,loadedAt:new Date}}async function F(){const{data:e,error:t}=await m.from("members").select(`
+MTNS MADE Team`}async function M(){const[e,t,i,o,r,a,n,s,l,d,p,c]=await Promise.all([F(),H(),V(),J(),Y(),G(),K(),Q(),X(),W(),Z(),B()]);return T=c,{recentMembers:e,memberStats:t,incompleteProfiles:i,failedSignups:o,recentEvents:r,eventStats:a,recentOpportunities:n,opportunityStats:s,recentProjects:l,messageStats:d,recentActivity:p,membershipTypes:c,loadedAt:new Date}}async function F(){const{data:e,error:t}=await m.from("members").select(`
         id, memberstack_id, name, email, first_name, last_name, slug,
         subscription_status, profile_complete, webflow_id,
         profile_image_url, header_image_url, bio, suburb_id,
@@ -1045,7 +1045,7 @@ MTNS MADE Team`}async function L(){const[e,t,i,o,r,a,n,s,d,l,p,c]=await Promise.
         id, member_id, memberstack_id, activity_type, description,
         entity_type, entity_id, entity_name,
         member_webflow_url, entity_webflow_url, created_at
-      `).order("created_at",{ascending:!1}).limit(50);if(t)return console.error("Error loading recent activity:",t),[];const i=[...new Set(e.filter(r=>r.member_id).map(r=>r.member_id))];let o={};if(i.length>0){const{data:r}=await m.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",i);r&&r.forEach(a=>{o[a.id]={name:a.name||`${a.first_name||""} ${a.last_name||""}`.trim()||"Unknown Member",profile_image_url:a.profile_image_url||null}})}return e.map(r=>{var a,n;return{...r,member_name:r.member_id&&((a=o[r.member_id])==null?void 0:a.name)||"Unknown Member",member_profile_image:r.member_id&&((n=o[r.member_id])==null?void 0:n.profile_image_url)||null}})}function ee(e){const t=M(e),i=U(e,t),o=document.createElement("div");o.className="modal-overlay",o.innerHTML=`
+      `).order("created_at",{ascending:!1}).limit(50);if(t)return console.error("Error loading recent activity:",t),[];const i=[...new Set(e.filter(r=>r.member_id).map(r=>r.member_id))];let o={};if(i.length>0){const{data:r}=await m.from("members").select("id, name, first_name, last_name, profile_image_url").in("id",i);r&&r.forEach(a=>{o[a.id]={name:a.name||`${a.first_name||""} ${a.last_name||""}`.trim()||"Unknown Member",profile_image_url:a.profile_image_url||null}})}return e.map(r=>{var a,n;return{...r,member_name:r.member_id&&((a=o[r.member_id])==null?void 0:a.name)||"Unknown Member",member_profile_image:r.member_id&&((n=o[r.member_id])==null?void 0:n.profile_image_url)||null}})}function ee(e){const t=L(e),i=U(e,t),o=document.createElement("div");o.className="modal-overlay",o.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Contact Member</h3>
@@ -1080,7 +1080,7 @@ MTNS MADE Team`}async function L(){const[e,t,i,o,r,a,n,s,d,l,p,c]=await Promise.
           <button class="admin-btn primary" id="modal-send">Send Email</button>
         </div>
       </div>
-    `,document.body.appendChild(o),o.querySelector(".modal-close").addEventListener("click",()=>o.remove()),o.querySelector("#modal-cancel").addEventListener("click",()=>o.remove()),o.addEventListener("click",a=>{a.target===o&&o.remove()});const r=o.querySelector("#modal-password-reset");r&&r.addEventListener("click",async()=>{if(confirm(`Send a password reset email to ${e.email||e.first_name||"this member"}?`)){r.disabled=!0,r.textContent="Sending...";try{const n=await(await fetch(`${v}/functions/v1/admin-tools`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"send-password-reset",memberstackId:e.memberstack_id})})).json();n.success?(alert("Password reset email sent successfully."),r.textContent="Sent"):(alert(`Failed to send password reset: ${n.error}`),r.disabled=!1,r.textContent="Send Password Reset")}catch(a){console.error("Password reset error:",a),alert("Error sending password reset. Check console for details."),r.disabled=!1,r.textContent="Send Password Reset"}}}),o.querySelector("#modal-send").addEventListener("click",async()=>{const a=o.querySelector("#modal-to").value,n=o.querySelector("#modal-subject").value,s=o.querySelector("#modal-body").value;if(!a){alert("No email address available for this member");return}const d=o.querySelector("#modal-send");d.disabled=!0,d.textContent="Sending...";try{const p=await(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:a,subject:n,text:s,html:s.replace(/\n/g,"<br>")})})).json();if(p.success){await m.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",e.id),alert("Email sent successfully!"),o.remove();const c=document.querySelector(".dashboard-feed");c&&g(c)}else alert("Failed to send email: "+(p.error||"Unknown error")),d.disabled=!1,d.textContent="Send Email"}catch(l){console.error("Error sending email:",l),alert("Error sending email. Check console for details."),d.disabled=!1,d.textContent="Send Email"}})}function te(e,t,i){var a;const o=((a=T.find(n=>n.id===i))==null?void 0:a.name)||"Not set",r=document.createElement("div");r.className="modal-overlay",r.innerHTML=`
+    `,document.body.appendChild(o),o.querySelector(".modal-close").addEventListener("click",()=>o.remove()),o.querySelector("#modal-cancel").addEventListener("click",()=>o.remove()),o.addEventListener("click",a=>{a.target===o&&o.remove()});const r=o.querySelector("#modal-password-reset");r&&r.addEventListener("click",async()=>{if(confirm(`Send a password reset email to ${e.email||e.first_name||"this member"}?`)){r.disabled=!0,r.textContent="Sending...";try{const n=await(await fetch(`${v}/functions/v1/admin-tools`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"send-password-reset",memberstackId:e.memberstack_id})})).json();n.success?(alert("Password reset email sent successfully."),r.textContent="Sent"):(alert(`Failed to send password reset: ${n.error}`),r.disabled=!1,r.textContent="Send Password Reset")}catch(a){console.error("Password reset error:",a),alert("Error sending password reset. Check console for details."),r.disabled=!1,r.textContent="Send Password Reset"}}}),o.querySelector("#modal-send").addEventListener("click",async()=>{const a=o.querySelector("#modal-to").value,n=o.querySelector("#modal-subject").value,s=o.querySelector("#modal-body").value;if(!a){alert("No email address available for this member");return}const l=o.querySelector("#modal-send");l.disabled=!0,l.textContent="Sending...";try{const p=await(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:a,subject:n,text:s,html:s.replace(/\n/g,"<br>")})})).json();if(p.success){await m.from("members").update({profile_reminder_sent_at:new Date().toISOString()}).eq("id",e.id),alert("Email sent successfully!"),o.remove();const c=document.querySelector(".dashboard-feed");c&&h(c)}else alert("Failed to send email: "+(p.error||"Unknown error")),l.disabled=!1,l.textContent="Send Email"}catch(d){console.error("Error sending email:",d),alert("Error sending email. Check console for details."),l.disabled=!1,l.textContent="Send Email"}})}function te(e,t,i){var a;const o=((a=T.find(n=>n.id===i))==null?void 0:a.name)||"Not set",r=document.createElement("div");r.className="modal-overlay",r.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">Edit Member</h3>
@@ -1128,17 +1128,17 @@ MTNS MADE Team`}async function L(){const[e,t,i,o,r,a,n,s,d,l,p,c]=await Promise.
           <button class="admin-btn primary" id="modal-save">Update Membership</button>
         </div>
       </div>
-    `,document.body.appendChild(r),r.querySelector(".modal-close").addEventListener("click",()=>r.remove()),r.querySelector("#modal-cancel").addEventListener("click",()=>r.remove()),r.addEventListener("click",n=>{n.target===r&&r.remove()}),r.querySelector("#modal-save").addEventListener("click",async()=>{var c;const n=r.querySelector("#modal-membership-type").value,s=r.querySelector("#modal-skip-billing").checked;if(!n){alert("Please select a new membership type");return}const d=((c=T.find(b=>b.id===n))==null?void 0:c.name)||"Unknown",l=s?`Change ${t}'s type from "${o}" to "${d}"?
+    `,document.body.appendChild(r),r.querySelector(".modal-close").addEventListener("click",()=>r.remove()),r.querySelector("#modal-cancel").addEventListener("click",()=>r.remove()),r.addEventListener("click",n=>{n.target===r&&r.remove()}),r.querySelector("#modal-save").addEventListener("click",async()=>{var c;const n=r.querySelector("#modal-membership-type").value,s=r.querySelector("#modal-skip-billing").checked;if(!n){alert("Please select a new membership type");return}const l=((c=T.find(b=>b.id===n))==null?void 0:c.name)||"Unknown",d=s?`Change ${t}'s type from "${o}" to "${l}"?
 
-This will update the label only (no billing change).`:`Change ${t}'s type from "${o}" to "${d}"?
+This will update the label only (no billing change).`:`Change ${t}'s type from "${o}" to "${l}"?
 
-This WILL change their Stripe subscription and billing.`;if(!confirm(l))return;const p=r.querySelector("#modal-save");p.disabled=!0,p.textContent="Updating Memberstack...";try{const b=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:e,newMembershipTypeId:n,skipPlanChange:s})}),f=await b.json();if(!b.ok)throw new Error(f.error||"Update failed");let _=`Membership type updated!
+This WILL change their Stripe subscription and billing.`;if(!confirm(d))return;const p=r.querySelector("#modal-save");p.disabled=!0,p.textContent="Updating Memberstack...";try{const b=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:e,newMembershipTypeId:n,skipPlanChange:s})}),f=await b.json();if(!b.ok)throw new Error(f.error||"Update failed");let _=`Membership type updated!
 
 ${f.change.from} → ${f.change.to}`;f.results.warnings&&f.results.warnings.length>0&&(_+=`
 
 Warnings:
 - ${f.results.warnings.join(`
-- `)}`),alert(_),r.remove();const k=document.querySelector(".dashboard-feed");k&&g(k)}catch(b){console.error("Error updating membership type:",b),alert("Error updating membership type: "+b.message),p.disabled=!1,p.textContent="Update Membership"}})}async function ae(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
+- `)}`),alert(_),r.remove();const k=document.querySelector(".dashboard-feed");k&&h(k)}catch(b){console.error("Error updating membership type:",b),alert("Error updating membership type: "+b.message),p.disabled=!1,p.textContent="Update Membership"}})}async function ae(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
       <div class="modal modal-preview">
         <div class="modal-header">
           <h3 class="modal-title">Event Preview</h3>
@@ -1288,11 +1288,11 @@ Warnings:
           </div>
 
           <div class="tab-content" id="tab-events">
-            ${de(t.recentEvents,t.eventStats)}
+            ${le(t.recentEvents,t.eventStats)}
           </div>
 
           <div class="tab-content" id="tab-opportunities">
-            ${le(t.recentOpportunities,t.opportunityStats)}
+            ${de(t.recentOpportunities,t.opportunityStats)}
           </div>
 
           <div class="tab-content" id="tab-projects">
@@ -1304,27 +1304,29 @@ Warnings:
           </div>
         </div>
       </div>
-    `,e.querySelectorAll(".tab-btn").forEach(a=>{a.addEventListener("click",()=>{e.querySelectorAll(".tab-btn").forEach(n=>n.classList.remove("active")),e.querySelectorAll(".tab-content").forEach(n=>n.classList.remove("active")),a.classList.add("active"),e.querySelector(`#tab-${a.dataset.tab}`).classList.add("active"),a.dataset.tab==="support"&&w()})}),e.querySelector("#refresh-btn").addEventListener("click",()=>g(e)),e.querySelectorAll(".contact-btn").forEach(a=>{a.addEventListener("click",()=>{const n=a.dataset.memberId,s=t.incompleteProfiles.find(d=>d.id===n)||t.recentMembers.find(d=>d.id===n)||t.failedSignups.find(d=>d.id===n);s&&ee(s)})}),e.querySelectorAll(".approve-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.eventId,s=a.dataset.eventName;if(confirm(`Approve event "${s}"?
+    `,e.querySelectorAll(".tab-btn").forEach(a=>{a.addEventListener("click",()=>{e.querySelectorAll(".tab-btn").forEach(n=>n.classList.remove("active")),e.querySelectorAll(".tab-content").forEach(n=>n.classList.remove("active")),a.classList.add("active"),e.querySelector(`#tab-${a.dataset.tab}`).classList.add("active"),a.dataset.tab==="support"&&w()})}),e.querySelector("#refresh-btn").addEventListener("click",()=>h(e)),e.querySelectorAll(".contact-btn").forEach(a=>{a.addEventListener("click",()=>{const n=a.dataset.memberId,s=t.incompleteProfiles.find(l=>l.id===n)||t.recentMembers.find(l=>l.id===n)||t.failedSignups.find(l=>l.id===n);s&&ee(s)})}),e.querySelectorAll(".approve-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.eventId,s=a.dataset.eventName;if(confirm(`Approve event "${s}"?
 
-This will publish the event and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const l=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({eventId:n,action:"approve"})})).json();l.success?(alert(`Event "${s}" has been approved!
+This will publish the event and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const d=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({eventId:n,action:"approve"})})).json();d.success?(alert(`Event "${s}" has been approved!
 
-The member will be notified and the event will sync to Webflow.`),g(e)):(alert(`Failed to approve event: ${l.error}`),a.disabled=!1,a.textContent="Approve")}catch(d){console.error("Approve error:",d),alert("Error approving event. Please try again."),a.disabled=!1,a.textContent="Approve"}}})}),e.querySelectorAll(".reject-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.eventId,s=a.dataset.eventName,d=prompt(`Reject event "${s}"?
+The member will be notified and the event will sync to Webflow.`),h(e)):(alert(`Failed to approve event: ${d.error}`),a.disabled=!1,a.textContent="Approve")}catch(l){console.error("Approve error:",l),alert("Error approving event. Please try again."),a.disabled=!1,a.textContent="Approve"}}})}),e.querySelectorAll(".reject-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.eventId,s=a.dataset.eventName,l=prompt(`Reject event "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(d!==null){a.disabled=!0,a.textContent="Rejecting...";try{const p=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({eventId:n,action:"reject",rejectionReason:d||void 0})})).json();p.success?(alert(`Event "${s}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(l!==null){a.disabled=!0,a.textContent="Rejecting...";try{const p=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({eventId:n,action:"reject",rejectionReason:l||void 0})})).json();p.success?(alert(`Event "${s}" has been rejected.
 
-The member will be notified.`),g(e)):(alert(`Failed to reject event: ${p.error}`),a.disabled=!1,a.textContent="Reject")}catch(l){console.error("Reject error:",l),alert("Error rejecting event. Please try again."),a.disabled=!1,a.textContent="Reject"}}})}),e.querySelectorAll(".preview-btn").forEach(a=>{a.addEventListener("click",()=>{ae(a.dataset.eventId)})}),e.querySelectorAll(".preview-opp-btn").forEach(a=>{a.addEventListener("click",()=>{ie(a.dataset.oppId)})}),e.querySelectorAll(".approve-opp-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.oppId,s=a.dataset.oppName;if(confirm(`Approve opportunity "${s}"?
+The member will be notified.`),h(e)):(alert(`Failed to reject event: ${p.error}`),a.disabled=!1,a.textContent="Reject")}catch(d){console.error("Reject error:",d),alert("Error rejecting event. Please try again."),a.disabled=!1,a.textContent="Reject"}}})}),e.querySelectorAll(".preview-btn").forEach(a=>{a.addEventListener("click",()=>{ae(a.dataset.eventId)})}),e.querySelectorAll(".preview-opp-btn").forEach(a=>{a.addEventListener("click",()=>{ie(a.dataset.oppId)})}),e.querySelectorAll(".approve-opp-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.oppId,s=a.dataset.oppName;if(confirm(`Approve opportunity "${s}"?
 
-This will publish it and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const l=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({opportunityId:n,action:"approve"})})).json();l.success?(alert(`Opportunity "${s}" has been approved!
+This will publish it and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const d=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({opportunityId:n,action:"approve"})})).json();d.success?(alert(`Opportunity "${s}" has been approved!
 
-The member will be notified.`),g(e)):(alert(`Failed to approve opportunity: ${l.error}`),a.disabled=!1,a.textContent="Approve")}catch(d){console.error("Opportunity approve error:",d),alert("Error approving opportunity. Please try again."),a.disabled=!1,a.textContent="Approve"}}})}),e.querySelectorAll(".reject-opp-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.oppId,s=a.dataset.oppName,d=prompt(`Reject opportunity "${s}"?
+The member will be notified.`),h(e)):(alert(`Failed to approve opportunity: ${d.error}`),a.disabled=!1,a.textContent="Approve")}catch(l){console.error("Opportunity approve error:",l),alert("Error approving opportunity. Please try again."),a.disabled=!1,a.textContent="Approve"}}})}),e.querySelectorAll(".reject-opp-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.oppId,s=a.dataset.oppName,l=prompt(`Reject opportunity "${s}"?
 
-Optionally enter a reason (or leave blank):`);if(d!==null){a.disabled=!0,a.textContent="Rejecting...";try{const p=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${h}`,apikey:h},body:JSON.stringify({opportunityId:n,action:"reject",rejectionReason:d||void 0})})).json();p.success?(alert(`Opportunity "${s}" has been rejected.
+Optionally enter a reason (or leave blank):`);if(l!==null){a.disabled=!0,a.textContent="Rejecting...";try{const p=await(await fetch(`${v}/functions/v1/manage-opportunity`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({opportunityId:n,action:"reject",rejectionReason:l||void 0})})).json();p.success?(alert(`Opportunity "${s}" has been rejected.
 
-The member will be notified.`),g(e)):(alert(`Failed to reject opportunity: ${p.error}`),a.disabled=!1,a.textContent="Reject")}catch(l){console.error("Opportunity reject error:",l),alert("Error rejecting opportunity. Please try again."),a.disabled=!1,a.textContent="Reject"}}})}),e.querySelectorAll(".edit-btn").forEach(a=>{a.addEventListener("click",()=>{const n=a.dataset.memberId,s=a.dataset.memberName,d=a.dataset.currentType;te(n,s,d)})}),e.querySelectorAll(".delete-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.memberId,s=a.dataset.memberName;if(confirm(`Delete "${s}"?
+The member will be notified.`),h(e)):(alert(`Failed to reject opportunity: ${p.error}`),a.disabled=!1,a.textContent="Reject")}catch(d){console.error("Opportunity reject error:",d),alert("Error rejecting opportunity. Please try again."),a.disabled=!1,a.textContent="Reject"}}})}),e.querySelectorAll(".edit-btn").forEach(a=>{a.addEventListener("click",()=>{const n=a.dataset.memberId,s=a.dataset.memberName,l=a.dataset.currentType;te(n,s,l)})}),e.querySelectorAll(".delete-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.memberId,s=a.dataset.memberName;if(confirm(`Delete "${s}"?
 
-This will remove them from the dashboard and Webflow directory. This action cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const{error:d}=await m.from("members").update({is_deleted:!0,subscription_status:"deleted",updated_at:new Date().toISOString()}).eq("id",n);if(d)throw d;alert(`"${s}" has been deleted.`),g(e)}catch(d){console.error("Delete error:",d),alert("Error deleting member. Please try again."),a.disabled=!1,a.textContent="Delete"}}})}),e.querySelectorAll(".delete-project-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.projectId,s=a.dataset.projectName;if(confirm(`Delete project "${s}"?
+This will remove them from the dashboard and Webflow directory. This action cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const{error:l}=await m.from("members").update({is_deleted:!0,subscription_status:"deleted",updated_at:new Date().toISOString()}).eq("id",n);if(l)throw l;alert(`"${s}" has been deleted.`),h(e)}catch(l){console.error("Delete error:",l),alert("Error deleting member. Please try again."),a.disabled=!1,a.textContent="Delete"}}})}),e.querySelectorAll(".delete-project-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.projectId,s=a.dataset.projectName;if(confirm(`Delete project "${s}"?
 
-This will remove it from Webflow and the directory. This cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const l=await(await fetch(`${v}/functions/v1/admin-tools`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete-project",projectId:n})})).json();l.success?(alert(`Project "${s}" has been deleted.`),g(e)):(alert(`Failed to delete project: ${l.error}`),a.disabled=!1,a.textContent="Delete")}catch(d){console.error("Delete project error:",d),alert("Error deleting project. Please try again."),a.disabled=!1,a.textContent="Delete"}}})})}function oe(e){const t=[];e.memberStats.pendingSync>0&&t.push({type:"warning",text:"Members pending Webflow sync",count:e.memberStats.pendingSync});const i=e.incompleteProfiles.filter(o=>(Date.now()-new Date(o.created_at))/864e5>7&&!o.profile_reminder_sent_at);return i.length>0&&t.push({type:"info",text:"Incomplete profiles (7+ days, no reminder sent)",count:i.length}),e.eventStats.pending>0&&t.push({type:"info",text:"Events pending review",count:e.eventStats.pending}),e.opportunityStats.pending>0&&t.push({type:"info",text:"Opportunities pending review",count:e.opportunityStats.pending}),e.memberStats.lapsed>0&&t.push({type:"error",text:"Lapsed subscriptions",count:e.memberStats.lapsed}),t.length===0?`
+This will remove it from Webflow and the directory. This cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const d=await(await fetch(`${v}/functions/v1/admin-tools`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete-project",projectId:n})})).json();d.success?(alert(`Project "${s}" has been deleted.`),h(e)):(alert(`Failed to delete project: ${d.error}`),a.disabled=!1,a.textContent="Delete")}catch(l){console.error("Delete project error:",l),alert("Error deleting project. Please try again."),a.disabled=!1,a.textContent="Delete"}}})}),e.querySelectorAll(".delete-opp-btn").forEach(a=>{a.addEventListener("click",async()=>{const n=a.dataset.oppId,s=a.dataset.oppName;if(confirm(`Delete "${s}"?
+
+This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.textContent="Deleting...";try{const d=await(await fetch(`${v}/functions/v1/admin-tools`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete-opportunity",opportunityId:n})})).json();d.success?(alert(`"${s}" has been deleted.`),h(e)):(alert(`Failed to delete: ${d.error}`),a.disabled=!1,a.textContent="Delete")}catch(l){console.error("Delete opportunity error:",l),alert("Error deleting opportunity. Please try again."),a.disabled=!1,a.textContent="Delete"}}})})}function oe(e){const t=[];e.memberStats.pendingSync>0&&t.push({type:"warning",text:"Members pending Webflow sync",count:e.memberStats.pendingSync});const i=e.incompleteProfiles.filter(o=>(Date.now()-new Date(o.created_at))/864e5>7&&!o.profile_reminder_sent_at);return i.length>0&&t.push({type:"info",text:"Incomplete profiles (7+ days, no reminder sent)",count:i.length}),e.eventStats.pending>0&&t.push({type:"info",text:"Events pending review",count:e.eventStats.pending}),e.opportunityStats.pending>0&&t.push({type:"info",text:"Opportunities pending review",count:e.opportunityStats.pending}),e.memberStats.lapsed>0&&t.push({type:"error",text:"Lapsed subscriptions",count:e.memberStats.lapsed}),t.length===0?`
         <div class="admin-section">
           <div class="section-header">
             <h2 class="section-title">System Status</h2>
@@ -1406,7 +1408,7 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
           </tr>
         </thead>
         <tbody>
-          ${e.map(t=>{const i=M(t);return`
+          ${e.map(t=>{const i=L(t);return`
               <tr>
                 <td>
                   <div class="name-cell">${t.name||t.first_name||"No name"}</div>
@@ -1478,7 +1480,7 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
           `).join("")}
         </tbody>
       </table>
-    `}function de(e,t){return`
+    `}function le(e,t){return`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
         <span style="margin-right: 24px;"><strong style="color: #f59f00;">${t.pending}</strong> Pending</span>
         <span><strong style="color: #1a1a1a;">${t.published}</strong> Published</span>
@@ -1529,7 +1531,7 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
           </tbody>
         </table>
       `}
-    `}function le(e,t){return`
+    `}function de(e,t){return`
       <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
         <span style="margin-right: 24px;"><strong style="color: #f59f00;">${t.pending}</strong> Pending</span>
         <span><strong style="color: #1a1a1a;">${t.published}</strong> Published</span>
@@ -1571,6 +1573,7 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
                       ${i.webflow_id&&i.slug?`
                         <a href="${y}/opportunities/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
                       `:""}
+                      <button class="action-btn delete-opp-btn" data-opp-id="${i.id}" data-opp-name="${u(i.name||"this opportunity")}" style="color:#dc3545;border-color:#dc3545;">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -1639,13 +1642,13 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
             </div>
           `}).join("")}
       </div>
-    `}const q={member_support:"Member Support",website_bug:"Website Bug",feature_request:"Feature Request"},N={not_started:"Not Started",in_progress:"In Progress",feedback_needed:"Feedback Needed",complete:"Complete",stalled:"Stalled"};let j="main";const me=new Set(["not_started","in_progress","feedback_needed"]),ue=new Set(["complete","stalled"]);async function be(){const{data:e,error:t}=await m.from("support_tasks").select("*, support_task_comments(*)").order("created_at",{ascending:!1});return t?(console.error("loadSupportTasks:",t),[]):((e||[]).forEach(i=>{var o;return(o=i.support_task_comments)==null?void 0:o.sort((r,a)=>new Date(r.created_at)-new Date(a.created_at))}),e||[])}const $=7;function fe(e){const t=new Date,i=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0"),o=e.filter(c=>{const b=new Date(c.created_at);return b.getFullYear()+"-"+String(b.getMonth()+1).padStart(2,"0")===i}).reduce((c,b)=>c+(parseFloat(b.hours)||0),0),r=Math.min(o/$*100,100),a=$-o,n=t.toLocaleDateString("en-AU",{month:"long"});let s="",d=`${a%1===0?a:a.toFixed(1)}h remaining`;if(o>$){s="over";const c=o-$;d=`${c%1===0?c:c.toFixed(1)}h over this month's limit`}else o>=5&&(s="approaching",d=`${a%1===0?a:a.toFixed(1)}h remaining — approaching limit`);const l=o%1===0?o:o.toFixed(1),p=document.createElement("div");return p.className=`retainer-banner${s?" "+s:""}`,p.innerHTML=`
+    `}const q={member_support:"Member Support",website_bug:"Website Bug",feature_request:"Feature Request"},N={not_started:"Not Started",in_progress:"In Progress",feedback_needed:"Feedback Needed",complete:"Complete",stalled:"Stalled"};let j="main";const me=new Set(["not_started","in_progress","feedback_needed"]),ue=new Set(["complete","stalled"]);async function be(){const{data:e,error:t}=await m.from("support_tasks").select("*, support_task_comments(*)").order("created_at",{ascending:!1});return t?(console.error("loadSupportTasks:",t),[]):((e||[]).forEach(i=>{var o;return(o=i.support_task_comments)==null?void 0:o.sort((r,a)=>new Date(r.created_at)-new Date(a.created_at))}),e||[])}const $=7;function fe(e){const t=new Date,i=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0"),o=e.filter(c=>{const b=new Date(c.created_at);return b.getFullYear()+"-"+String(b.getMonth()+1).padStart(2,"0")===i}).reduce((c,b)=>c+(parseFloat(b.hours)||0),0),r=Math.min(o/$*100,100),a=$-o,n=t.toLocaleDateString("en-AU",{month:"long"});let s="",l=`${a%1===0?a:a.toFixed(1)}h remaining`;if(o>$){s="over";const c=o-$;l=`${c%1===0?c:c.toFixed(1)}h over this month's limit`}else o>=5&&(s="approaching",l=`${a%1===0?a:a.toFixed(1)}h remaining — approaching limit`);const d=o%1===0?o:o.toFixed(1),p=document.createElement("div");return p.className=`retainer-banner${s?" "+s:""}`,p.innerHTML=`
       <div class="retainer-label">Retainer &mdash; ${n}</div>
       <div class="retainer-bar-wrap">
         <div class="retainer-bar-fill" style="width:${r}%"></div>
       </div>
-      <div class="retainer-hours">${l}h / ${$}h</div>
-      <div class="retainer-status">${d}</div>
+      <div class="retainer-hours">${d}h / ${$}h</div>
+      <div class="retainer-status">${l}</div>
     `,p}async function w(){const e=document.getElementById("support-tracker-root");if(!e)return;e.innerHTML='<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';const t=await be();ve(e,t)}function ve(e,t){var o,r;const i=j==="archive";if(e.innerHTML=`
       <div class="support-toolbar">
         <div class="support-toolbar-actions">
@@ -1669,14 +1672,14 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
             <tbody>
               ${a.map(s=>ge(s)).join("")}
             </tbody>
-          </table>`,e.appendChild(n),e.querySelectorAll(".task-detail-btn").forEach(s=>{s.addEventListener("click",()=>{const d=t.find(l=>l.id===s.dataset.taskId);d&&z(d)})}),e.querySelectorAll(".form-input[data-task-id]").forEach(s=>{s.addEventListener("change",async()=>{const d=t.find(l=>l.id===s.dataset.taskId);await ye(s.dataset.taskId,s.value,d),await w()})}),e.querySelectorAll(".task-edit-btn").forEach(s=>{s.addEventListener("click",()=>{const d=t.find(l=>l.id===s.dataset.taskId);d&&we(d)})})}(o=e.querySelector("#new-task-btn"))==null||o.addEventListener("click",()=>xe()),(r=e.querySelector("#archive-view-btn"))==null||r.addEventListener("click",()=>{j=j==="archive"?"main":"archive",w()})}function he(e,t){const i={};t.forEach(n=>{const s=new Date(n.created_at),d=`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,"0")}`;i[d]||(i[d]=[]),i[d].push(n)});const o=Object.keys(i).sort((n,s)=>s.localeCompare(n));if(o.length===0){const n=document.createElement("div");n.className="empty-state",n.style.padding="40px 20px",n.textContent="No archived tasks yet.",e.appendChild(n);return}function r(n){const[s,d]=n.split("-");return new Date(parseInt(s),parseInt(d)-1,1).toLocaleDateString("en-AU",{month:"long",year:"numeric"})}const a=document.createElement("div");a.className="archive-month-grid",o.forEach(n=>{const s=i[n].slice().sort((c,b)=>new Date(b.updated_at)-new Date(c.updated_at)),d=s.reduce((c,b)=>c+(parseFloat(b.hours)||0),0),l=d>0?`${d%1===0?d:d.toFixed(2)}h`:"—",p=document.createElement("div");p.className="month-card expanded",p.innerHTML=`
+          </table>`,e.appendChild(n),e.querySelectorAll(".task-detail-btn").forEach(s=>{s.addEventListener("click",()=>{const l=t.find(d=>d.id===s.dataset.taskId);l&&D(l)})}),e.querySelectorAll(".form-input[data-task-id]").forEach(s=>{s.addEventListener("change",async()=>{const l=t.find(d=>d.id===s.dataset.taskId);await ye(s.dataset.taskId,s.value,l),await w()})}),e.querySelectorAll(".task-edit-btn").forEach(s=>{s.addEventListener("click",()=>{const l=t.find(d=>d.id===s.dataset.taskId);l&&we(l)})})}(o=e.querySelector("#new-task-btn"))==null||o.addEventListener("click",()=>xe()),(r=e.querySelector("#archive-view-btn"))==null||r.addEventListener("click",()=>{j=j==="archive"?"main":"archive",w()})}function he(e,t){const i={};t.forEach(n=>{const s=new Date(n.created_at),l=`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,"0")}`;i[l]||(i[l]=[]),i[l].push(n)});const o=Object.keys(i).sort((n,s)=>s.localeCompare(n));if(o.length===0){const n=document.createElement("div");n.className="empty-state",n.style.padding="40px 20px",n.textContent="No archived tasks yet.",e.appendChild(n);return}function r(n){const[s,l]=n.split("-");return new Date(parseInt(s),parseInt(l)-1,1).toLocaleDateString("en-AU",{month:"long",year:"numeric"})}const a=document.createElement("div");a.className="archive-month-grid",o.forEach(n=>{const s=i[n].slice().sort((c,b)=>new Date(b.updated_at)-new Date(c.updated_at)),l=s.reduce((c,b)=>c+(parseFloat(b.hours)||0),0),d=l>0?`${l%1===0?l:l.toFixed(2)}h`:"—",p=document.createElement("div");p.className="month-card expanded",p.innerHTML=`
         <div class="month-card-header">
           <div class="month-card-name">${r(n)}</div>
           <div class="month-card-chevron">▼</div>
         </div>
         <div class="month-card-stats">
           <div class="month-card-stat"><strong>${s.length}</strong> task${s.length!==1?"s":""}</div>
-          <div class="month-card-stat"><strong>${l}</strong></div>
+          <div class="month-card-stat"><strong>${d}</strong></div>
         </div>
         <div class="month-tasks">
           ${s.map(c=>`
@@ -1689,7 +1692,7 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
             </div>
           `).join("")}
         </div>
-      `,p.addEventListener("click",()=>{p.classList.toggle("expanded")}),p.querySelectorAll(".month-task-title").forEach(c=>{c.addEventListener("click",b=>{b.stopPropagation();const f=c.dataset.taskId;m.from("support_tasks").select("*, support_task_comments(*)").eq("id",f).single().then(({data:_})=>{var k;_&&((k=_.support_task_comments)==null||k.sort((_e,$e)=>new Date(_e.created_at)-new Date($e.created_at)),z(_))})})}),a.appendChild(p)}),e.appendChild(a)}function ge(e){const t=e.support_task_comments||[];return`
+      `,p.addEventListener("click",()=>{p.classList.toggle("expanded")}),p.querySelectorAll(".month-task-title").forEach(c=>{c.addEventListener("click",b=>{b.stopPropagation();const f=c.dataset.taskId;m.from("support_tasks").select("*, support_task_comments(*)").eq("id",f).single().then(({data:_})=>{var k;_&&((k=_.support_task_comments)==null||k.sort((_e,$e)=>new Date(_e.created_at)-new Date($e.created_at)),D(_))})})}),a.appendChild(p)}),e.appendChild(a)}function ge(e){const t=e.support_task_comments||[];return`
       <tr>
         <td><span class="status ${e.category}">${q[e.category]||e.category}</span></td>
         <td class="time-cell">${P(e.created_at)}</td>
@@ -1714,7 +1717,7 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
           </div>
         </td>
       </tr>
-    `}function z(e){const t=e.support_task_comments||[],i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
+    `}function D(e){const t=e.support_task_comments||[],i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
       <div class="modal" style="max-width:620px;">
         <div class="modal-header">
           <div>
@@ -1778,15 +1781,15 @@ This will remove it from Webflow and the directory. This cannot be undone.`)){a.
           ${t.length<5?'<button class="admin-btn primary" id="td-add-comment">Add Comment</button>':""}
         </div>
       </div>
-    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#td-close").addEventListener("click",()=>i.remove()),i.addEventListener("click",a=>{a.target===i&&i.remove()});const o=i.querySelector("#task-comment-image");o&&o.addEventListener("change",()=>{var n;const a=i.querySelector("#task-comment-image-name");a&&(a.textContent=((n=o.files[0])==null?void 0:n.name)||"")});const r=i.querySelector("#td-add-comment");r&&r.addEventListener("click",async()=>{var d;const a=i.querySelector("#task-comment-input"),n=a==null?void 0:a.value.trim();if(!n)return;r.disabled=!0,r.textContent="Saving...";let s=null;if((d=o==null?void 0:o.files)!=null&&d[0]){const l=o.files[0],p=l.name.split(".").pop()||"png",c=`${e.id}/${Date.now()}.${p}`,{error:b}=await m.storage.from("support-screenshots").upload(c,l,{contentType:l.type});if(!b){const{data:f}=m.storage.from("support-screenshots").getPublicUrl(c);s=(f==null?void 0:f.publicUrl)||null}}await m.from("support_task_comments").insert({task_id:e.id,author:"Racket",body:n,image_url:s}),i.remove(),await S("comment",e,n),await w()})}async function ye(e,t,i){await m.from("support_tasks").update({status:t}).eq("id",e),t==="feedback_needed"?await S("feedback_needed",i||{id:e,title:"(task)",status:t}):t==="complete"&&await S("complete",i||{id:e,title:"(task)",status:t})}async function S(e,t,i){var l;const o=q[t.category]||t.category||"",r=t.member_name?`
-Member: ${t.member_name}${t.member_profile_url?" — "+t.member_profile_url:""}`:"";let a,n,s;const d="https://www.mtnsmade.com.au/admin/dashboard";if(e==="created")a="contact@racket.net.au",n=`New MTNS MADE support task: ${t.title}`,s=`A new support task has been logged.
+    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#td-close").addEventListener("click",()=>i.remove()),i.addEventListener("click",a=>{a.target===i&&i.remove()});const o=i.querySelector("#task-comment-image");o&&o.addEventListener("change",()=>{var n;const a=i.querySelector("#task-comment-image-name");a&&(a.textContent=((n=o.files[0])==null?void 0:n.name)||"")});const r=i.querySelector("#td-add-comment");r&&r.addEventListener("click",async()=>{var l;const a=i.querySelector("#task-comment-input"),n=a==null?void 0:a.value.trim();if(!n)return;r.disabled=!0,r.textContent="Saving...";let s=null;if((l=o==null?void 0:o.files)!=null&&l[0]){const d=o.files[0],p=d.name.split(".").pop()||"png",c=`${e.id}/${Date.now()}.${p}`,{error:b}=await m.storage.from("support-screenshots").upload(c,d,{contentType:d.type});if(!b){const{data:f}=m.storage.from("support-screenshots").getPublicUrl(c);s=(f==null?void 0:f.publicUrl)||null}}await m.from("support_task_comments").insert({task_id:e.id,author:"Racket",body:n,image_url:s}),i.remove(),await S("comment",e,n),await w()})}async function ye(e,t,i){await m.from("support_tasks").update({status:t}).eq("id",e),t==="feedback_needed"?await S("feedback_needed",i||{id:e,title:"(task)",status:t}):t==="complete"&&await S("complete",i||{id:e,title:"(task)",status:t})}async function S(e,t,i){var d;const o=q[t.category]||t.category||"",r=t.member_name?`
+Member: ${t.member_name}${t.member_profile_url?" — "+t.member_profile_url:""}`:"";let a,n,s;const l="https://www.mtnsmade.com.au/admin/dashboard";if(e==="created")a="contact@racket.net.au",n=`New MTNS MADE support task: ${t.title}`,s=`A new support task has been logged.
 
 Category: ${o}${r}
 Task: ${t.title}
 ${t.description?`
 `+t.description:""}
 
-View on dashboard: ${d}`;else if(e==="comment")a="hello@mtnsmade.com.au",n=`New comment on: ${t.title}`,s=`Racket has added a comment to a support task.
+View on dashboard: ${l}`;else if(e==="comment")a="hello@mtnsmade.com.au",n=`New comment on: ${t.title}`,s=`Racket has added a comment to a support task.
 
 Category: ${o}${r}
 Task: ${t.title}
@@ -1794,19 +1797,19 @@ Task: ${t.title}
 Comment:
 ${i}
 
-View on dashboard: ${d}`;else if(e==="feedback_needed")a="hello@mtnsmade.com.au",n=`Feedback needed: ${t.title}`,s=`A support task requires your feedback.
+View on dashboard: ${l}`;else if(e==="feedback_needed")a="hello@mtnsmade.com.au",n=`Feedback needed: ${t.title}`,s=`A support task requires your feedback.
 
 Category: ${o}${r}
 Task: ${t.title}
 ${t.description?`
 `+t.description:""}
 
-View on dashboard: ${d}`;else if(e==="complete")a="hello@mtnsmade.com.au",n=`Task complete: ${t.title}`,s=`A support task has been marked complete.
+View on dashboard: ${l}`;else if(e==="complete")a="hello@mtnsmade.com.au",n=`Task complete: ${t.title}`,s=`A support task has been marked complete.
 
 Category: ${o}${r}
 Task: ${t.title}
 
-View on dashboard: ${d}`;else return;try{if(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:a,subject:n,text:s,html:s.replace(/\n/g,"<br>")})}),e==="complete"&&t.member_id&&t.category==="member_support"){const{data:p}=await m.from("members").select("email, name").eq("id",t.member_id).single();if(p!=null&&p.email){const c=((l=p.name)==null?void 0:l.split(" ")[0])||"there",b=`Your support request has been resolved: ${t.title}`,f=`Hi ${c},
+View on dashboard: ${l}`;else return;try{if(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:a,subject:n,text:s,html:s.replace(/\n/g,"<br>")})}),e==="complete"&&t.member_id&&t.category==="member_support"){const{data:p}=await m.from("members").select("email, name").eq("id",t.member_id).single();if(p!=null&&p.email){const c=((d=p.name)==null?void 0:d.split(" ")[0])||"there",b=`Your support request has been resolved: ${t.title}`,f=`Hi ${c},
 
 We wanted to let you know that your support request has been resolved.
 
@@ -1815,7 +1818,7 @@ Request: ${t.title}
 If you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.
 
 Thanks,
-The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:p.email,subject:b,text:f,html:f.replace(/\n/g,"<br>")})})}}}catch(p){console.error("sendTaskNotification error:",p)}}let C=null;async function D(e){if(!e||e.length<2)return[];const{data:t}=await m.from("members").select("id, name, slug, business_name").or(`name.ilike.%${e}%,business_name.ilike.%${e}%`).eq("subscription_status","active").limit(8);return t||[]}function xe(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
+The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:p.email,subject:b,text:f,html:f.replace(/\n/g,"<br>")})})}}}catch(p){console.error("sendTaskNotification error:",p)}}let C=null;async function z(e){if(!e||e.length<2)return[];const{data:t}=await m.from("members").select("id, name, slug, business_name").or(`name.ilike.%${e}%,business_name.ilike.%${e}%`).eq("subscription_status","active").limit(8);return t||[]}function xe(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
       <div class="modal" style="max-width:560px;">
         <div class="modal-header">
           <h3 class="modal-title">New Support Task</h3>
@@ -1854,10 +1857,10 @@ The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",he
           <button class="admin-btn primary" id="st-save">Create Task</button>
         </div>
       </div>
-    `,document.body.appendChild(e);const t=e.querySelector("#st-category"),i=e.querySelector("#st-member-field"),o=()=>{i.style.display=t.value==="member_support"?"block":"none"};o(),t.addEventListener("change",o);const r=e.querySelector("#st-member-search"),a=e.querySelector("#st-member-suggestions");r.addEventListener("input",()=>{clearTimeout(C);const n=r.value.trim();if(n.length<2){a.style.display="none";return}C=setTimeout(async()=>{const s=await D(n);if(s.length===0){a.style.display="none";return}a.innerHTML=s.map(d=>`<div class="member-suggestion-item" data-id="${d.id}" data-name="${u(d.name||"")}" data-slug="${d.slug||""}">
-            ${u(d.name||d.id)}
-            ${d.business_name?`<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${u(d.business_name)}</span>`:""}
-          </div>`).join(""),a.style.display="block",a.querySelectorAll(".member-suggestion-item").forEach(d=>{d.addEventListener("click",()=>{e.querySelector("#st-member-id").value=d.dataset.id,e.querySelector("#st-member-name").value=d.dataset.name,e.querySelector("#st-member-url").value=d.dataset.slug?`${y}/members/${d.dataset.slug}`:"",r.value=d.dataset.name,a.style.display="none"})})},250)}),e.querySelector(".modal-close").addEventListener("click",()=>e.remove()),e.querySelector("#st-cancel").addEventListener("click",()=>e.remove()),e.addEventListener("click",n=>{n.target===e&&e.remove()}),e.querySelector("#st-save").addEventListener("click",async()=>{const n=e.querySelector("#st-title").value.trim(),s=e.querySelector("#st-category").value;if(!n){alert("Please enter a task title.");return}const d=e.querySelector("#st-save");d.disabled=!0,d.textContent="Saving...";const l=e.querySelector("#st-member-id").value,p={category:s,title:n,description:e.querySelector("#st-description").value.trim()||null,status:"not_started",hours:null,member_id:l||null,member_name:e.querySelector("#st-member-name").value||null,member_profile_url:e.querySelector("#st-member-url").value||null},{data:c,error:b}=await m.from("support_tasks").insert(p).select().single();if(b){alert("Error creating task: "+b.message),d.disabled=!1,d.textContent="Create Task";return}e.remove(),await S("created",c),await w()})}function we(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
+    `,document.body.appendChild(e);const t=e.querySelector("#st-category"),i=e.querySelector("#st-member-field"),o=()=>{i.style.display=t.value==="member_support"?"block":"none"};o(),t.addEventListener("change",o);const r=e.querySelector("#st-member-search"),a=e.querySelector("#st-member-suggestions");r.addEventListener("input",()=>{clearTimeout(C);const n=r.value.trim();if(n.length<2){a.style.display="none";return}C=setTimeout(async()=>{const s=await z(n);if(s.length===0){a.style.display="none";return}a.innerHTML=s.map(l=>`<div class="member-suggestion-item" data-id="${l.id}" data-name="${u(l.name||"")}" data-slug="${l.slug||""}">
+            ${u(l.name||l.id)}
+            ${l.business_name?`<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${u(l.business_name)}</span>`:""}
+          </div>`).join(""),a.style.display="block",a.querySelectorAll(".member-suggestion-item").forEach(l=>{l.addEventListener("click",()=>{e.querySelector("#st-member-id").value=l.dataset.id,e.querySelector("#st-member-name").value=l.dataset.name,e.querySelector("#st-member-url").value=l.dataset.slug?`${y}/members/${l.dataset.slug}`:"",r.value=l.dataset.name,a.style.display="none"})})},250)}),e.querySelector(".modal-close").addEventListener("click",()=>e.remove()),e.querySelector("#st-cancel").addEventListener("click",()=>e.remove()),e.addEventListener("click",n=>{n.target===e&&e.remove()}),e.querySelector("#st-save").addEventListener("click",async()=>{const n=e.querySelector("#st-title").value.trim(),s=e.querySelector("#st-category").value;if(!n){alert("Please enter a task title.");return}const l=e.querySelector("#st-save");l.disabled=!0,l.textContent="Saving...";const d=e.querySelector("#st-member-id").value,p={category:s,title:n,description:e.querySelector("#st-description").value.trim()||null,status:"not_started",hours:null,member_id:d||null,member_name:e.querySelector("#st-member-name").value||null,member_profile_url:e.querySelector("#st-member-url").value||null},{data:c,error:b}=await m.from("support_tasks").insert(p).select().single();if(b){alert("Error creating task: "+b.message),l.disabled=!1,l.textContent="Create Task";return}e.remove(),await S("created",c),await w()})}function we(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
       <div class="modal" style="max-width:560px;">
         <div class="modal-header">
           <h3 class="modal-title">Edit Task</h3>
@@ -1911,23 +1914,23 @@ The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",he
           <button class="admin-btn primary" id="et-save">Save Changes</button>
         </div>
       </div>
-    `,document.body.appendChild(t);const i=t.querySelector("#et-member-search"),o=t.querySelector("#et-member-suggestions");i.addEventListener("input",()=>{clearTimeout(C);const r=i.value.trim();if(r.length<2){o.style.display="none";return}C=setTimeout(async()=>{const a=await D(r);if(a.length===0){o.style.display="none";return}o.innerHTML=a.map(n=>`<div class="member-suggestion-item" data-id="${n.id}" data-name="${u(n.name||"")}" data-slug="${n.slug||""}">
+    `,document.body.appendChild(t);const i=t.querySelector("#et-member-search"),o=t.querySelector("#et-member-suggestions");i.addEventListener("input",()=>{clearTimeout(C);const r=i.value.trim();if(r.length<2){o.style.display="none";return}C=setTimeout(async()=>{const a=await z(r);if(a.length===0){o.style.display="none";return}o.innerHTML=a.map(n=>`<div class="member-suggestion-item" data-id="${n.id}" data-name="${u(n.name||"")}" data-slug="${n.slug||""}">
             ${u(n.name||n.id)}
             ${n.business_name?`<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${u(n.business_name)}</span>`:""}
-          </div>`).join(""),o.style.display="block",o.querySelectorAll(".member-suggestion-item").forEach(n=>{n.addEventListener("click",()=>{t.querySelector("#et-member-id").value=n.dataset.id,t.querySelector("#et-member-name").value=n.dataset.name,t.querySelector("#et-member-url").value=n.dataset.slug?`${y}/members/${n.dataset.slug}`:"",i.value=n.dataset.name,o.style.display="none"})})},250)}),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.querySelector("#et-cancel").addEventListener("click",()=>t.remove()),t.addEventListener("click",r=>{r.target===t&&t.remove()}),t.querySelector("#et-delete").addEventListener("click",async()=>{if(!confirm(`Delete "${e.title}"? This cannot be undone.`))return;const r=t.querySelector("#et-delete");r.disabled=!0,r.textContent="Deleting...",await m.from("support_task_comments").delete().eq("task_id",e.id),await m.from("support_tasks").delete().eq("id",e.id),t.remove(),await w()}),t.querySelector("#et-save").addEventListener("click",async()=>{const r=t.querySelector("#et-save"),a=t.querySelector("#et-status").value,n=a!==e.status;r.disabled=!0,r.textContent="Saving...";const s=t.querySelector("#et-hours").value,d=t.querySelector("#et-member-name").value||t.querySelector("#et-member-search").value.trim()||null,{error:l}=await m.from("support_tasks").update({category:t.querySelector("#et-category").value,title:t.querySelector("#et-title").value.trim(),description:t.querySelector("#et-description").value.trim()||null,notes:t.querySelector("#et-notes").value.trim()||null,status:a,hours:s?parseFloat(s):null,member_id:t.querySelector("#et-member-id").value||null,member_name:d,member_profile_url:t.querySelector("#et-member-url").value||null}).eq("id",e.id);if(l){alert("Error saving: "+l.message),r.disabled=!1,r.textContent="Save Changes";return}n&&await S(a==="feedback_needed"?"feedback_needed":a==="complete"?"complete":null,e),t.remove(),await w()})}function P(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"2-digit"}):""}function u(e){return e?String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):""}async function g(e){const t=e.querySelector("#refresh-btn");t&&(t.disabled=!0,t.textContent="Loading...");try{E=await L(),A(e,E)}catch(i){console.error("Error refreshing dashboard:",i),t&&(t.disabled=!1,t.textContent="Refresh")}}async function I(){const e=document.querySelector(".dashboard-feed");if(!e){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){e.innerHTML=`
+          </div>`).join(""),o.style.display="block",o.querySelectorAll(".member-suggestion-item").forEach(n=>{n.addEventListener("click",()=>{t.querySelector("#et-member-id").value=n.dataset.id,t.querySelector("#et-member-name").value=n.dataset.name,t.querySelector("#et-member-url").value=n.dataset.slug?`${y}/members/${n.dataset.slug}`:"",i.value=n.dataset.name,o.style.display="none"})})},250)}),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.querySelector("#et-cancel").addEventListener("click",()=>t.remove()),t.addEventListener("click",r=>{r.target===t&&t.remove()}),t.querySelector("#et-delete").addEventListener("click",async()=>{if(!confirm(`Delete "${e.title}"? This cannot be undone.`))return;const r=t.querySelector("#et-delete");r.disabled=!0,r.textContent="Deleting...",await m.from("support_task_comments").delete().eq("task_id",e.id),await m.from("support_tasks").delete().eq("id",e.id),t.remove(),await w()}),t.querySelector("#et-save").addEventListener("click",async()=>{const r=t.querySelector("#et-save"),a=t.querySelector("#et-status").value,n=a!==e.status;r.disabled=!0,r.textContent="Saving...";const s=t.querySelector("#et-hours").value,l=t.querySelector("#et-member-name").value||t.querySelector("#et-member-search").value.trim()||null,{error:d}=await m.from("support_tasks").update({category:t.querySelector("#et-category").value,title:t.querySelector("#et-title").value.trim(),description:t.querySelector("#et-description").value.trim()||null,notes:t.querySelector("#et-notes").value.trim()||null,status:a,hours:s?parseFloat(s):null,member_id:t.querySelector("#et-member-id").value||null,member_name:l,member_profile_url:t.querySelector("#et-member-url").value||null}).eq("id",e.id);if(d){alert("Error saving: "+d.message),r.disabled=!1,r.textContent="Save Changes";return}n&&await S(a==="feedback_needed"?"feedback_needed":a==="complete"?"complete":null,e),t.remove(),await w()})}function P(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"2-digit"}):""}function u(e){return e?String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):""}async function h(e){const t=e.querySelector("#refresh-btn");t&&(t.disabled=!0,t.textContent="Loading...");try{E=await M(),A(e,E)}catch(i){console.error("Error refreshing dashboard:",i),t&&(t.disabled=!1,t.textContent="Refresh")}}async function I(){const e=document.querySelector(".dashboard-feed");if(!e){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){e.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error: Supabase library not loaded</div>
           </div>
         </div>
-      `;return}if(m=window.supabase.createClient(v,h),!document.querySelector("#admin-dashboard-styles")){const t=document.createElement("style");t.id="admin-dashboard-styles",t.textContent=O,document.head.appendChild(t)}e.innerHTML=`
+      `;return}if(m=window.supabase.createClient(v,g),!document.querySelector("#admin-dashboard-styles")){const t=document.createElement("style");t.id="admin-dashboard-styles",t.textContent=O,document.head.appendChild(t)}e.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-loading">
           <div class="loader"></div>
           <div class="loading-text">Loading system data...</div>
         </div>
       </div>
-    `;try{E=await L(),A(e,E)}catch(t){console.error("Error loading dashboard:",t),e.innerHTML=`
+    `;try{E=await M(),A(e,E)}catch(t){console.error("Error loading dashboard:",t),e.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error loading dashboard</div>

@@ -2225,6 +2225,37 @@ MTNS MADE Team`;
         }
       });
     });
+
+    container.querySelectorAll('.delete-opp-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const oppId = btn.dataset.oppId;
+        const oppName = btn.dataset.oppName;
+        if (!confirm(`Delete "${oppName}"?\n\nThis will remove it from the site. This cannot be undone.`)) return;
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+        try {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-tools`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete-opportunity', opportunityId: oppId }),
+          });
+          const result = await response.json();
+          if (result.success) {
+            alert(`"${oppName}" has been deleted.`);
+            refreshDashboard(container);
+          } else {
+            alert(`Failed to delete: ${result.error}`);
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+          }
+        } catch (error) {
+          console.error('Delete opportunity error:', error);
+          alert('Error deleting opportunity. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Delete';
+        }
+      });
+    });
   }
 
   function renderIssuesSection(data) {
@@ -2574,6 +2605,7 @@ MTNS MADE Team`;
                       ${opp.webflow_id && opp.slug ? `
                         <a href="${SITE_URL}/opportunities/${opp.slug}" target="_blank" class="action-btn view-btn">View</a>
                       ` : ''}
+                      <button class="action-btn delete-opp-btn" data-opp-id="${opp.id}" data-opp-name="${escHtml(opp.name || 'this opportunity')}" style="color:#dc3545;border-color:#dc3545;">Delete</button>
                     </div>
                   </td>
                 </tr>
