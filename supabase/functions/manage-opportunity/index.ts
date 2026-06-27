@@ -527,6 +527,18 @@ serve(async (req) => {
       );
 
     } else {
+      // If previously published, delete from Webflow CMS so it's removed from the live site
+      if (opportunity.webflow_id) {
+        try {
+          await fetch(
+            `https://api.webflow.com/v2/collections/${WEBFLOW_OPPORTUNITIES_COLLECTION_ID}/items/${opportunity.webflow_id}`,
+            { method: 'DELETE', headers: { 'Authorization': `Bearer ${WEBFLOW_API_TOKEN}` } }
+          );
+        } catch (err) {
+          console.warn('Webflow delete on reject failed (non-fatal):', err);
+        }
+      }
+
       const { error: updateError } = await supabase
         .from('opportunities')
         .update({ is_archived: true, updated_at: new Date().toISOString() })
@@ -541,6 +553,13 @@ serve(async (req) => {
       }
 
       console.log('Opportunity rejected:', opportunity.name);
+
+      if (opportunity.webflow_id) {
+        fetch(`${SUPABASE_URL}/functions/v1/publish-site`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        }).catch(err => console.warn('publish-site error (non-fatal):', err));
+      }
 
       if (opportunity.member_contact_email) {
         await sendRejectionEmail(opportunity.member_contact_email, opportunity.name, body.rejectionReason);

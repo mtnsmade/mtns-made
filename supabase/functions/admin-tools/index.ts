@@ -86,6 +86,13 @@ serve(async (req: Request) => {
         });
       }
 
+      if (opp?.webflow_id) {
+        fetch(`${SUPABASE_URL}/functions/v1/publish-site`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        }).catch(err => console.warn('publish-site error (non-fatal):', err));
+      }
+
       console.log('Opportunity deleted by admin:', opp?.name, opportunityId);
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
