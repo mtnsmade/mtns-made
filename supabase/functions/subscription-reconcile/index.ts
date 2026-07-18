@@ -124,6 +124,7 @@ async function updateSubscriptionStatus(memberstackId: string, status: string): 
 
   if (status === 'active') {
     updateData.subscription_lapsed_at = null;
+    updateData.retention_warning_sent = false;
   } else if (status === 'lapsed') {
     updateData.subscription_lapsed_at = new Date().toISOString();
   }

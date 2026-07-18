@@ -902,6 +902,7 @@ async function updateSubscriptionStatus(memberstackId: string, status: string): 
     .from('members')
     .update({
       subscription_status: status,
+      subscription_lapsed_at: status === 'lapsed' ? new Date().toISOString() : null,
       updated_at: new Date().toISOString()
     })
     .eq('memberstack_id', memberstackId);

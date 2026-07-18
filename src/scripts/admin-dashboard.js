@@ -1871,6 +1871,7 @@ MTNS MADE Team`;
             <button class="tab-btn" data-tab="opportunities">Opportunities ${pendingOpportunities > 0 ? `(${pendingOpportunities})` : ''}</button>
             <button class="tab-btn" data-tab="projects">Projects</button>
             <button class="tab-btn" data-tab="support">Support</button>
+            <button class="tab-btn" data-tab="sop">SOPs</button>
           </div>
 
           <div class="tab-content active" id="tab-activity">
@@ -1904,6 +1905,10 @@ MTNS MADE Team`;
           <div class="tab-content" id="tab-support">
             <div id="support-tracker-root">Loading...</div>
           </div>
+
+          <div class="tab-content" id="tab-sop">
+            <div id="sop-root">Loading...</div>
+          </div>
         </div>
       </div>
     `;
@@ -1917,6 +1922,9 @@ MTNS MADE Team`;
         container.querySelector(`#tab-${tab.dataset.tab}`).classList.add('active');
         if (tab.dataset.tab === 'support') {
           initSupportTracker();
+        }
+        if (tab.dataset.tab === 'sop') {
+          initSopTab();
         }
       });
     });
@@ -2802,6 +2810,42 @@ MTNS MADE Team`;
     root.innerHTML = '<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';
     const tasks = await loadSupportTasks();
     renderSupportTracker(root, tasks);
+  }
+
+  // ============================================
+  // SOPs (read-only)
+  // ============================================
+
+  async function initSopTab() {
+    const root = document.getElementById('sop-root');
+    if (!root) return;
+    root.innerHTML = '<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';
+
+    const { data: sops, error } = await supabase
+      .from('sops')
+      .select('*')
+      .order('category', { ascending: true })
+      .order('title', { ascending: true });
+
+    if (error) {
+      root.innerHTML = `<div class="empty-state" style="padding:40px 20px;">Error loading SOPs: ${escHtml(error.message)}</div>`;
+      return;
+    }
+
+    if (!sops || sops.length === 0) {
+      root.innerHTML = '<div class="empty-state" style="padding:40px 20px;">No SOPs yet.</div>';
+      return;
+    }
+
+    root.innerHTML = sops.map(s => `
+      <div class="admin-section" style="margin-bottom:16px;border:1px solid #eee;border-radius:8px;padding:20px;">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px;">
+          <h3 style="margin:0;font-size:16px;">${escHtml(s.title)}</h3>
+          ${s.category ? `<span class="status" style="font-size:10px;padding:2px 8px;">${escHtml(s.category)}</span>` : ''}
+        </div>
+        <div style="font-size:13px;line-height:1.6;color:#333;white-space:pre-wrap;">${escHtml(s.content)}</div>
+      </div>
+    `).join('');
   }
 
   function renderSupportTracker(root, tasks) {
