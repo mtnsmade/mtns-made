@@ -1,10 +1,22 @@
 // Supabase Edge Function: Lapsed Member Cleanup
 // Member Non-Payment Lifecycle SOP — runs daily.
 // Day 20 since lapse: sends a final retention warning email (once, guarded by retention_warning_sent).
-// Day 30 since lapse: hard-deletes the member's site data by replaying the existing
-// memberstack-webhook `member.deleted` handler (Webflow item + storage images deleted,
-// Supabase row soft-deleted, projects archived, site republished) — this does NOT touch
-// the member's actual Memberstack/Stripe account, only their site presence and data.
+// 10+ days after that warning was actually sent: hard-deletes the member's site data by
+// replaying the existing memberstack-webhook `member.deleted` handler (Webflow item +
+// storage images deleted, Supabase row soft-deleted, projects archived, site republished)
+// — this does NOT touch the member's actual Memberstack/Stripe account, only their site
+// presence and data.
+//
+// Safety design (added after the 2026-07-18 incident where a stale historical
+// subscription_lapsed_at value caused 42 members to be hard-deleted with zero warning):
+//  1. Hard delete is gated on retention_warning_sent_at (a timestamp WE set when we send
+//     the warning), not on subscription_lapsed_at — which can be stale or historical.
+//     No warning ever sent = no delete, no matter how old subscription_lapsed_at is.
+//  2. Every warning AND every delete re-checks the member's live Memberstack status
+//     immediately beforehand and skips if they're actually active again.
+//  3. Supports a dry-run mode ({"dryRun": true} in the POST body) that logs every decision
+//     with zero writes/emails/deletes.
+//  4. Throttled with a delay between members to avoid partial silent Webflow failures.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -12,10 +24,12 @@ import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 const FINAL_WARNING_DAY = 20;
-const HARD_DELETE_DAY = 30;
+const MIN_DAYS_AFTER_WARNING_BEFORE_DELETE = 10;
+const DELAY_BETWEEN_MEMBERS_MS = 500;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,6 +49,31 @@ interface LapsedMember {
   name: string | null;
   subscription_lapsed_at: string;
   retention_warning_sent: boolean;
+  retention_warning_sent_at: string | null;
+}
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Re-verify the member is still genuinely non-active in Memberstack right now, immediately
+// before taking any action. Never rely on Supabase's cached status alone for this — it can
+// be stale (a payment retry can succeed at any time, or an old historical timestamp may not
+// reflect reality at all).
+async function isStillActiveInMemberstack(memberstackId: string): Promise<boolean> {
+  if (!MEMBERSTACK_API_KEY) {
+    throw new Error('MEMBERSTACK_API_KEY not configured — refusing to act without a live check');
+  }
+  const response = await fetch(`https://admin.memberstack.com/members/${memberstackId}`, {
+    headers: { 'X-API-KEY': MEMBERSTACK_API_KEY, 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    // If Memberstack can't be reached, fail safe — treat as "still active" so we skip
+    // rather than risk an irreversible action on bad information.
+    console.error('isStillActiveInMemberstack: fetch failed, failing safe (treating as active)', memberstackId);
+    return true;
+  }
+  const data = await response.json();
+  const planConnections = data?.data?.planConnections || [];
+  return planConnections.some((p: { status: string }) => p.status === 'ACTIVE');
 }
 
 async function sendFinalRetentionWarningEmail(email: string, firstName: string, deleteDate: string): Promise<void> {
@@ -142,11 +181,19 @@ serve(async (req: Request) => {
   }
 
   try {
+    let dryRun = false;
+    try {
+      const body = await req.json();
+      dryRun = body?.dryRun === true;
+    } catch {
+      // no body / not JSON — default to live run (matches cron's plain POST)
+    }
+
     const supabase = getSupabaseClient();
 
     const { data: lapsedMembers, error } = await supabase
       .from('members')
-      .select('id, memberstack_id, email, first_name, name, subscription_lapsed_at, retention_warning_sent')
+      .select('id, memberstack_id, email, first_name, name, subscription_lapsed_at, retention_warning_sent, retention_warning_sent_at')
       .eq('subscription_status', 'lapsed')
       .eq('is_deleted', false)
       .not('subscription_lapsed_at', 'is', null);
@@ -156,35 +203,64 @@ serve(async (req: Request) => {
     const now = Date.now();
     let warningsSent = 0;
     let deletedCount = 0;
+    let skippedStillActive = 0;
+    const decisions: Array<{ name: string; action: string }> = [];
 
     for (const member of (lapsedMembers || []) as LapsedMember[]) {
       const lapsedAt = new Date(member.subscription_lapsed_at).getTime();
       const daysSinceLapse = Math.floor((now - lapsedAt) / (1000 * 60 * 60 * 24));
+      const label = member.name || member.email || member.id;
 
-      if (daysSinceLapse >= HARD_DELETE_DAY) {
-        await hardDeleteMember(member.memberstack_id);
-        deletedCount++;
-      } else if (daysSinceLapse >= FINAL_WARNING_DAY && !member.retention_warning_sent) {
-        const deleteDate = new Date(lapsedAt + HARD_DELETE_DAY * 24 * 60 * 60 * 1000)
-          .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+      // Hard delete is gated on OUR OWN recorded warning time, never on subscription_lapsed_at
+      // alone — that value can be stale or set by an unrelated historical process.
+      const eligibleForDelete = member.retention_warning_sent_at
+        && (now - new Date(member.retention_warning_sent_at).getTime()) >= MIN_DAYS_AFTER_WARNING_BEFORE_DELETE * 24 * 60 * 60 * 1000;
 
-        if (member.email) {
-          await sendFinalRetentionWarningEmail(member.email, member.first_name || member.name?.split(' ')[0] || '', deleteDate);
+      if (eligibleForDelete) {
+        if (await isStillActiveInMemberstack(member.memberstack_id)) {
+          skippedStillActive++;
+          decisions.push({ name: label, action: 'skipped — active in Memberstack, not deleting' });
+        } else if (dryRun) {
+          decisions.push({ name: label, action: '[DRY RUN] would hard-delete' });
+          deletedCount++;
+        } else {
+          await hardDeleteMember(member.memberstack_id);
+          deletedCount++;
+          decisions.push({ name: label, action: 'hard-deleted' });
         }
+      } else if (daysSinceLapse >= FINAL_WARNING_DAY && !member.retention_warning_sent) {
+        if (await isStillActiveInMemberstack(member.memberstack_id)) {
+          skippedStillActive++;
+          decisions.push({ name: label, action: 'skipped — active in Memberstack, not warning' });
+        } else {
+          const deleteDate = new Date(now + MIN_DAYS_AFTER_WARNING_BEFORE_DELETE * 24 * 60 * 60 * 1000)
+            .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
-        await supabase
-          .from('members')
-          .update({ retention_warning_sent: true })
-          .eq('id', member.id);
-
-        warningsSent++;
+          if (dryRun) {
+            decisions.push({ name: label, action: `[DRY RUN] would send final warning (delete date: ${deleteDate})` });
+          } else {
+            if (member.email) {
+              await sendFinalRetentionWarningEmail(member.email, member.first_name || member.name?.split(' ')[0] || '', deleteDate);
+            }
+            await supabase
+              .from('members')
+              .update({ retention_warning_sent: true, retention_warning_sent_at: new Date().toISOString() })
+              .eq('id', member.id);
+            decisions.push({ name: label, action: 'sent final warning' });
+          }
+          warningsSent++;
+        }
+      } else {
+        decisions.push({ name: label, action: `no action (day ${daysSinceLapse} since lapse)` });
       }
+
+      await sleep(DELAY_BETWEEN_MEMBERS_MS);
     }
 
-    console.log(`lapsed-member-cleanup: ${warningsSent} warnings sent, ${deletedCount} members hard-deleted`);
+    console.log(`lapsed-member-cleanup (dryRun=${dryRun}): ${warningsSent} warnings, ${deletedCount} deletes, ${skippedStillActive} skipped (still active)`);
 
     return new Response(
-      JSON.stringify({ success: true, warningsSent, deletedCount }),
+      JSON.stringify({ success: true, dryRun, warningsSent, deletedCount, skippedStillActive, decisions }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
