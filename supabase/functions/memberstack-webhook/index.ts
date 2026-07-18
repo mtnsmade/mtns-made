@@ -651,6 +651,7 @@ async function unarchiveInWebflow(webflowId: string): Promise<void> {
       },
       body: JSON.stringify({
         isArchived: false,
+        isDraft: false,
       }),
     }
   );

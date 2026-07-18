@@ -149,7 +149,7 @@ async function unarchiveInWebflow(webflowId: string): Promise<void> {
         'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ isArchived: false }),
+      body: JSON.stringify({ isArchived: false, isDraft: false }),
     }
   );
 
