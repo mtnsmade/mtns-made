@@ -5,7 +5,7 @@
  * Run modes:
  * - POST { mode: 'scheduled' } - Send to members 1+ day old, not yet reminded
  * - POST { mode: 'batch' } - Send to ALL incomplete profiles (one-time catch-up)
- * - POST { mode: 'test', email: 'test@example.com' } - Send test email
+ * - POST { mode: 'test', email: 'test@example.com', name?: 'First Name' } - Send test email
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -339,7 +339,7 @@ serve(async (req) => {
         );
       }
 
-      const sent = await sendReminderEmail(testEmail, 'Test User');
+      const sent = await sendReminderEmail(testEmail, body.name || 'Test User');
       return new Response(
         JSON.stringify({ success: sent, mode: 'test', email: testEmail }),
         { headers: { 'Content-Type': 'application/json' } }
