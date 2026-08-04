@@ -15,32 +15,32 @@
     'emerging': {
       name: 'Emerging',
       planId: 'pln_emerging-i59k0l22',
-      monthlyPriceId: 'prc_emerging-monthly-pjfn0zg0',
-      yearlyPriceId: 'prc_emerging-subscription-gsa206gw'
+      monthlyPriceId: 'prc_2026-emerging-monthly-fd2ia06uj',
+      yearlyPriceId: 'prc_2026-emerging-annual-lk2i906t0'
     },
     'professional': {
       name: 'Professional',
       planId: 'pln_professional-ic970osr',
-      monthlyPriceId: 'prc_professional-monthly-ilg80e59',
-      yearlyPriceId: 'prc_professional-subscription-4z9m0lla'
+      monthlyPriceId: 'prc_2026-professional-monthly-e72ib06fg',
+      yearlyPriceId: 'prc_2026-professional-annual-8x2ix01w6'
     },
     'not-for-profit': {
       name: 'Not For Profit',
       planId: 'pln_not-for-profit-qaa106a4',
-      monthlyPriceId: 'prc_not-for-profit-monthly-t1gb0etf',
-      yearlyPriceId: 'prc_not-for-profit-subscription-w69j0l9k'
+      monthlyPriceId: 'prc_2026-not-for-profit-monthly-442j001xz',
+      yearlyPriceId: 'prc_2026-not-for-profit-annual-0j2go0ypj'
     },
     'small-business': {
       name: 'Small Business',
       planId: 'pln_small-business-qsa506lc',
-      monthlyPriceId: 'prc_small-business-monthly-3zgd0ga2',
-      yearlyPriceId: 'prc_small-business-subscription-jpa606e1'
+      monthlyPriceId: 'prc_2026-small-business-monthly-wv2gm0yo4',
+      yearlyPriceId: 'prc_2026-small-business-annual-el2ic068k'
     },
     'large-business': {
       name: 'Large Business',
       planId: 'pln_medium-large-business-9qa706pj',
-      monthlyPriceId: 'prc_medium-large-business-monthly-i2fl0z2d',
-      yearlyPriceId: 'prc_medium-large-business-subscription-g6a806rj'
+      monthlyPriceId: 'prc_2026-medium-large-business-monthly-3m2gn0yxa',
+      yearlyPriceId: 'prc_2026-medium-large-business-annual-su2iy0155'
     },
     'spaces-suppliers': {
       name: 'Spaces / Suppliers',
