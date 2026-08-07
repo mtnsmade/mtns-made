@@ -1673,6 +1673,166 @@ MTNS MADE Team`;
     });
   }
 
+  function createOpportunitySlugBase(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 100);
+  }
+
+  async function generateUniqueOpportunitySlug(name) {
+    const baseSlug = createOpportunitySlugBase(name);
+    const { data: existing } = await supabase.from('opportunities').select('slug').eq('slug', baseSlug).maybeSingle();
+    if (!existing) return baseSlug;
+    const { data: similar } = await supabase.from('opportunities').select('slug').like('slug', `${baseSlug}-%`);
+    const existingSlugs = new Set((similar || []).map(o => o.slug));
+    existingSlugs.add(baseSlug);
+    let counter = 2;
+    while (existingSlugs.has(`${baseSlug}-${counter}`)) counter++;
+    return `${baseSlug}-${counter}`;
+  }
+
+  const OPPORTUNITY_TYPE_LABELS = {
+    'job': 'Job / Employment',
+    'commission': 'Commission',
+    'collaboration': 'Collaboration',
+    'call-for-entries': 'Call for Entries',
+    'residency': 'Residency / Fellowship',
+    'volunteer': 'Volunteer',
+  };
+
+  function showNewOpportunityModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title">New Opportunity</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">Title *</label>
+            <input type="text" class="form-input" id="modal-opp-name">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Type *</label>
+            <select class="form-input" id="modal-opp-type">
+              <option value="">-- Select Type --</option>
+              ${Object.entries(OPPORTUNITY_TYPE_LABELS).map(([value, label]) => `
+                <option value="${value}">${label}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Organization</label>
+            <input type="text" class="form-input" id="modal-opp-org">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Contact Name</label>
+            <input type="text" class="form-input" id="modal-opp-contact-name">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Contact Email</label>
+            <input type="email" class="form-input" id="modal-opp-contact-email">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" id="modal-opp-description" rows="4"></textarea>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Criteria / How to Apply</label>
+            <textarea class="form-input" id="modal-opp-criteria" rows="4"></textarea>
+          </div>
+          <div class="form-field">
+            <label class="form-label">More Info URL</label>
+            <input type="url" class="form-input" id="modal-opp-url">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Closing Date</label>
+            <input type="date" class="form-input" id="modal-opp-closing-date">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="admin-btn" id="modal-cancel">Cancel</button>
+          <button class="admin-btn primary" id="modal-save">Create & Publish</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('#modal-cancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    modal.querySelector('#modal-save').addEventListener('click', async () => {
+      const name = modal.querySelector('#modal-opp-name').value.trim();
+      const opportunity_type = modal.querySelector('#modal-opp-type').value;
+
+      if (!name || !opportunity_type) {
+        alert('Title and Type are required.');
+        return;
+      }
+
+      const saveBtn = modal.querySelector('#modal-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Creating...';
+
+      try {
+        const slug = await generateUniqueOpportunitySlug(name);
+        const payload = {
+          name,
+          slug,
+          opportunity_type,
+          organization: modal.querySelector('#modal-opp-org').value.trim() || null,
+          contact_name: modal.querySelector('#modal-opp-contact-name').value.trim() || null,
+          member_contact_email: modal.querySelector('#modal-opp-contact-email').value.trim() || null,
+          description: modal.querySelector('#modal-opp-description').value.trim() || null,
+          criteria: modal.querySelector('#modal-opp-criteria').value.trim() || null,
+          opportunity_url: modal.querySelector('#modal-opp-url').value.trim() || null,
+          closing_date: modal.querySelector('#modal-opp-closing-date').value || null,
+          is_draft: true,
+          is_archived: false,
+        };
+
+        const { data: created, error } = await supabase
+          .from('opportunities')
+          .insert(payload)
+          .select('id')
+          .single();
+
+        if (error) throw error;
+
+        // Reuse the existing, tested approve flow to sync to Webflow and publish.
+        saveBtn.textContent = 'Publishing...';
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ opportunityId: created.id, action: 'approve' }),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to publish');
+        }
+
+        alert(`"${name}" has been created and published.`);
+        modal.remove();
+        refreshDashboard(document.querySelector('.dashboard-feed'));
+      } catch (error) {
+        console.error('Error creating opportunity:', error);
+        alert('Error creating opportunity: ' + error.message);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Create & Publish';
+      }
+    });
+  }
+
   async function showEventPreviewModal(eventId) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -2045,6 +2205,11 @@ MTNS MADE Team`;
       btn.addEventListener('click', () => {
         showEventPreviewModal(btn.dataset.eventId);
       });
+    });
+
+    // Setup new opportunity button
+    container.querySelector('#new-opportunity-btn')?.addEventListener('click', () => {
+      showNewOpportunityModal();
     });
 
     // Setup opportunity preview buttons
@@ -2566,9 +2731,12 @@ MTNS MADE Team`;
 
   function renderOpportunitiesTable(opportunities, stats) {
     return `
-      <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666;">
-        <span style="margin-right: 24px;"><strong style="color: #f59f00;">${stats.pending}</strong> Pending</span>
-        <span><strong style="color: #1a1a1a;">${stats.published}</strong> Published</span>
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 11px; color: #666; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="margin-right: 24px;"><strong style="color: #f59f00;">${stats.pending}</strong> Pending</span>
+          <span><strong style="color: #1a1a1a;">${stats.published}</strong> Published</span>
+        </div>
+        <button class="admin-btn primary" id="new-opportunity-btn">+ New Opportunity</button>
       </div>
       ${opportunities.length === 0 ? '<div class="empty-state">No opportunities found</div>' : `
         <table class="admin-table">

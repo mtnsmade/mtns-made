@@ -459,7 +459,7 @@ serve(async (req) => {
 
     const { data: opportunity, error: fetchError } = await supabase
       .from('opportunities')
-      .select('id, name, slug, memberstack_id, member_contact_email, organization, description, criteria, budget, closing_date, opportunity_url, is_draft, is_archived, webflow_id')
+      .select('id, name, slug, memberstack_id, member_contact_email, organization, description, criteria, budget, closing_date, opportunity_url, is_draft, is_archived, webflow_id, contact_name')
       .eq('id', body.opportunityId)
       .single();
 
@@ -485,6 +485,10 @@ serve(async (req) => {
           memberName = [member.first_name, member.last_name].filter(Boolean).join(' ') || member.name || '';
           memberWebflowId = member.webflow_id || '';
         }
+      } else {
+        // Admin-created opportunity with no submitting member — use the
+        // free-text contact name entered at creation time instead.
+        memberName = (opportunity.contact_name as string) || '';
       }
 
       // Sync to Webflow CMS (non-fatal if it fails)

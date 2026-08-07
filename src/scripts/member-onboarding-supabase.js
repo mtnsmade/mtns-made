@@ -971,6 +971,12 @@
 
     if (existing) return existing;
 
+    // Resolve membership type now, same lookup saveOnboardingData() uses later —
+    // without this, members who never complete the full onboarding form are left
+    // with membership_type_id permanently null.
+    const membershipSlug = memberData.customFields?.['membership-type'];
+    const membershipTypeId = await getMembershipTypeId(membershipSlug);
+
     const { data: created, error } = await supabase
       .from('members')
       .insert({
@@ -979,6 +985,7 @@
         first_name: memberData.customFields?.['first-name'] || null,
         last_name: memberData.customFields?.['last-name'] || null,
         subscription_status: 'active',
+        membership_type_id: membershipTypeId,
         profile_complete: false,
         is_deleted: false,
       })

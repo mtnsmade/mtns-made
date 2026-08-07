@@ -1,0 +1,595 @@
+{
+  "results": [
+    {
+      "name": "Creative Writing",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Dance Education",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Dance",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Portraiture",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Painting",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Ceramics",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Graphic Design",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Screen Editing",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Cinematography",
+      "step": 1,
+      "status": "ok"
+    },
+    {
+      "name": "Playwriting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Glass",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Costume Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Camera Operator",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Dramaturgy",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Stage Direction",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Interactive Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Street Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Toys",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Beverages",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Homewares",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Skincare",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Podcasting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Text Editing",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Journalism",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Proofreading",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Technical Writing",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Drama Education",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Copywriting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Poetry",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Higher Degree Supervision",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Writing Education",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Illustration Education",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Photography Education",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Visual Arts Education",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Music Education",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Art Therapy",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Socially Engaged Practice",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Social Media",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Grant Writing",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Event Production",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Arts Promotion",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Arts Management",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Academic Research",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Curation",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Live Arts Production",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Set Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Projection",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Stage Lighting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Modelling",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Circus",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Performance Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Music",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Stage Acting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Animal Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Sports Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Aerial Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Travel Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Landscape Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Food Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Product Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Fashion Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Event Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Wedding Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Interior Photography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Installation Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Land Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Public Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Sound Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Textile Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Video Art",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Photomedia",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Sculpture",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Printmedia",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Metal",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Textiles",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Jewellery",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Millenary",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Floristry",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Paper",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Wood",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Leather",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Lighting Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Signwriting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Sound Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Game Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Murals",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Interior Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Architecture",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Furniture Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Industrial Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Landscape Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Fabric Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Fashion Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Website Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Illustration",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Videography",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Drone",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Screen Services",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Animation",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Location Scouting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Post Production",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Soundtrack",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Screen Production",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Art Department",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Screen Acting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Screen Writing",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Screen Direction",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "First Nations Custodianship",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Food",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Creative Writing",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Dance Education",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Dance",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Portraiture",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Painting",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Ceramics",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Graphic Design",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Screen Editing",
+      "step": 2,
+      "status": "ok"
+    },
+    {
+      "name": "Cinematography",
+      "step": 2,
+      "status": "ok"
+    }
+  ],
+  "errors": []
+}

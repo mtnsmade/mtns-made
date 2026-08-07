@@ -5,9 +5,9 @@
  * Scans Supabase storage buckets for oversized images and compresses them.
  *
  * Usage:
- *   node scripts/compress-existing-images.js --dry-run    # Preview what would be compressed
- *   node scripts/compress-existing-images.js              # Actually compress images
- *   node scripts/compress-existing-images.js --bucket=member-images  # Only process one bucket
+ *   source cred.env && node scripts/compress-existing-images.js --dry-run    # Preview what would be compressed
+ *   source cred.env && node scripts/compress-existing-images.js              # Actually compress images
+ *   source cred.env && node scripts/compress-existing-images.js --bucket=member-images  # Only process one bucket
  *
  * Requirements:
  *   npm install @supabase/supabase-js sharp
@@ -18,8 +18,13 @@ import sharp from 'sharp';
 import path from 'path';
 
 // Configuration
-const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
-const SUPABASE_SERVICE_KEY = 'sb_secret_Fkcjnv3h3awIOEE5qRla9w_mu22-56_';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY - run `source cred.env` first.');
+  process.exit(1);
+}
 
 const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
 const MAX_DIMENSION = 2000;

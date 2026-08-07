@@ -35,9 +35,11 @@ interface MemberstackMember {
     'last-name'?: string;
     'webflow-member-id'?: string;
     'onboarding-complete'?: string | boolean;
+    'membership-type'?: string;
   };
   planConnections?: Array<{
     status: string;
+    planName?: string;
   }>;
 }
 
@@ -232,6 +234,22 @@ async function fetchWebflowMembers(): Promise<WebflowMember[]> {
   return allItems;
 }
 
+// Resolve a Memberstack member's membership_type_id for auto-created Supabase
+// records — same lookup memberstack-webhook already uses, tries the active
+// plan's name first, falling back to the member's own custom field.
+async function resolveMembershipTypeId(member: MemberstackMember): Promise<string | null> {
+  const activePlan = member.planConnections?.find(p => p.status === 'ACTIVE' || p.status === 'TRIALING');
+  const planName = activePlan?.planName || member.customFields?.['membership-type'];
+  if (!planName) return null;
+
+  const { data } = await getSupabaseClient()
+    .from('membership_types')
+    .select('id')
+    .ilike('name', planName)
+    .maybeSingle();
+  return data?.id || null;
+}
+
 // Check if a Memberstack member is active (has active or trialing plan)
 function isMemberstackActive(member: MemberstackMember): boolean {
   if (!member.planConnections || member.planConnections.length === 0) {
@@ -287,12 +305,14 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
       // Active Memberstack member not in Supabase — create the missing record
       if (isActive) {
         try {
+          const membershipTypeId = await resolveMembershipTypeId(msMember);
           const { error: insertError } = await getSupabaseClient().from('members').insert({
             memberstack_id: msMember.id,
             email: msMember.auth?.email || null,
             first_name: msMember.customFields?.['first-name'] || null,
             last_name: msMember.customFields?.['last-name'] || null,
             subscription_status: 'active',
+            membership_type_id: membershipTypeId,
             profile_complete: false,
             is_deleted: false,
           });

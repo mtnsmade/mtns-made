@@ -4,3 +4,5 @@ node_modules
 scripts/**/results-*.json
 recovery-results-*.json
 winback-lists/
+pricing-migration/
+.claude/settings.local.json
