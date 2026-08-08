@@ -534,18 +534,16 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
 }
 
 // Soft delete member in Supabase
-async function softDeleteMember(memberstackId: string): Promise<{ webflowId: string | null }> {
+// Marks is_deleted in Supabase. Deliberately does NOT fetch the member or
+// touch Webflow - callers must confirm the Webflow side is handled first.
+// See handleMemberDeleted for why this ordering matters: setting
+// is_deleted before the Webflow delete is confirmed would permanently
+// exclude the member from future cleanup/consistency queries even if the
+// Webflow delete then fails, silently orphaning their still-live Webflow
+// profile forever - the inverse of the July 18 incident's failure shape.
+async function markMemberDeletedInSupabase(memberstackId: string): Promise<void> {
   const supabase = getSupabaseClient();
 
-  // Get the member first to retrieve Webflow ID
-  const member = await getMemberByMemberstackId(memberstackId);
-
-  if (!member) {
-    console.log('Member not found in Supabase:', memberstackId);
-    return { webflowId: null };
-  }
-
-  // Soft delete by setting is_deleted flag
   const { error } = await supabase
     .from('members')
     .update({
@@ -561,8 +559,6 @@ async function softDeleteMember(memberstackId: string): Promise<{ webflowId: str
   }
 
   console.log('Member soft deleted in Supabase:', memberstackId);
-
-  return { webflowId: member.webflow_id };
 }
 
 // Delete member from Webflow CMS
@@ -957,16 +953,28 @@ async function handleMemberCreated(data: MemberstackMemberData): Promise<void> {
 async function handleMemberDeleted(data: MemberstackMemberData): Promise<void> {
   console.log('Handling member.deleted:', data.id);
 
-  // 1. Soft delete in Supabase and get Webflow ID
-  const { webflowId } = await softDeleteMember(data.id);
-
-  // 2. Archive member's projects in Webflow + mark deleted in Supabase
-  await archiveMemberProjects(data.id);
-
-  // 3. Delete member profile from Webflow if has Webflow ID
-  if (webflowId) {
-    await deleteFromWebflow(webflowId);
+  const member = await getMemberByMemberstackId(data.id);
+  if (!member) {
+    console.log('Member not found in Supabase for deletion:', data.id);
+    return;
   }
+
+  // 1. Delete member profile from Webflow FIRST, before marking anything
+  // deleted in Supabase. If this throws, the whole handler throws before
+  // is_deleted is ever set - the member stays fully visible/active in
+  // Supabase (and Memberstack will retry the webhook delivery on the
+  // non-2xx response) rather than being permanently excluded from future
+  // cleanup queries while their Webflow profile silently stays live
+  // forever.
+  if (member.webflow_id) {
+    await deleteFromWebflow(member.webflow_id);
+  }
+
+  // 2. Only now mark deleted in Supabase, since the Webflow side is done
+  await markMemberDeletedInSupabase(data.id);
+
+  // 3. Archive member's projects in Webflow
+  await archiveMemberProjects(data.id);
 
   // 4. Trigger site publish so deleted member disappears from live site immediately
   fetch(`${SUPABASE_URL}/functions/v1/publish-site`, {
