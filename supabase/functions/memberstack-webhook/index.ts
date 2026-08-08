@@ -471,6 +471,26 @@ async function sendFailedSignupAlert(email: string, memberstackId: string, error
 async function createMember(memberData: MemberstackMemberData): Promise<void> {
   const supabase = getSupabaseClient();
 
+  // member.created means "first time" - if this member already exists, this
+  // is a redelivery (Memberstack retry, or a duplicate delivery) and should
+  // be a no-op, not a merge. The previous unconditional upsert overwrote
+  // profile_complete back to false (and name/slug/suburb_id from whatever
+  // Memberstack's custom fields said at event time) on every redelivery,
+  // which could silently reset a fully-onboarded member back to incomplete.
+  // Any real state changes since creation come through member.updated /
+  // member.plan.* events, which already merge carefully - this function has
+  // nothing new to contribute for a member that already exists.
+  const { data: existingMember } = await supabase
+    .from('members')
+    .select('id')
+    .eq('memberstack_id', memberData.id)
+    .maybeSingle();
+
+  if (existingMember) {
+    console.log('member.created redelivery for existing member, no-op:', memberData.id);
+    return;
+  }
+
   // Determine subscription status from plan connections. No planConnections at
   // all means the two-step signup flow (member created before checkout) -
   // default to 'active' since there's nothing to be pending on yet.
@@ -506,9 +526,12 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
 
   console.log('Creating member with name:', displayName, 'slug:', slug);
 
-  // Use upsert so webhook retries are idempotent — if Memberstack retries after a
-  // transient failure, the second attempt updates rather than hitting a duplicate key error.
-  // ignoreDuplicates: false ensures we update if the record somehow already exists.
+  // Still an upsert (not a plain insert), but now ignoreDuplicates: true -
+  // the existence check above handles the normal redelivery case, this is
+  // just a safety net if two deliveries for the same new member land
+  // concurrently (both could pass the check above before either commits).
+  // In that race, the loser silently no-ops here instead of throwing a
+  // duplicate-key error or overwriting the winner's row.
   const { error } = await supabase
     .from('members')
     .upsert({
@@ -523,7 +546,7 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
       membership_type_id: membershipTypeId,
       profile_complete: false,
       is_deleted: false,
-    }, { onConflict: 'memberstack_id', ignoreDuplicates: false });
+    }, { onConflict: 'memberstack_id', ignoreDuplicates: true });
 
   if (error) {
     console.error('Error creating member:', error);
