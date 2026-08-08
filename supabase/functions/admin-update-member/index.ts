@@ -4,11 +4,13 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 // Memberstack Plan IDs mapped to membership type slugs
@@ -152,10 +154,28 @@ async function removeMemberstackPlan(memberstackId: string, planId: string) {
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    // Don't throw if plan not found - member might not have had this plan
-    console.warn(`Warning removing plan ${planId}: ${error}`);
-    return null;
+    const errorText = await response.text();
+    // Memberstack signals "member doesn't have this plan" as HTTP 400 with
+    // a { code: "plan-not-found" } body, NOT a 404 - confirmed directly
+    // against the live API (a plan-not-attached case and a fully bogus
+    // plan ID both returned 400/plan-not-found, so this is the actual
+    // signal, not the HTTP status). Fine to treat as a no-op success.
+    let errorCode: string | undefined;
+    try {
+      errorCode = JSON.parse(errorText)?.code;
+    } catch {
+      // Non-JSON error body - fall through, treated as a real failure below
+    }
+    if (errorCode === 'plan-not-found') {
+      console.log(`Plan ${planId} not found on member (already removed or never had it)`);
+      return null;
+    }
+    // Any other failure is real and must not be silently swallowed - the
+    // caller relies on this throwing to know removal didn't actually
+    // succeed, so it can skip adding the new plan and avoid double-billing.
+    // (Previously this returned null for ANY non-ok status, so the
+    // caller's try/catch never actually caught a real API failure.)
+    throw new Error(`Failed to remove Memberstack plan: ${response.status} - ${errorText}`);
   }
 
   return await response.json();
@@ -219,6 +239,59 @@ async function syncToWebflow(memberId: string) {
   }
 }
 
+// Alert admin when a plan change leaves Memberstack/Stripe billing out of
+// sync with Supabase's membership type - happens when removing the old plan
+// fails, so the new plan is deliberately not added (avoids double-billing),
+// but Supabase still gets updated to the new type per this function's
+// existing "always update Supabase" behavior. Needs a human to reconcile
+// the Memberstack side since we don't retry automatically.
+async function sendBillingMismatchAlert(
+  member: { name: string; email: string; memberstack_id: string },
+  oldTypeSlug: string,
+  newTypeSlug: string,
+  oldPlanId: string,
+  newPlanId: string | undefined,
+  removeError: unknown
+): Promise<void> {
+  const errorMessage = removeError instanceof Error ? removeError.message : String(removeError);
+  try {
+    await sendEmail({
+      to: ADMIN_EMAIL,
+      subject: `⚠️ Billing mismatch: ${member.name || member.email}`,
+      from: FROM_SUPPORT,
+      html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background: #cc0000; color: #fff; padding: 20px; text-align: center;">
+    <h1 style="margin: 0; font-size: 20px;">⚠️ Membership Type Change - Billing Mismatch</h1>
+  </div>
+  <div style="padding: 30px; background: #f9f9f9;">
+    <p style="margin: 0 0 20px 0; color: #333;">
+      An admin changed this member's type from <strong>${oldTypeSlug}</strong> to <strong>${newTypeSlug}</strong>,
+      but removing their old Memberstack plan failed. To avoid double-billing, the new plan was
+      <strong>not</strong> added. Supabase and the dashboard now show <strong>${newTypeSlug}</strong>,
+      but Memberstack/Stripe are still billing the member on the <strong>${oldTypeSlug}</strong> plan.
+    </p>
+    <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+      <p style="margin: 0 0 10px 0; color: #333;"><strong>Member:</strong> ${member.name || 'N/A'} (${member.email})</p>
+      <p style="margin: 0 0 10px 0; color: #333;"><strong>Memberstack ID:</strong> ${member.memberstack_id}</p>
+      <p style="margin: 0 0 10px 0; color: #333;"><strong>Old plan (still active, failed to remove):</strong> ${oldPlanId}</p>
+      <p style="margin: 0 0 10px 0; color: #333;"><strong>New plan (not added):</strong> ${newPlanId || 'N/A'}</p>
+      <p style="margin: 0; color: #cc0000;"><strong>Removal error:</strong> ${errorMessage}</p>
+    </div>
+    <p style="margin: 0; color: #666; font-size: 14px;">
+      To fix: open this member in the Memberstack dashboard, manually remove the ${oldPlanId} plan
+      (check first whether it's a transient API error worth retrying), then either re-run this same
+      admin update or manually add ${newPlanId || 'the new plan'} once removal is confirmed.
+    </p>
+  </div>
+</div>`,
+    });
+    console.log('Billing mismatch alert sent to admin for:', member.email);
+  } catch (err) {
+    console.error('Error sending billing mismatch alert:', err);
+  }
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -278,18 +351,27 @@ serve(async (req: Request) => {
         const newPlanId = MEMBERSTACK_PLANS[newTypeSlug];
 
         // Remove old plan if exists
+        let removeError: unknown = null;
         if (oldPlanId) {
           try {
             await removeMemberstackPlan(member.memberstack_id, oldPlanId);
             results.memberstackPlanRemoved = true;
             console.log(`Removed old plan: ${oldPlanId}`);
           } catch (error) {
-            results.warnings.push(`Remove old plan: ${error}`);
+            removeError = error;
+            results.warnings.push(
+              `Remove old plan (${oldPlanId}) failed: ${error} — NEW PLAN NOT ADDED to avoid ` +
+              `double-billing. Member is still on the OLD Memberstack plan even though Supabase ` +
+              `now shows the new type. An alert email has been sent — see Memberstack dashboard ` +
+              `to reconcile manually.`
+            );
           }
         }
 
-        // Add new plan if exists
-        if (newPlanId) {
+        // Add new plan if exists - but only if the old plan didn't need
+        // removing, or removal actually succeeded. Adding the new plan on
+        // top of a still-active old plan would double-bill the member.
+        if (newPlanId && removeError === null) {
           try {
             await addMemberstackPlan(member.memberstack_id, newPlanId);
             results.memberstackPlanAdded = true;
@@ -297,7 +379,12 @@ serve(async (req: Request) => {
           } catch (error) {
             results.warnings.push(`Add new plan: ${error}`);
           }
-        } else if (newTypeSlug === 'partner') {
+        } else if (newPlanId && removeError !== null) {
+          // Fire-and-forget - don't let an email issue block the response,
+          // the warning above already covers the response payload itself.
+          sendBillingMismatchAlert(member, oldTypeSlug!, newTypeSlug, oldPlanId!, newPlanId, removeError)
+            .catch(err => console.error('sendBillingMismatchAlert failed:', err));
+        } else if (!newPlanId && newTypeSlug === 'partner') {
           results.warnings.push('Partner type has no billing plan - member will not be billed');
         }
       } else {
