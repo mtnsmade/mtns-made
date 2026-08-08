@@ -302,6 +302,23 @@ Archival email (R-007)
 
 ---
 
+### R-010 — Active monitoring: week following the 2026-08-08 stabilization pass
+**Priority:** High (time-boxed — remove this item once the week has passed with nothing found)
+**Effort:** Small, ~5 min/day
+**Affects:** N/A — a watch-list, not a code change
+**Background:** [[project_stabilization_pass_2026_08_08]] in project memory has the full record of what shipped that day (10 batches: shared active/membership-type logic, webhook signature verification now enforcing, `lapsed-member-cleanup` hardening, `admin-update-member` double-billing fix, `createMember` redelivery fix, and more). No new monitoring infrastructure was judged necessary — this is a checklist of things already visible that are worth actively watching for about a week, not a new dashboard.
+
+**Checklist:**
+1. **Memberstack webhook endpoint delivery rate** — check the Message Attempts success rate on the endpoint in Memberstack's dashboard daily. Signature verification is now enforcing (as of that pass); a drop from ~100% success would mean real traffic is failing signature checks for a reason testing didn't cover, and would silently stop member sync if unnoticed.
+2. **`check-consistency`'s weekly report** — now also checks opportunities/events/projects, not just members. Actually read the next report or two to confirm the new checks are finding real things (or genuinely nothing) rather than skimming past false positives.
+3. **Any real `admin-update-member` plan change this week** — Batch 6's double-billing fix never got a live-money test. If a real membership tier change happens, spot-check Memberstack/Stripe afterward that only one plan ended up active.
+4. **Billing-mismatch / failed-signup alert emails** — now fire correctly for the first time. Treat one arriving this week as real signal, not noise.
+5. **`member.plan.updated` volume** — fires in real production traffic but has no handler yet (falls through to a harmless log-and-200). After a week, check Svix's Event Catalog/delivery stats for how often it actually fires, to decide whether it's worth building real handling for.
+
+**Resolution:** once a week has passed with nothing found on this list, delete this entry rather than let it linger as a stale "Open" item.
+
+---
+
 ## Completed
 
 | ID | Item | Date |
