@@ -1130,6 +1130,71 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
   }
 }
 
+// Verify a Memberstack webhook signature. Memberstack signs webhooks via
+// Svix (confirmed directly against Svix's own docs, not guessed): the
+// signed content is `${svix-id}.${svix-timestamp}.${rawBody}`, HMAC-SHA256
+// with the signing secret (the part after "whsec_", base64-decoded) as the
+// key, base64-encoded output. The svix-signature header holds space-
+// delimited "v1,<sig>" entries - Svix sends multiple candidates during
+// secret rotation, so a match against any one of them is valid. Constant-
+// time comparison avoids leaking timing information about a partial match.
+//
+// IMPORTANT: this must run against the RAW request body text, not a
+// re-serialized JSON.parse(...) result - re-serializing can change
+// whitespace/key order and silently break every signature check.
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+async function verifyWebhookSignature(
+  rawBody: string,
+  svixId: string | null,
+  svixTimestamp: string | null,
+  svixSignature: string | null
+): Promise<{ valid: boolean; reason: string }> {
+  if (!MEMBERSTACK_WEBHOOK_SECRET) {
+    return { valid: false, reason: 'MEMBERSTACK_WEBHOOK_SECRET not configured' };
+  }
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    return { valid: false, reason: 'missing one or more svix-* headers' };
+  }
+
+  // Reject stale/future timestamps (5 minute tolerance) to guard against replay.
+  const timestampSeconds = parseInt(svixTimestamp, 10);
+  if (isNaN(timestampSeconds)) {
+    return { valid: false, reason: 'svix-timestamp is not a valid number' };
+  }
+  const driftSeconds = Math.floor(Date.now() / 1000) - timestampSeconds;
+  if (Math.abs(driftSeconds) > 5 * 60) {
+    return { valid: false, reason: `svix-timestamp outside 5min tolerance (${driftSeconds}s off)` };
+  }
+
+  try {
+    const secretPart = MEMBERSTACK_WEBHOOK_SECRET.startsWith('whsec_')
+      ? MEMBERSTACK_WEBHOOK_SECRET.slice('whsec_'.length)
+      : MEMBERSTACK_WEBHOOK_SECRET;
+    const keyBytes = Uint8Array.from(atob(secretPart), c => c.charCodeAt(0));
+
+    const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
+    const key = await crypto.subtle.importKey(
+      'raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const signatureBytes = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedContent));
+    const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)));
+
+    const candidates = svixSignature.split(' ').map(entry => entry.split(',')[1]).filter(Boolean);
+    const valid = candidates.some(candidate => constantTimeEqual(candidate, expectedSignature));
+    return { valid, reason: valid ? 'signature matched' : 'no candidate signature matched expected value' };
+  } catch (err) {
+    return { valid: false, reason: `verification error: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
 // Main handler
 serve(async (req: Request) => {
   // Handle CORS preflight
@@ -1163,18 +1228,26 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Verify webhook signature if secret is configured
-    if (MEMBERSTACK_WEBHOOK_SECRET) {
-      const signature = req.headers.get('x-memberstack-signature');
-      if (!signature) {
-        console.warn('Missing webhook signature');
-        // For now, just log warning but continue
-        // In production, you might want to reject unsigned requests
-      }
-      // TODO: Implement signature verification
-    }
+    // Read the raw body text first - signature verification needs the exact
+    // bytes Memberstack signed, not a re-serialized JSON.parse(...) result.
+    const rawBody = await req.text();
 
-    const payload = await req.json();
+    // OBSERVE-ONLY MODE: verify and log the result, but do not reject on
+    // failure yet. This lets us confirm real deliveries actually verify as
+    // valid over a real traffic window before flipping this to enforcing -
+    // a misconfigured check here would silently stop all future member sync
+    // with no obvious symptom until someone notices new signups aren't
+    // appearing. See the memberstack-integration skill / stabilization plan
+    // for why this two-step rollout matters.
+    const verification = await verifyWebhookSignature(
+      rawBody,
+      req.headers.get('svix-id'),
+      req.headers.get('svix-timestamp'),
+      req.headers.get('svix-signature')
+    );
+    console.log(`Webhook signature verification (observe-only, not enforced): ${verification.valid ? 'VALID' : 'INVALID'} - ${verification.reason}`);
+
+    const payload = JSON.parse(rawBody);
     console.log('Received Memberstack webhook:', payload.event);
     console.log('Payload structure:', JSON.stringify(payload, null, 2).substring(0, 500));
 
