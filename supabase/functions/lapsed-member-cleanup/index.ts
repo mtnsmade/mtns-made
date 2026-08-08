@@ -21,6 +21,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
+import { hasActivePlan } from '../_shared/memberstack.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -73,7 +74,10 @@ async function isStillActiveInMemberstack(memberstackId: string): Promise<boolea
   }
   const data = await response.json();
   const planConnections = data?.data?.planConnections || [];
-  return planConnections.some((p: { status: string }) => p.status === 'ACTIVE');
+  // Was ACTIVE-only, which meant a TRIALING member - a genuine current
+  // customer in a trial period - could be wrongly treated as inactive by
+  // this function's last line of defense before an irreversible delete.
+  return hasActivePlan(planConnections);
 }
 
 async function sendFinalRetentionWarningEmail(email: string, firstName: string, deleteDate: string): Promise<void> {
@@ -161,10 +165,16 @@ ${SITE_URL}`;
   }
 }
 
-async function hardDeleteMember(memberstackId: string): Promise<void> {
-  // Replay the existing member.deleted handler in memberstack-webhook — it only touches
-  // our own Supabase/Webflow/storage records for this memberstack_id, it does not call
-  // Memberstack or Stripe, so it's safe to trigger ourselves without an actual account deletion.
+// Returns whether the delete actually succeeded, so the caller can report
+// it honestly instead of always counting it as a success. Previously this
+// only logged a console.error on failure - the caller incremented
+// deletedCount and recorded "hard-deleted" regardless of whether the
+// underlying webhook call actually did anything. As of Batch 7,
+// memberstack-webhook's member.deleted handler is also now safe to retry:
+// it only marks Supabase is_deleted after the Webflow delete succeeds, so a
+// failed attempt here leaves the member fully intact and eligible to be
+// picked up again on tomorrow's run.
+async function hardDeleteMember(memberstackId: string): Promise<boolean> {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/memberstack-webhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -172,7 +182,9 @@ async function hardDeleteMember(memberstackId: string): Promise<void> {
   });
   if (!response.ok) {
     console.error('hardDeleteMember: memberstack-webhook call failed', memberstackId, await response.text());
+    return false;
   }
+  return true;
 }
 
 serve(async (req: Request) => {
@@ -203,6 +215,7 @@ serve(async (req: Request) => {
     const now = Date.now();
     let warningsSent = 0;
     let deletedCount = 0;
+    let deleteFailedCount = 0;
     let skippedStillActive = 0;
     const decisions: Array<{ name: string; action: string }> = [];
 
@@ -224,9 +237,14 @@ serve(async (req: Request) => {
           decisions.push({ name: label, action: '[DRY RUN] would hard-delete' });
           deletedCount++;
         } else {
-          await hardDeleteMember(member.memberstack_id);
-          deletedCount++;
-          decisions.push({ name: label, action: 'hard-deleted' });
+          const deleteSucceeded = await hardDeleteMember(member.memberstack_id);
+          if (deleteSucceeded) {
+            deletedCount++;
+            decisions.push({ name: label, action: 'hard-deleted' });
+          } else {
+            deleteFailedCount++;
+            decisions.push({ name: label, action: 'FAILED — hard-delete webhook call did not succeed, will retry on next run' });
+          }
         }
       } else if (daysSinceLapse >= FINAL_WARNING_DAY && !member.retention_warning_sent) {
         if (await isStillActiveInMemberstack(member.memberstack_id)) {
@@ -257,10 +275,10 @@ serve(async (req: Request) => {
       await sleep(DELAY_BETWEEN_MEMBERS_MS);
     }
 
-    console.log(`lapsed-member-cleanup (dryRun=${dryRun}): ${warningsSent} warnings, ${deletedCount} deletes, ${skippedStillActive} skipped (still active)`);
+    console.log(`lapsed-member-cleanup (dryRun=${dryRun}): ${warningsSent} warnings, ${deletedCount} deletes, ${deleteFailedCount} delete failures, ${skippedStillActive} skipped (still active)`);
 
     return new Response(
-      JSON.stringify({ success: true, dryRun, warningsSent, deletedCount, skippedStillActive, decisions }),
+      JSON.stringify({ success: true, dryRun, warningsSent, deletedCount, deleteFailedCount, skippedStillActive, decisions }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
