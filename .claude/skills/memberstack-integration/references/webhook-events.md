@@ -7,7 +7,7 @@ Confirmed event names, sourced directly from Memberstack's developer docs
 |---|---|---|
 | `member.created` | New member account created | Yes — `createMember()` |
 | `member.updated` | Member details/profile modified | Yes — `handleMemberUpdated()` |
-| `member.plan.added` | A subscription plan is assigned to a member (including post-creation, e.g. after checkout) | Yes, as of 2026-08-07 — see incident below |
+| `member.plan.added` | A subscription plan is assigned to a member (including post-creation, e.g. after checkout) | Yes, as of 2026-08-08 (Batch 2 of the stabilization plan) — see incident below. This file previously claimed it was fixed on 2026-08-07, which was wrong: the skill doc was written but the actual webhook code was never updated until the following day. Lesson folded into the note at the bottom. |
 | `member.plan.canceled` | A member's subscription plan is canceled | Yes — `handleMemberPlanCanceled()` |
 | `member.deleted` | Member account deleted | Yes — `handleMemberDeleted()` |
 

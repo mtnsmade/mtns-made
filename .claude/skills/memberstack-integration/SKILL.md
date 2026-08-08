@@ -41,13 +41,14 @@ dashboard; no API shortcut exists for this).
 
 ## Webhook events
 
-`supabase/functions/memberstack-webhook/index.ts` handles exactly four event types
-today: `member.created`, `member.updated`, `member.deleted`, `member.plan.canceled`.
-See `references/webhook-events.md` for the confirmed full event list and a real
-example of what goes wrong when one isn't handled — `member.plan.added` was missing
-until 2026-08-07, which caused new signups' `membership_type_id` to silently stay
-null. Check that reference before assuming an event isn't handled, or before adding
-a new case — don't re-derive the event names from scratch each time.
+`supabase/functions/memberstack-webhook/index.ts` handles five event types:
+`member.created`, `member.updated`, `member.deleted`, `member.plan.canceled`,
+`member.plan.added`. See `references/webhook-events.md` for the confirmed full
+event list and a real example of what goes wrong when one isn't handled —
+`member.plan.added` was missing until 2026-08-08, which caused new signups'
+`membership_type_id` to silently stay null. Check that reference before assuming
+an event isn't handled, or before adding a new case — don't re-derive the event
+names from scratch each time.
 
 ## Resolving data conflicts across Memberstack / Supabase / Webflow
 

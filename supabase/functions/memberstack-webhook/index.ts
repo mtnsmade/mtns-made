@@ -3,10 +3,15 @@
 // - member.created: Create initial member record in Supabase
 // - member.deleted: Soft delete in Supabase + delete from Webflow
 // - member.updated: Sync subscription status changes
+// - member.plan.added: A plan was attached post-creation (e.g. the two-step
+//   signup flow's checkout step) - re-runs the same status/type resolution
+//   as member.updated
+// - member.plan.canceled: Plan canceled - archive in Webflow
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_HELLO, FROM_SUPPORT } from '../_shared/gmail.ts';
+import { hasActivePlan, resolveMembershipTypeId } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -466,26 +471,22 @@ async function sendFailedSignupAlert(email: string, memberstackId: string, error
 async function createMember(memberData: MemberstackMemberData): Promise<void> {
   const supabase = getSupabaseClient();
 
-  // Determine subscription status and membership type from plan connections
+  // Determine subscription status from plan connections. No planConnections at
+  // all means the two-step signup flow (member created before checkout) -
+  // default to 'active' since there's nothing to be pending on yet.
   let subscriptionStatus = 'active';
-  let membershipTypeId: string | null = null;
   if (memberData.planConnections && memberData.planConnections.length > 0) {
-    const activePlan = memberData.planConnections.find(p =>
-      p.status === 'ACTIVE' || p.status === 'TRIALING'
-    );
-    subscriptionStatus = activePlan ? 'active' : 'pending';
-
-    const planForType = activePlan || memberData.planConnections[0];
-    if (planForType?.planName) {
-      const { data: mt } = await supabase
-        .from('membership_types')
-        .select('id')
-        .ilike('name', planForType.planName)
-        .maybeSingle();
-      membershipTypeId = mt?.id || null;
-      console.log('Membership type lookup:', planForType.planName, '->', membershipTypeId);
-    }
+    subscriptionStatus = hasActivePlan(memberData.planConnections) ? 'active' : 'pending';
   }
+
+  // Resolve membership_type_id via the shared two-tier lookup: active plan's
+  // name first, falling back to customFields['membership-type'] (a slug set
+  // by the signup form before any plan is attached). This fallback is what
+  // was missing here - the two-step signup flow creates the member with an
+  // empty planConnections array, so the old name-only lookup always resolved
+  // to null at creation time and nothing ever revisited it (see the
+  // member.plan.added case below, previously unhandled).
+  const membershipTypeId = await resolveMembershipTypeId(supabase, memberData);
   console.log('Creating member — status:', subscriptionStatus, 'membership_type_id:', membershipTypeId);
 
   // Look up suburb from Memberstack custom fields (stored as Webflow ID)
@@ -1036,17 +1037,17 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
   let newStatus = previousStatus;
   let newMembershipTypeId: string | null | undefined = undefined; // undefined = don't update
   if (data.planConnections && data.planConnections.length > 0) {
-    const activePlan = data.planConnections.find(p => p.status === 'ACTIVE');
-    newStatus = activePlan ? 'active' : 'lapsed';
+    // Was ACTIVE-only, which wrongly marked TRIALING members lapsed (and
+    // archived their Webflow profile) on any unrelated member.updated event.
+    newStatus = hasActivePlan(data.planConnections) ? 'active' : 'lapsed';
 
-    const planForType = activePlan || data.planConnections[0];
-    if (planForType?.planName) {
-      const { data: mt } = await supabase
-        .from('membership_types')
-        .select('id')
-        .ilike('name', planForType.planName)
-        .maybeSingle();
-      newMembershipTypeId = mt?.id || null;
+    // Only overwrite membership_type_id when something actually resolves -
+    // preserve the undefined "don't touch" sentinel on a null result so an
+    // unresolvable lookup (e.g. a renamed plan, no custom-field slug either)
+    // doesn't wipe out an already-correct existing value.
+    const resolved = await resolveMembershipTypeId(supabase, data);
+    if (resolved !== null) {
+      newMembershipTypeId = resolved;
     }
   }
 
@@ -1180,6 +1181,23 @@ serve(async (req: Request) => {
         console.log('Extracted member ID for plan.canceled:', memberData?.id);
         await handleMemberPlanCanceled(memberData);
         break;
+
+      case 'member.plan.added': {
+        // A plan was attached post-creation (e.g. the two-step signup flow's
+        // checkout step, or an admin/self-service plan change). This case was
+        // previously missing entirely, which is why members created without a
+        // plan (empty planConnections at member.created time) never got their
+        // membership_type_id resolved when the plan was attached moments
+        // later - see .claude/skills/memberstack-integration/references/
+        // webhook-events.md for the full incident writeup.
+        // Same nested payload structure as member.plan.canceled, assumed by
+        // convention rather than confirmed in Memberstack's docs - verify via
+        // logs on the first real delivery.
+        const planAddedMemberData = payload.payload?.member || payload.payload;
+        console.log('Extracted member ID for plan.added:', planAddedMemberData?.id);
+        await handleMemberUpdated(planAddedMemberData);
+        break;
+      }
 
       default:
         console.log('Unhandled event type:', payload.event);
