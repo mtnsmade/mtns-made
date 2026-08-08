@@ -1232,20 +1232,40 @@ serve(async (req: Request) => {
     // bytes Memberstack signed, not a re-serialized JSON.parse(...) result.
     const rawBody = await req.text();
 
-    // OBSERVE-ONLY MODE: verify and log the result, but do not reject on
-    // failure yet. This lets us confirm real deliveries actually verify as
-    // valid over a real traffic window before flipping this to enforcing -
-    // a misconfigured check here would silently stop all future member sync
-    // with no obvious symptom until someone notices new signups aren't
-    // appearing. See the memberstack-integration skill / stabilization plan
-    // for why this two-step rollout matters.
-    const verification = await verifyWebhookSignature(
-      rawBody,
-      req.headers.get('svix-id'),
-      req.headers.get('svix-timestamp'),
-      req.headers.get('svix-signature')
-    );
-    console.log(`Webhook signature verification (observe-only, not enforced): ${verification.valid ? 'VALID' : 'INVALID'} - ${verification.reason}`);
+    // ENFORCING MODE (flipped 2026-08-08 after an observe-only rollout window
+    // confirmed real Memberstack/Svix-signed deliveries verify correctly -
+    // see the stabilization plan for the full verification history).
+    //
+    // Two valid ways to authenticate a request here:
+    // 1. A genuine Svix signature from Memberstack.
+    // 2. Our own service-role bearer token, for the one legitimate internal
+    //    caller (lapsed-member-cleanup's hardDeleteMember, which replays a
+    //    member.deleted event server-to-server and has no Svix signature of
+    //    its own to present).
+    // Reject only if NEITHER is valid.
+    const internalAuth = req.headers.get('Authorization');
+    const isTrustedInternalCall = !!internalAuth
+      && internalAuth.startsWith('Bearer ')
+      && constantTimeEqual(internalAuth.slice('Bearer '.length), SUPABASE_SERVICE_ROLE_KEY);
+
+    if (!isTrustedInternalCall) {
+      const verification = await verifyWebhookSignature(
+        rawBody,
+        req.headers.get('svix-id'),
+        req.headers.get('svix-timestamp'),
+        req.headers.get('svix-signature')
+      );
+      if (!verification.valid) {
+        console.error(`Webhook signature verification FAILED - rejecting: ${verification.reason}`);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid webhook signature' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.log('Webhook signature verification: valid -', verification.reason);
+    } else {
+      console.log('Webhook request authenticated as trusted internal call (service-role bearer token)');
+    }
 
     const payload = JSON.parse(rawBody);
     console.log('Received Memberstack webhook:', payload.event);

@@ -177,7 +177,16 @@ ${SITE_URL}`;
 async function hardDeleteMember(memberstackId: string): Promise<boolean> {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/memberstack-webhook`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      // As of Batch 9, memberstack-webhook enforces Svix signature
+      // verification on real Memberstack traffic. This call is a trusted
+      // internal server-to-server replay with no Svix signature of its own,
+      // so it authenticates via the shared service-role bearer token
+      // instead - without this, every hard-delete attempt would get
+      // rejected with a 401.
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
     body: JSON.stringify({ event: 'member.deleted', payload: { id: memberstackId } }),
   });
   if (!response.ok) {
