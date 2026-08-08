@@ -236,38 +236,29 @@ Custom-coded multi-step form page (not a CMS template). Member ID passed via URL
 
 ---
 
-### R-007 — 30-day grace period for lapsed members
+### R-007 — Lapsed member grace period *(shipped, code-complete — cron intentionally OFF pending decision below)*
 **Priority:** Medium
 **Effort:** Medium
-**Affects:** `memberstack-webhook`, new `lapsed-member-cleanup` edge function (cron), Supabase schema
-**Dependency:** R-001 (Gmail API) should be live first — this flow involves 3 emails per cancelled member
-**Ships with:** R-008 (exit survey — same trigger, same archival email)
+**Affects:** `memberstack-webhook`, `lapsed-member-cleanup` edge function (cron), Supabase schema
+**Ships with:** R-008 (exit survey — not yet built, still an open item on top of this)
 
 **Client brief:**
 > "We will hold your profile in the archive for a 30-day period in which time the payment needs to be made. Following this time the archive will be removed."
 
-**What's needed:**
+**What actually shipped (2026-07-18 → 2026-08-08), superseding the original 3-email/`lapsed_at` spec above:**
+- Day 0 (real `CANCELED`, never a `REQUIRES_PAYMENT` retry): profile + projects archived, immediate "membership ended" email.
+- Days 1–19: silent. Daily `subscription-reconcile` auto-restores if they resubscribe.
+- Day 20+: one final retention-warning email, re-verified live against Memberstack immediately before sending. The timestamp this is actually sent (`retention_warning_sent_at`), not the original lapse date, starts the delete countdown.
+- 10+ days after that: hard delete (Webflow profile + projects + storage images), re-verified live again immediately before deleting.
+- Full incident history, safety design, and current open items are documented in the **SOPs tab** on the admin dashboard ("Member Non-Payment Lifecycle") — that's the canonical writeup, not this roadmap entry.
+- `lapsed-member-cleanup`'s two known bugs (active-check missing TRIALING; hard-delete failures silently reported as success) were fixed and verified 2026-08-08 as part of the stabilization pass.
 
-**1. Database change**
-Add `lapsed_at` timestamp column to `members` table. Set when `member.plan.canceled` fires. This is the clock start for the 30-day window.
-
-**2. Email sequence (3 emails)**
-| Email | Timing | Content |
-|-------|--------|---------|
-| Archival notice | Immediately on cancellation | Profile archived, 30-day window explained, payment link, exit survey button (R-008) |
-| Reminder | Day 20 | "10 days left to reactivate your profile" |
-| Final notice | Day 29 | "Your profile will be permanently removed tomorrow" |
-
-**3. New daily cron job — `lapsed-member-cleanup`**
-Runs daily, finds all `lapsed` members where `lapsed_at` > 30 days ago, then:
-- Hard-deletes their Webflow profile and projects
-- Marks them `deleted` in Supabase
-- Sends final removal confirmation email
-
-**4. Reactivation within the window**
-Verify the existing `member.plan.updated` webhook path correctly un-archives the member profile and projects if they resubscribe within 30 days.
-
-**Note:** Coordinate with R-004 (Mailchimp) — the `subscription-cancelled` winback sequence should not overlap with the day-20/day-29 reminder emails.
+**Open decision — re-enabling the daily cron:**
+The cron for `lapsed-member-cleanup` was deliberately left unscheduled after the July 18 incident and still is (confirmed directly against `cron.job`, 2026-08-08 — nothing references this function). Re-enabling it means real, ongoing warning/delete emails to real members, so it should not just be silently switched back on. Needs a decision involving Hannah covering, at minimum:
+1. Confirm Stripe's own dunning/retry email settings so the Day 0/Day 20 copy doesn't duplicate or contradict them (Stripe Dashboard → Settings → Billing → Subscriptions and emails — we have no API visibility into this).
+2. Coordinate with R-004 (Mailchimp) so its planned cancellation-tag automation doesn't compete on the same Day 0/Day 20 touchpoints this SOP already owns.
+3. Decide whether R-008 (exit survey) should ship before or alongside re-enabling.
+4. Only once the above are settled: re-add the cron (`supabase/migrations` — a `cron.schedule('lapsed-member-cleanup', ...)` entry, none currently exists) and communicate the policy to affected members proactively rather than have it surface as a surprise.
 
 ---
 
