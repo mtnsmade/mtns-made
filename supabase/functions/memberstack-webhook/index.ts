@@ -614,7 +614,12 @@ async function archiveInWebflow(webflowId: string): Promise<void> {
         'accept': 'application/json',
       },
       body: JSON.stringify({
+        // Also set isDraft so this is a true mirror of unarchiveInWebflow
+        // (which resets both flags) rather than leaving isDraft at whatever
+        // it happened to be before - can only make the item more hidden,
+        // never less, so this is safe regardless of prior isDraft state.
         isArchived: true,
+        isDraft: true,
       }),
     }
   );
@@ -836,7 +841,10 @@ async function archiveMemberProjects(memberstackId: string): Promise<void> {
             'accept': 'application/json',
           },
           body: JSON.stringify({
+            // Mirror unarchiveMemberProjects, which resets both flags -
+            // see archiveInWebflow above for why this is safe.
             isArchived: true,
+            isDraft: true,
           }),
         }
       );
