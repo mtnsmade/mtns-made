@@ -467,8 +467,12 @@ async function sendFailedSignupAlert(email: string, memberstackId: string, error
   }
 }
 
-// Create member in Supabase
-async function createMember(memberData: MemberstackMemberData): Promise<void> {
+// Create member in Supabase. Returns whether a row was actually inserted -
+// false means this was a no-op (redelivery for an existing member), which
+// callers must check before firing any one-time-only side effect (activity
+// log entry, welcome email, admin notification) - those should only ever
+// happen once per genuine signup, not on every retry.
+async function createMember(memberData: MemberstackMemberData): Promise<boolean> {
   const supabase = getSupabaseClient();
 
   // member.created means "first time" - if this member already exists, this
@@ -488,7 +492,7 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
 
   if (existingMember) {
     console.log('member.created redelivery for existing member, no-op:', memberData.id);
-    return;
+    return false;
   }
 
   // Determine subscription status from plan connections. No planConnections at
@@ -532,7 +536,9 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
   // concurrently (both could pass the check above before either commits).
   // In that race, the loser silently no-ops here instead of throwing a
   // duplicate-key error or overwriting the winner's row.
-  const { error } = await supabase
+  // .select() lets us tell a genuine insert apart from a silent skip due to
+  // ignoreDuplicates - a skipped row returns no data, a real insert does.
+  const { data: inserted, error } = await supabase
     .from('members')
     .upsert({
       memberstack_id: memberData.id,
@@ -546,14 +552,21 @@ async function createMember(memberData: MemberstackMemberData): Promise<void> {
       membership_type_id: membershipTypeId,
       profile_complete: false,
       is_deleted: false,
-    }, { onConflict: 'memberstack_id', ignoreDuplicates: true });
+    }, { onConflict: 'memberstack_id', ignoreDuplicates: true })
+    .select('id');
 
   if (error) {
     console.error('Error creating member:', error);
     throw error;
   }
 
+  if (!inserted || inserted.length === 0) {
+    console.log('member.created lost a create/create race for existing member, no-op:', memberData.id);
+    return false;
+  }
+
   console.log('Member created in Supabase:', memberData.id, 'with suburb:', suburbId);
+  return true;
 }
 
 // Soft delete member in Supabase
@@ -948,13 +961,21 @@ async function updateSubscriptionStatus(memberstackId: string, status: string): 
 async function handleMemberCreated(data: MemberstackMemberData): Promise<void> {
   console.log('Handling member.created:', data.id);
 
+  let wasCreated: boolean;
   try {
-    await createMember(data);
+    wasCreated = await createMember(data);
   } catch (error) {
     // Alert admin immediately — don't wait for the daily consistency check
     console.error('Failed to create member in Supabase, sending alert:', data.id);
     await sendFailedSignupAlert(data.auth?.email ?? 'unknown', data.id, error);
     throw error; // Re-throw so Memberstack receives a 500 and will retry
+  }
+
+  // A redelivery/no-op has nothing new to announce - the activity log entry,
+  // welcome email, and admin notification below must only ever fire once
+  // per genuine signup, not again on every retry.
+  if (!wasCreated) {
+    return;
   }
 
   // Log the signup to activity feed
