@@ -491,17 +491,33 @@ serve(async (req) => {
         memberName = (opportunity.contact_name as string) || '';
       }
 
-      // Sync to Webflow CMS (non-fatal if it fails)
+      // Sync to Webflow CMS
       let webflowId = opportunity.webflow_id || null;
       if (!webflowId) {
         webflowId = await syncToWebflow(opportunity, memberName, memberWebflowId);
+      }
+
+      if (!webflowId) {
+        // Don't mark the opportunity approved if it never actually made it to
+        // Webflow - previously this silently reported success: true while the
+        // opportunity stayed invisible on the live site (the Propel Projects
+        // incident). Leaving is_draft/webflow_id untouched means re-clicking
+        // Approve will retry the sync rather than needing a manual fix.
+        console.error('Webflow sync failed for opportunity approval:', opportunity.id, opportunity.name);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Approved in our system, but the Webflow sync failed - the listing is not yet live. Try approving again.',
+          }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       const { error: updateError } = await supabase
         .from('opportunities')
         .update({
           is_draft: false,
-          ...(webflowId ? { webflow_id: webflowId } : {}),
+          webflow_id: webflowId,
           updated_at: new Date().toISOString(),
         })
         .eq('id', body.opportunityId);

@@ -66,13 +66,30 @@ interface WebflowMember {
   isDraft?: boolean;
 }
 
+// Minimal shape shared by opportunities/events/projects for the "should be
+// live in Webflow but webflow_id is null" check - a row that's approved
+// (not draft), not archived, and (where the table has the column) not
+// deleted, but never actually made it into Webflow. This is the general
+// version of the specific bug behind the Propel Projects incident: a
+// content-type's own approve/create flow silently failed its Webflow sync
+// but still marked the record as approved.
+interface ContentSyncRecord {
+  id: string;
+  name: string;
+  is_draft: boolean;
+  is_archived: boolean;
+  is_deleted?: boolean;
+  webflow_id: string | null;
+}
+
 interface ConsistencyIssue {
-  type: 'missing_supabase' | 'missing_webflow' | 'orphaned_supabase' | 'orphaned_webflow' | 'status_mismatch' | 'profile_mismatch';
+  type: 'missing_supabase' | 'missing_webflow' | 'orphaned_supabase' | 'orphaned_webflow' | 'status_mismatch' | 'profile_mismatch' | 'missing_webflow_content';
   severity: 'critical' | 'warning' | 'info';
   memberstackId?: string;
   supabaseId?: string;
   webflowId?: string;
   email?: string;
+  contentType?: 'opportunity' | 'event' | 'project';
   details: string;
 }
 
@@ -238,6 +255,47 @@ async function fetchWebflowMembers(): Promise<WebflowMember[]> {
 // Check if a Memberstack member is active (has active or trialing plan)
 function isMemberstackActive(member: MemberstackMember): boolean {
   return hasActivePlan(member.planConnections);
+}
+
+// Fetch rows from opportunities/events/projects that are approved (not
+// draft), not archived, and (where the table has the column) not deleted,
+// but have no webflow_id - i.e. should be live on the site but silently
+// never made it to Webflow. Generalizes the specific Propel Projects
+// incident (manage-opportunity's approve flow reporting success even when
+// its own Webflow sync failed) into an ongoing check across all synced
+// content types, not just opportunities.
+async function fetchContentSyncIssues(
+  table: 'opportunities' | 'events' | 'projects',
+  contentType: 'opportunity' | 'event' | 'project'
+): Promise<ConsistencyIssue[]> {
+  const supabase = getSupabaseClient();
+  const hasIsDeleted = table === 'projects';
+
+  let query = supabase
+    .from(table)
+    .select('id, name, is_draft, is_archived, webflow_id' + (hasIsDeleted ? ', is_deleted' : ''))
+    .eq('is_draft', false)
+    .eq('is_archived', false)
+    .is('webflow_id', null);
+
+  if (hasIsDeleted) {
+    query = query.eq('is_deleted', false);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(`Error checking ${table} for missing Webflow sync:`, error);
+    return [];
+  }
+
+  return (data || []).map((record: ContentSyncRecord) => ({
+    type: 'missing_webflow_content' as const,
+    severity: 'critical' as const,
+    supabaseId: record.id,
+    contentType,
+    details: `Approved ${contentType} "${record.name}" has no webflow_id - never synced to Webflow`,
+  }));
 }
 
 // Run consistency check
@@ -472,6 +530,14 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
     }
   }
 
+  // Check opportunities/events/projects for approved-but-never-synced rows
+  const [opportunitySyncIssues, eventSyncIssues, projectSyncIssues] = await Promise.all([
+    fetchContentSyncIssues('opportunities', 'opportunity'),
+    fetchContentSyncIssues('events', 'event'),
+    fetchContentSyncIssues('projects', 'project'),
+  ]);
+  issues.push(...opportunitySyncIssues, ...eventSyncIssues, ...projectSyncIssues);
+
   // Build report
   const report: ConsistencyReport = {
     timestamp: new Date().toISOString(),
@@ -556,7 +622,7 @@ async function sendAlertEmail(report: ConsistencyReport): Promise<void> {
   const issueRows = [...criticalIssues, ...warningIssues].slice(0, 20).map(issue => `
     <tr>
       <td style="padding: 8px; border: 1px solid #ddd;">${issue.severity === 'critical' ? '🔴' : '🟡'} ${issue.severity}</td>
-      <td style="padding: 8px; border: 1px solid #ddd;">${issue.email || issue.memberstackId || 'N/A'}</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">${issue.email || issue.memberstackId || issue.contentType || 'N/A'}</td>
       <td style="padding: 8px; border: 1px solid #ddd;">${issue.details}</td>
     </tr>
   `).join('');
