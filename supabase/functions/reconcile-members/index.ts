@@ -6,6 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hasActivePlan } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -164,7 +165,9 @@ async function fetchWebflowMembers(): Promise<WebflowMember[]> {
 
 // Check if Memberstack member is active
 function isMemberstackActive(member: MemberstackMember): boolean {
-  return member.planConnections?.some(p => p.status === 'ACTIVE') || false;
+  // Was ACTIVE-only, which meant a TRIALING member would be treated as
+  // lapsed and have their Webflow profile archived by this function.
+  return hasActivePlan(member.planConnections);
 }
 
 // Archive a Webflow member
