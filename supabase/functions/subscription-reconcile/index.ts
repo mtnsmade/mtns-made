@@ -8,6 +8,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
+import { hasActivePlan } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -338,10 +339,8 @@ async function runReconciliation(): Promise<{ fixes: ReconciliationFix[]; summar
   // Check each Memberstack member
   for (const msMember of memberstackMembers) {
     // Check for ACTIVE or TRIALING status (both are valid paying states)
-    const hasActivePlan = msMember.planConnections?.some(
-      p => p.status === 'ACTIVE' || p.status === 'TRIALING'
-    ) ?? false;
-    const msStatus = hasActivePlan ? 'active' : 'lapsed';
+    const isActive = hasActivePlan(msMember.planConnections);
+    const msStatus = isActive ? 'active' : 'lapsed';
     const supabaseMember = supabaseByMemberstackId.get(msMember.id);
 
     if (!supabaseMember) {

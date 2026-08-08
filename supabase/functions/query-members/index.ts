@@ -9,6 +9,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hasActivePlan, resolveMembershipTypeId } from '../_shared/memberstack.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -619,7 +620,7 @@ serve(async (req) => {
       const results: Array<{ email: string; status: string; memberstackId?: string }> = [];
 
       // Fetch all Memberstack members (paginated)
-      const allMsMembers: Array<{ id: string; auth: { email: string }; customFields?: Record<string, string>; planConnections?: Array<{ status: string }> }> = [];
+      const allMsMembers: Array<{ id: string; auth: { email: string }; customFields?: Record<string, string>; planConnections?: Array<{ status: string; planName?: string }> }> = [];
       let hasNextPage = true;
       let endCursor: string | undefined;
 
@@ -672,9 +673,8 @@ serve(async (req) => {
           suburbId = suburb?.id || null;
         }
 
-        const hasActivePlan = (msMember.planConnections || []).some(
-          (p: { status: string }) => p.status === 'ACTIVE' || p.status === 'TRIALING'
-        );
+        const isActive = hasActivePlan(msMember.planConnections);
+        const membershipTypeId = await resolveMembershipTypeId(supabase, msMember);
 
         const { error: createError } = await supabase.from('members').insert({
           memberstack_id: msMember.id,
@@ -684,7 +684,8 @@ serve(async (req) => {
           name: displayName,
           slug: slug,
           suburb_id: suburbId,
-          subscription_status: hasActivePlan ? 'active' : 'pending',
+          subscription_status: isActive ? 'active' : 'pending',
+          membership_type_id: membershipTypeId,
           profile_complete: false,
           is_deleted: false,
         });
@@ -774,10 +775,8 @@ serve(async (req) => {
         (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
 
       // Determine status (ACTIVE or TRIALING both count as active)
-      const planConnections = member.planConnections || [];
-      const hasActivePlan = planConnections.some(
-        (p: { status: string }) => p.status === 'ACTIVE' || p.status === 'TRIALING'
-      );
+      const isActive = hasActivePlan(member.planConnections);
+      const membershipTypeId = await resolveMembershipTypeId(supabase, member);
 
       // Create the member
       const { data: newMember, error: createError } = await supabase
@@ -790,7 +789,8 @@ serve(async (req) => {
           name: displayName,
           slug: slug,
           suburb_id: suburbId,
-          subscription_status: hasActivePlan ? 'active' : 'pending',
+          subscription_status: isActive ? 'active' : 'pending',
+          membership_type_id: membershipTypeId,
           profile_complete: false,
           is_deleted: false,
         })

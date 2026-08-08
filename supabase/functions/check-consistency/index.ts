@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
+import { hasActivePlan, resolveMembershipTypeId } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -234,29 +235,9 @@ async function fetchWebflowMembers(): Promise<WebflowMember[]> {
   return allItems;
 }
 
-// Resolve a Memberstack member's membership_type_id for auto-created Supabase
-// records — same lookup memberstack-webhook already uses, tries the active
-// plan's name first, falling back to the member's own custom field.
-async function resolveMembershipTypeId(member: MemberstackMember): Promise<string | null> {
-  const activePlan = member.planConnections?.find(p => p.status === 'ACTIVE' || p.status === 'TRIALING');
-  const planName = activePlan?.planName || member.customFields?.['membership-type'];
-  if (!planName) return null;
-
-  const { data } = await getSupabaseClient()
-    .from('membership_types')
-    .select('id')
-    .ilike('name', planName)
-    .maybeSingle();
-  return data?.id || null;
-}
-
 // Check if a Memberstack member is active (has active or trialing plan)
 function isMemberstackActive(member: MemberstackMember): boolean {
-  if (!member.planConnections || member.planConnections.length === 0) {
-    return false;
-  }
-  // ACTIVE = paying member, TRIALING = in trial period (both are active subscriptions)
-  return member.planConnections.some(p => p.status === 'ACTIVE' || p.status === 'TRIALING');
+  return hasActivePlan(member.planConnections);
 }
 
 // Run consistency check
@@ -305,7 +286,7 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
       // Active Memberstack member not in Supabase — create the missing record
       if (isActive) {
         try {
-          const membershipTypeId = await resolveMembershipTypeId(msMember);
+          const membershipTypeId = await resolveMembershipTypeId(getSupabaseClient(), msMember);
           const { error: insertError } = await getSupabaseClient().from('members').insert({
             memberstack_id: msMember.id,
             email: msMember.auth?.email || null,
