@@ -1370,13 +1370,29 @@
 
       const isProfileComplete = hasProfileImage && hasFeatureImage && hasBio && hasCategories && hasLocation;
 
+      // Stamp once, the first time the profile becomes complete - a
+      // permanent "date they first completed onboarding" milestone, not a
+      // live mirror of the profile_complete boolean. Onboarding is normally
+      // a one-time flow so this is usually null going in, but check the
+      // existing value defensively rather than assume - re-stamping on
+      // every save would break project-reminder's "complete for 7+ days"
+      // targeting, which relies on this being a real, stable date.
+      const { data: existingCompletion } = await supabase
+        .from('members')
+        .select('profile_completed_at')
+        .eq('memberstack_id', memberstackId)
+        .maybeSingle();
+      const profileCompletedAt = existingCompletion?.profile_completed_at
+        || (isProfileComplete ? new Date().toISOString() : null);
+
       console.log('Profile completion check:', {
         hasProfileImage,
         hasFeatureImage,
         hasBio,
         hasCategories,
         hasLocation,
-        isProfileComplete
+        isProfileComplete,
+        profileCompletedAt
       });
 
       // Build the update data for Supabase
@@ -1411,7 +1427,8 @@
         is_creative_space: formData.spaceOrSupplier === 'space',
         is_supplier: formData.spaceOrSupplier === 'supplier',
         // Only mark complete if all requirements met
-        profile_complete: isProfileComplete
+        profile_complete: isProfileComplete,
+        profile_completed_at: profileCompletedAt
       };
 
       // Update or insert the member

@@ -1041,13 +1041,24 @@
 
       const isProfileComplete = hasProfileImage && hasFeatureImage && hasBio && hasCategories && hasLocation;
 
+      // Stamp once, the first time the profile becomes complete - a
+      // permanent "date they first completed onboarding" milestone, not a
+      // live mirror of the profile_complete boolean. Once set, later edits
+      // (even ones that make the profile briefly incomplete again) don't
+      // touch it. project-reminder relies on this being a real date to find
+      // members who completed their profile 7+ days ago - it was never
+      // actually being set by this save path before.
+      const profileCompletedAt = supabaseMember?.profile_completed_at
+        || (isProfileComplete ? new Date().toISOString() : null);
+
       console.log('Profile completion check:', {
         hasProfileImage,
         hasFeatureImage,
         hasBio,
         hasCategories,
         hasLocation,
-        isProfileComplete
+        isProfileComplete,
+        profileCompletedAt
       });
 
       // Build update data
@@ -1077,7 +1088,8 @@
         youtube: formData.youtube || null,
         is_creative_space: formData.spaceOrSupplier === 'space',
         is_supplier: formData.spaceOrSupplier === 'supplier',
-        profile_complete: isProfileComplete
+        profile_complete: isProfileComplete,
+        profile_completed_at: profileCompletedAt
       };
 
       // Upsert member — handles the edge case where the Memberstack webhook
