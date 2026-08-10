@@ -330,6 +330,8 @@ This isn't just an unused column - `project-reminder/index.ts` filters on `profi
 
 **Fix applied:** both files now stamp `profile_completed_at` once, on the genuine first transition to complete - fetching the existing value first (already held in `member-edit-profile-supabase.js`'s loaded `supabaseMember`; needed a small targeted fetch in `member-onboarding-supabase.js`, since its own `supabaseMember` variable turned out to be declared but never actually populated) and preserving it on later saves rather than re-stamping. Verified directly against Supabase with a throwaway test row: a second save 2+ seconds after the first left the original timestamp completely unchanged.
 
+**Related, deferred - backfill for existing members:** the fix is forward-only. Every member who completed their profile *before* 2026-08-10 (confirmed on real member Claire Nakazawa, `mem_cmsn56qiv0dtq0srmazm157ot`, who onboarded the same day just before the fix shipped) still has `profile_completed_at: null` despite `profile_complete: true`, and will keep failing `project-reminder`'s targeting until backfilled. Not done as part of this fix, and needs a decision, not just a script: there's no true historical completion date recorded anywhere to backfill from (no audit trail), so any backfill is necessarily an estimate - the honest options are leaving it null for everyone who completed before today (accept the gap, only new completions get accurate dates), or using each member's `updated_at` as a best-effort approximation (acknowledging it's "some date on or after completion," not the real one). Explicitly not implemented - flagged for a deliberate decision later, not a default to reach for.
+
 ---
 
 ## Completed
