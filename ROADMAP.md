@@ -319,7 +319,16 @@ Archival email (R-007)
 
 ---
 
-## Completed
+### R-011 — `profile_completed_at` never set by either real member-facing path
+**Priority:** Medium (silently breaks a downstream feature, not just an unused column)
+**Effort:** Small
+**Affects:** `member-edit-profile-supabase.js` (line ~1080), `member-onboarding-supabase.js` (line ~1414)
+
+**Background:** Found while checking onboarding-completion patterns for R-010. Both real paths that flip `profile_complete` to `true` (`member-edit-profile-supabase.js:1080`, `member-onboarding-supabase.js:1414`) never also set `profile_completed_at` - only `query-members/index.ts:106` (an admin/manual path) actually stamps it. Confirmed via a sample of 25 recent real members: `profile_completed_at` was `null` on every single row, including ones with `profile_complete: true`.
+
+This isn't just an unused column - `project-reminder/index.ts` filters on `profile_completed_at` (`.lte('profile_completed_at', sevenDaysAgo...)`, per the index in migration `024_project_reminder.sql`) to find members who completed their profile 7+ days ago and nudge them to add a project. Since the two real completion paths never set it, this targeting has likely never correctly caught anyone who completed onboarding through normal usage.
+
+**Fix:** in both files, when a save transitions `profile_complete` from false to true, also stamp `profile_completed_at` to now - needs the existing value checked first (e.g. fetch the current row, or use a conditional update) so it's set once on the genuine transition, not overwritten on every subsequent save while already complete. `query-members`' existing stamp is a simpler one-shot admin action and doesn't need to handle this, so it isn't a direct template for the condition, only for the value being set.
 
 | ID | Item | Date |
 |----|------|------|
