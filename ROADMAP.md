@@ -319,7 +319,7 @@ Archival email (R-007)
 
 ---
 
-### R-011 — `profile_completed_at` never set by either real member-facing path
+### R-011 — `profile_completed_at` never set by either real member-facing path *(fixed 2026-08-10)*
 **Priority:** Medium (silently breaks a downstream feature, not just an unused column)
 **Effort:** Small
 **Affects:** `member-edit-profile-supabase.js` (line ~1080), `member-onboarding-supabase.js` (line ~1414)
@@ -328,7 +328,11 @@ Archival email (R-007)
 
 This isn't just an unused column - `project-reminder/index.ts` filters on `profile_completed_at` (`.lte('profile_completed_at', sevenDaysAgo...)`, per the index in migration `024_project_reminder.sql`) to find members who completed their profile 7+ days ago and nudge them to add a project. Since the two real completion paths never set it, this targeting has likely never correctly caught anyone who completed onboarding through normal usage.
 
-**Fix:** in both files, when a save transitions `profile_complete` from false to true, also stamp `profile_completed_at` to now - needs the existing value checked first (e.g. fetch the current row, or use a conditional update) so it's set once on the genuine transition, not overwritten on every subsequent save while already complete. `query-members`' existing stamp is a simpler one-shot admin action and doesn't need to handle this, so it isn't a direct template for the condition, only for the value being set.
+**Fix applied:** both files now stamp `profile_completed_at` once, on the genuine first transition to complete - fetching the existing value first (already held in `member-edit-profile-supabase.js`'s loaded `supabaseMember`; needed a small targeted fetch in `member-onboarding-supabase.js`, since its own `supabaseMember` variable turned out to be declared but never actually populated) and preserving it on later saves rather than re-stamping. Verified directly against Supabase with a throwaway test row: a second save 2+ seconds after the first left the original timestamp completely unchanged.
+
+---
+
+## Completed
 
 | ID | Item | Date |
 |----|------|------|
