@@ -11,7 +11,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_HELLO, FROM_SUPPORT } from '../_shared/gmail.ts';
-import { hasActivePlan, resolveMembershipTypeId } from '../_shared/memberstack.ts';
+import { hasActivePlan, resolveMembershipTypeId, findAvailableMemberSlug } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -431,38 +431,6 @@ async function getSuburbIdByWebflowId(webflowId: string): Promise<string | null>
   }
 
   return data.id;
-}
-
-// Find a slug that doesn't collide with an existing member. createMember had
-// no uniqueness handling at all until this was added (2026-08-11) - two real,
-// different members sharing a name (both "Reece McMillan") produced the same
-// slug, and the second signup's insert hard-failed on members_slug_key with
-// no fallback, completely blocking that member's account creation. Mirrors
-// the existing pattern used for opportunity slugs and project slugs
-// (try base, then -2, -3, ... , then a timestamp suffix as a last resort).
-async function findAvailableMemberSlug(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
-  baseSlug: string
-): Promise<string> {
-  const { data: existing } = await supabase
-    .from('members')
-    .select('slug')
-    .eq('slug', baseSlug)
-    .maybeSingle();
-  if (!existing) return baseSlug;
-
-  for (let i = 2; i <= 99; i++) {
-    const candidate = `${baseSlug}-${i}`;
-    const { data: candidateExisting } = await supabase
-      .from('members')
-      .select('slug')
-      .eq('slug', candidate)
-      .maybeSingle();
-    if (!candidateExisting) return candidate;
-  }
-
-  return `${baseSlug}-${Date.now().toString(36)}`;
 }
 
 // Send failed signup alert to admin

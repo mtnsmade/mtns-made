@@ -98,3 +98,39 @@ export async function getMembershipTypeIdBySlug(
   if (error || !data) return null;
   return data.id;
 }
+
+// Find a slug that doesn't collide with an existing member. Added 2026-08-11
+// after createMember (memberstack-webhook) had no uniqueness handling at all -
+// two real, different members sharing a name (both "Reece McMillan") produced
+// the same slug, and the second signup's insert hard-failed on
+// members_slug_key with no fallback, completely blocking that member's
+// account creation. Shared here (not duplicated per-caller) specifically so
+// every member-creation code path - the real-time webhook, and the
+// admin/manual recovery paths in query-members that exist for exactly the
+// case where the webhook already failed once - stays consistent. Mirrors the
+// existing pattern already used for opportunity and project slugs (try base,
+// then -2, -3, ..., then a timestamp suffix as a last resort).
+export async function findAvailableMemberSlug(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  baseSlug: string
+): Promise<string> {
+  const { data: existing } = await supabase
+    .from('members')
+    .select('slug')
+    .eq('slug', baseSlug)
+    .maybeSingle();
+  if (!existing) return baseSlug;
+
+  for (let i = 2; i <= 99; i++) {
+    const candidate = `${baseSlug}-${i}`;
+    const { data: candidateExisting } = await supabase
+      .from('members')
+      .select('slug')
+      .eq('slug', candidate)
+      .maybeSingle();
+    if (!candidateExisting) return candidate;
+  }
+
+  return `${baseSlug}-${Date.now().toString(36)}`;
+}

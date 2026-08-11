@@ -9,7 +9,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { hasActivePlan, resolveMembershipTypeId } from '../_shared/memberstack.ts';
+import { hasActivePlan, resolveMembershipTypeId, findAvailableMemberSlug } from '../_shared/memberstack.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -665,7 +665,8 @@ serve(async (req) => {
         const firstName = cf['first-name'] || '';
         const lastName = cf['last-name'] || '';
         const displayName = [firstName, lastName].filter(Boolean).join(' ') || null;
-        const slug = cf['slug'] || (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
+        const baseSlug = cf['slug'] || (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
+        const slug = baseSlug ? await findAvailableMemberSlug(supabase, baseSlug) : null;
 
         let suburbId: string | null = null;
         if (cf['suburb']) {
@@ -771,8 +772,9 @@ serve(async (req) => {
       const firstName = cf['first-name'] || '';
       const lastName = cf['last-name'] || '';
       const displayName = [firstName, lastName].filter(Boolean).join(' ') || null;
-      const slug = cf['slug'] ||
+      const baseSlug = cf['slug'] ||
         (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
+      const slug = baseSlug ? await findAvailableMemberSlug(supabase, baseSlug) : null;
 
       // Determine status (ACTIVE or TRIALING both count as active)
       const isActive = hasActivePlan(member.planConnections);
