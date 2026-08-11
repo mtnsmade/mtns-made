@@ -433,9 +433,41 @@ async function getSuburbIdByWebflowId(webflowId: string): Promise<string | null>
   return data.id;
 }
 
+// Find a slug that doesn't collide with an existing member. createMember had
+// no uniqueness handling at all until this was added (2026-08-11) - two real,
+// different members sharing a name (both "Reece McMillan") produced the same
+// slug, and the second signup's insert hard-failed on members_slug_key with
+// no fallback, completely blocking that member's account creation. Mirrors
+// the existing pattern used for opportunity slugs and project slugs
+// (try base, then -2, -3, ... , then a timestamp suffix as a last resort).
+async function findAvailableMemberSlug(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  baseSlug: string
+): Promise<string> {
+  const { data: existing } = await supabase
+    .from('members')
+    .select('slug')
+    .eq('slug', baseSlug)
+    .maybeSingle();
+  if (!existing) return baseSlug;
+
+  for (let i = 2; i <= 99; i++) {
+    const candidate = `${baseSlug}-${i}`;
+    const { data: candidateExisting } = await supabase
+      .from('members')
+      .select('slug')
+      .eq('slug', candidate)
+      .maybeSingle();
+    if (!candidateExisting) return candidate;
+  }
+
+  return `${baseSlug}-${Date.now().toString(36)}`;
+}
+
 // Send failed signup alert to admin
 async function sendFailedSignupAlert(email: string, memberstackId: string, error: unknown): Promise<void> {
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorMessage = extractErrorMessage(error);
   try {
     await sendEmail({
       to: ADMIN_EMAIL,
@@ -525,8 +557,9 @@ async function createMember(memberData: MemberstackMemberData): Promise<boolean>
   const firstName = memberData.customFields?.['first-name'] || '';
   const lastName = memberData.customFields?.['last-name'] || '';
   const displayName = [firstName, lastName].filter(Boolean).join(' ') || null;
-  const slug = memberData.customFields?.['slug'] ||
+  const baseSlug = memberData.customFields?.['slug'] ||
     (displayName ? displayName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : null);
+  const slug = baseSlug ? await findAvailableMemberSlug(supabase, baseSlug) : null;
 
   console.log('Creating member with name:', displayName, 'slug:', slug);
 
@@ -1186,6 +1219,30 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
 // IMPORTANT: this must run against the RAW request body text, not a
 // re-serialized JSON.parse(...) result - re-serializing can change
 // whitespace/key order and silently break every signature check.
+// Supabase/Postgrest errors thrown around this file are plain objects, not
+// real Error instances - a bare `String(error)` on one of those produces
+// the literal string "[object Object]", which is what a real failed
+// signup's 500 response showed on 2026-08-11 before this fix, hiding the
+// actual cause. Pull the real message (and code/details, if present)
+// instead of falling through to that.
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object') {
+    const obj = error as Record<string, unknown>;
+    if (typeof obj.message === 'string') {
+      const code = obj.code ? ` (code: ${obj.code})` : '';
+      const details = obj.details ? ` - ${obj.details}` : '';
+      return `${obj.message}${code}${details}`;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let result = 0;
@@ -1365,13 +1422,17 @@ serve(async (req: Request) => {
     );
 
   } catch (error) {
-    // Log detailed error information
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    // Log detailed error information. Supabase/Postgrest errors thrown
+    // elsewhere in this file (e.g. createMember's `throw error` on a failed
+    // insert) are plain objects, not real Error instances - String(error)
+    // on those produces the unhelpful literal string "[object Object]"
+    // instead of anything diagnosable. Pull the real message out first.
+    const errorMessage = extractErrorMessage(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('Webhook handler error:', {
       message: errorMessage,
       stack: errorStack,
-      error: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      error: JSON.stringify(error, Object.getOwnPropertyNames(error ?? {})),
     });
 
     return new Response(
