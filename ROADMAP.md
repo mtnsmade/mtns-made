@@ -419,6 +419,19 @@ Two genuinely separate populations, confirmed via a real Stripe price audit - do
 
 ---
 
+### R-016 — Retargeting list for lapsed/deleted members *(view shipped 2026-08-12, Mailchimp sync not built)*
+**Priority:** Low
+**Effort:** Small (done) for the view; Medium if/when a Mailchimp sync is wanted
+**Affects:** New `retargeting_candidates` view (migration `041_retargeting_candidates_view.sql`)
+
+**What shipped:** a read-only Postgres view over `members`, scoped to everyone currently `subscription_status IN ('lapsed', 'deleted')` — no recency cutoff, per instruction. Currently **88 candidates** (80 lapsed + 8 deleted). Supabase-only for now, not synced to Mailchimp (`MAILCHIMP_LIST_ID_MEMBERS_TRANSFER` already exists in `cred.env` but nothing in the codebase calls Mailchimp yet — this is the same unbuilt integration as R-004).
+
+**Security note:** views bypass the base table's RLS by default (they run with the creator's privileges, not the querying role's). `members` has RLS specifically because it holds real PII, so the view was briefly world-readable through PostgREST's default anon grants immediately after creation — caught and fixed live in the same session with an explicit `REVOKE ... FROM anon, authenticated` baked into the migration. Worth remembering for any future view over a PII-bearing table.
+
+**Known data quality issue surfaced along the way:** `mikenjo@iprimus.com.au` and `sifumikewoo@gmail.com` are almost certainly the same real person (Mike Wall) — identical name, identical suburb, business name "Mike Wall Photographer" on one, account-creation timestamps 49ms apart (both part of the original Feb 2026 bulk import). Both already lapsed, so no live-site impact, but they'll show as two separate rows in this view and in any future Mailchimp sync. Flagged, not merged — deciding which record is canonical needs a person to look, not an automated guess.
+
+---
+
 ## Completed
 
 | ID | Item | Date |
