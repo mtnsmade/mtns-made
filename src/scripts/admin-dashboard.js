@@ -1264,18 +1264,25 @@ MTNS MADE Team`;
   }
 
   async function loadRecentEvents() {
-    const { data, error } = await supabase
-      .from('events')
-      .select('id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at')
-      .order('is_draft', { ascending: false })  // pending (is_draft=true) first
-      .order('created_at', { ascending: false })
-      .limit(50);
+    // Pending and published are fetched as two separate capped queries, not
+    // one shared-limit query. With a single .limit(50) across both statuses,
+    // a backlog of >50 pending events (sorted first) silently pushed every
+    // published event out of the result entirely - the header counts (from
+    // loadEventStats, an unlimited count-only query) stayed correct, but the
+    // table itself never rendered a single published row. Found 2026-08-12:
+    // 46 pending events (many months-old) were crowding out all 47 published
+    // ones, including same-day member submissions already approved.
+    const cols = 'id, name, slug, memberstack_id, member_contact_email, is_draft, is_archived, webflow_id, created_at';
+    const [{ data: pending, error: pendingError }, { data: published, error: publishedError }] = await Promise.all([
+      supabase.from('events').select(cols).eq('is_draft', true).order('created_at', { ascending: false }).limit(50),
+      supabase.from('events').select(cols).eq('is_draft', false).order('created_at', { ascending: false }).limit(50),
+    ]);
 
-    if (error) {
-      console.error('Error loading recent events:', error);
+    if (pendingError || publishedError) {
+      console.error('Error loading recent events:', pendingError || publishedError);
       return [];
     }
-    return data || [];
+    return [...(pending || []), ...(published || [])];
   }
 
   async function loadEventStats() {
@@ -1291,18 +1298,19 @@ MTNS MADE Team`;
   }
 
   async function loadRecentOpportunities() {
-    const { data, error } = await supabase
-      .from('opportunities')
-      .select('id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at')
-      .order('is_draft', { ascending: false })  // pending (is_draft=true) first
-      .order('created_at', { ascending: false })
-      .limit(50);
+    // Same fix as loadRecentEvents above - see its comment for why a single
+    // shared-limit query across both statuses is wrong.
+    const cols = 'id, name, slug, memberstack_id, member_contact_email, opportunity_type, is_draft, is_archived, webflow_id, created_at';
+    const [{ data: pending, error: pendingError }, { data: published, error: publishedError }] = await Promise.all([
+      supabase.from('opportunities').select(cols).eq('is_draft', true).order('created_at', { ascending: false }).limit(50),
+      supabase.from('opportunities').select(cols).eq('is_draft', false).order('created_at', { ascending: false }).limit(50),
+    ]);
 
-    if (error) {
-      console.error('Error loading recent opportunities:', error);
+    if (pendingError || publishedError) {
+      console.error('Error loading recent opportunities:', pendingError || publishedError);
       return [];
     }
-    const opps = data || [];
+    const opps = [...(pending || []), ...(published || [])];
 
     // Enrich with member names
     const ids = [...new Set(opps.map(o => o.memberstack_id).filter(Boolean))];
