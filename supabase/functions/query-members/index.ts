@@ -844,6 +844,68 @@ serve(async (req) => {
       );
     }
 
+    // Correct a member's email across all three systems (Memberstack auth
+    // email, Supabase, Webflow's email-address field) - a recurring support
+    // request (typo'd signup email, personal vs. business address for a
+    // shared/business account, etc).
+    if (body.mode === 'update-member-email' && body.memberstack_id && body.new_email) {
+      if (!MEMBERSTACK_API_KEY) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'MEMBERSTACK_API_KEY not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const msResponse = await fetch(
+        `https://admin.memberstack.com/members/${body.memberstack_id}`,
+        {
+          method: 'PATCH',
+          headers: { 'X-API-KEY': MEMBERSTACK_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: body.new_email }),
+        }
+      );
+
+      if (!msResponse.ok) {
+        const error = await msResponse.text();
+        return new Response(
+          JSON.stringify({ success: false, error: `Memberstack update failed: ${error}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: updatedMember, error: sbError } = await supabase
+        .from('members')
+        .update({ email: body.new_email })
+        .eq('memberstack_id', body.memberstack_id)
+        .select('id, webflow_id')
+        .maybeSingle();
+
+      if (sbError) {
+        return new Response(
+          JSON.stringify({ success: false, error: `Memberstack updated but Supabase failed: ${sbError.message}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let webflowUpdated = false;
+      if (updatedMember?.webflow_id && WEBFLOW_API_TOKEN) {
+        const wfResponse = await fetch(
+          `https://api.webflow.com/v2/collections/${WEBFLOW_MEMBERS_COLLECTION_ID}/items/${updatedMember.webflow_id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${WEBFLOW_API_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fieldData: { 'email-address': body.new_email } }),
+          }
+        );
+        webflowUpdated = wfResponse.ok;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, memberstackUpdated: true, supabaseUpdated: true, webflowUpdated }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Query mode
     const emails = body.emails || [];
 
