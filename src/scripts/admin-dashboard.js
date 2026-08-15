@@ -3668,7 +3668,7 @@ MTNS MADE Team`;
 
       const hours = modal.querySelector('#et-hours').value;
       const memberName = modal.querySelector('#et-member-name').value || modal.querySelector('#et-member-search').value.trim() || null;
-      const { error } = await supabase.from('support_tasks').update({
+      const updates = {
         category:           modal.querySelector('#et-category').value,
         title:              modal.querySelector('#et-title').value.trim(),
         description:        modal.querySelector('#et-description').value.trim() || null,
@@ -3678,7 +3678,8 @@ MTNS MADE Team`;
         member_id:          modal.querySelector('#et-member-id').value || null,
         member_name:        memberName,
         member_profile_url: modal.querySelector('#et-member-url').value || null,
-      }).eq('id', task.id);
+      };
+      const { error } = await supabase.from('support_tasks').update(updates).eq('id', task.id);
 
       if (error) {
         alert('Error saving: ' + error.message);
@@ -3688,7 +3689,12 @@ MTNS MADE Team`;
       }
 
       if (statusChanged) {
-        await sendTaskNotification(newStatus === 'feedback_needed' ? 'feedback_needed' : newStatus === 'complete' ? 'complete' : null, task);
+        // Pass the just-saved values, not the stale pre-edit `task` - a
+        // member linked in this same save (e.g. selecting them right before
+        // marking Complete) must be reflected in the notification, not the
+        // member_id the task had when the modal was opened. Same applies to
+        // title/description/category if edited alongside the status.
+        await sendTaskNotification(newStatus === 'feedback_needed' ? 'feedback_needed' : newStatus === 'complete' ? 'complete' : null, { ...task, ...updates });
       }
 
       modal.remove();
