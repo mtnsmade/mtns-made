@@ -7,6 +7,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
 
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
+// Event submissions also go to hello@ - Hannah checks that inbox for these,
+// separate from the general ADMIN_EMAIL used by every other admin notification.
+const EVENT_NOTIFICATION_RECIPIENTS = [ADMIN_EMAIL, 'hello@mtnsmade.com.au'];
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 interface EventSubmissionRequest {
@@ -97,7 +100,7 @@ Please review and approve or reject this event within 48 hours.
 `;
 
     const result = await sendEmail({
-      to: ADMIN_EMAIL,
+      to: EVENT_NOTIFICATION_RECIPIENTS,
       subject: `${subjectAction} Event for Review: ${body.eventName}`,
       html: emailHtml,
       text: emailText,

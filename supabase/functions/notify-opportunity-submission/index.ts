@@ -7,6 +7,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
 
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
+// Opportunity submissions also go to hello@ - same reasoning as
+// notify-event-submission (Hannah checks that inbox for these).
+const OPPORTUNITY_NOTIFICATION_RECIPIENTS = [ADMIN_EMAIL, 'hello@mtnsmade.com.au'];
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
 interface OpportunitySubmissionRequest {
@@ -94,7 +97,7 @@ Please review and approve or reject this opportunity within 48 hours.
 `;
 
     const result = await sendEmail({
-      to: ADMIN_EMAIL,
+      to: OPPORTUNITY_NOTIFICATION_RECIPIENTS,
       subject: `${subjectAction} Opportunity for Review: ${body.opportunityName}`,
       html: emailHtml,
       text: emailText,
