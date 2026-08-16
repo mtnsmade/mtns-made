@@ -3351,6 +3351,8 @@ MTNS MADE Team`;
       await sendTaskNotification('feedback_needed', task || { id: taskId, title: '(task)', status: newStatus });
     } else if (newStatus === 'complete') {
       await sendTaskNotification('complete', task || { id: taskId, title: '(task)', status: newStatus });
+    } else if (newStatus === 'in_progress') {
+      await sendTaskNotification('in_progress', task || { id: taskId, title: '(task)', status: newStatus });
     }
   }
 
@@ -3370,6 +3372,10 @@ MTNS MADE Team`;
       to = 'hello@mtnsmade.com.au';
       subject = `New comment on: ${task.title}`;
       body = `Racket has added a comment to a support task.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n\nComment:\n${commentText}\n\nView on dashboard: ${dashboardLink}`;
+    } else if (event === 'in_progress') {
+      to = 'hello@mtnsmade.com.au';
+      subject = `Task in progress: ${task.title}`;
+      body = `A support task is now in progress.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.notes ? '\nNotes:\n' + task.notes : ''}\n\nView on dashboard: ${dashboardLink}`;
     } else if (event === 'feedback_needed') {
       to = 'hello@mtnsmade.com.au';
       subject = `Feedback needed: ${task.title}`;
@@ -3694,7 +3700,8 @@ MTNS MADE Team`;
         // marking Complete) must be reflected in the notification, not the
         // member_id the task had when the modal was opened. Same applies to
         // title/description/category if edited alongside the status.
-        await sendTaskNotification(newStatus === 'feedback_needed' ? 'feedback_needed' : newStatus === 'complete' ? 'complete' : null, { ...task, ...updates });
+        const notifyEvent = ['feedback_needed', 'complete', 'in_progress'].includes(newStatus) ? newStatus : null;
+        await sendTaskNotification(notifyEvent, { ...task, ...updates });
       }
 
       modal.remove();
