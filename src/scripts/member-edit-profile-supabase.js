@@ -593,6 +593,51 @@
     return type === SPACES_SUPPLIERS_TYPE;
   }
 
+  // Membership type slug -> display name. Partner has no billing plan
+  // (manually assigned) so it never appears as a self-serve option here.
+  const MEMBERSHIP_TYPE_NAMES = {
+    'emerging': 'Emerging',
+    'professional': 'Professional',
+    'not-for-profit': 'Not For Profit',
+    'small-business': 'Small Business',
+    'large-business': 'Large Business',
+    'spaces-suppliers': 'Spaces / Suppliers',
+    'partner': 'Partner',
+  };
+
+  // Whether the member has ANY plan connection at all (active, trialing, or
+  // payment-retry) - not just a currently-active one. The Stripe Customer
+  // Portal has something to manage as long as a subscription exists, even a
+  // struggling one; it's only truly empty for someone mid-signup who never
+  // completed checkout (no plan attached yet at all).
+  function hasAnyPlanConnection() {
+    return Array.isArray(memberData?.planConnections) && memberData.planConnections.length > 0;
+  }
+
+  function renderMembershipTypeSection() {
+    const slug = memberData?.customFields?.['membership-type'] || '';
+    const typeName = MEMBERSHIP_TYPE_NAMES[slug] || 'Not set';
+
+    if (hasAnyPlanConnection()) {
+      return `
+        <div class="ep-section">
+          <h3 class="ep-section-title">Membership Type</h3>
+          <p class="ep-section-description">Current plan: <strong>${escapeHtml(typeName)}</strong></p>
+          <button type="button" class="ep-btn ep-btn-secondary" id="ep-manage-membership-btn">Manage / Change Membership Type</button>
+          <p class="ep-section-description" style="margin-top:8px;font-size:13px;">Opens Stripe's secure billing portal, where you can switch tiers, update your payment method, or view invoices.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="ep-section">
+        <h3 class="ep-section-title">Membership Type</h3>
+        <p class="ep-section-description">Your membership isn't fully set up yet - you'll need to complete checkout before you can manage your plan here.</p>
+        <a href="/join" class="ep-btn ep-btn-secondary" style="text-decoration:none;display:inline-block;">Complete Your Membership</a>
+      </div>
+    `;
+  }
+
   // Social media URL normalization
   const SOCIAL_PLATFORMS = {
     instagram: {
@@ -1251,6 +1296,7 @@
           ${isBusinessMember ? renderBusinessDetailsSection() : ''}
           ${renderCategoriesSection(isSpaceSupplier)}
           ${renderLinksSection()}
+          ${renderMembershipTypeSection()}
 
           <div class="ep-btn-row">
             <a href="/profile/start" class="ep-btn ep-btn-secondary" style="text-decoration: none; text-align: center;">Cancel</a>
@@ -1545,6 +1591,7 @@
 
     setupCategoriesHandlers(container, isSpaceSupplier);
     setupLinksHandlers(container);
+    setupMembershipTypeHandlers(container, errorBanner);
 
     saveBtn.addEventListener('click', async () => {
       errorBanner.style.display = 'none';
@@ -2000,6 +2047,27 @@
           errorEl.textContent = result.error;
         }
       });
+    });
+  }
+
+  function setupMembershipTypeHandlers(container, errorBanner) {
+    const manageBtn = container.querySelector('#ep-manage-membership-btn');
+    if (!manageBtn) return; // not rendered when the member has no plan connection yet
+
+    manageBtn.addEventListener('click', async () => {
+      manageBtn.disabled = true;
+      const originalText = manageBtn.textContent;
+      manageBtn.textContent = 'Opening billing portal...';
+
+      try {
+        await window.$memberstackDom.launchStripeCustomerPortal();
+      } catch (err) {
+        console.error('Error launching Stripe customer portal:', err);
+        showError(errorBanner, 'Could not open the billing portal right now. Please try again, or contact hello@mtnsmade.com.au for help changing your membership type.');
+      } finally {
+        manageBtn.disabled = false;
+        manageBtn.textContent = originalText;
+      }
     });
   }
 

@@ -1045,6 +1045,19 @@ async function handleMemberPlanCanceled(data: MemberstackMemberData): Promise<vo
     return;
   }
 
+  // A plan.canceled event doesn't mean the member has NO active plan - if
+  // this cancellation is one half of a plan swap (old plan removed, new plan
+  // added), the member's current planConnections - already present in this
+  // same payload - will show the new plan as active. Archiving here anyway
+  // would be a real flicker: profile hidden from the directory, a
+  // "membership has ended" email sent, then a "welcome back" email once the
+  // add-side event catches up. Check the payload before acting on the event
+  // type alone.
+  if (hasActivePlan(data.planConnections)) {
+    console.log('member.plan.canceled received but member still has an active plan connection - skipping archive:', data.id);
+    return;
+  }
+
   const previousStatus = member.subscription_status;
 
   // Plan was canceled - mark as lapsed
