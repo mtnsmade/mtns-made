@@ -3353,6 +3353,8 @@ MTNS MADE Team`;
       await sendTaskNotification('complete', task || { id: taskId, title: '(task)', status: newStatus });
     } else if (newStatus === 'in_progress') {
       await sendTaskNotification('in_progress', task || { id: taskId, title: '(task)', status: newStatus });
+    } else if (newStatus === 'stalled') {
+      await sendTaskNotification('stalled', task || { id: taskId, title: '(task)', status: newStatus });
     }
   }
 
@@ -3384,6 +3386,10 @@ MTNS MADE Team`;
       to = 'hello@mtnsmade.com.au';
       subject = `Task complete: ${task.title}`;
       body = `A support task has been marked complete.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n\nView on dashboard: ${dashboardLink}`;
+    } else if (event === 'stalled') {
+      to = 'hello@mtnsmade.com.au';
+      subject = `Task stalled: ${task.title}`;
+      body = `A support task has been marked stalled.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.notes ? '\nNotes:\n' + task.notes : ''}\n\nView on dashboard: ${dashboardLink}`;
     } else {
       return;
     }
@@ -3700,7 +3706,7 @@ MTNS MADE Team`;
         // marking Complete) must be reflected in the notification, not the
         // member_id the task had when the modal was opened. Same applies to
         // title/description/category if edited alongside the status.
-        const notifyEvent = ['feedback_needed', 'complete', 'in_progress'].includes(newStatus) ? newStatus : null;
+        const notifyEvent = ['feedback_needed', 'complete', 'in_progress', 'stalled'].includes(newStatus) ? newStatus : null;
         await sendTaskNotification(notifyEvent, { ...task, ...updates });
       }
 
