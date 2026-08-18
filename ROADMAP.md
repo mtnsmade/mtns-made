@@ -334,12 +334,12 @@ This isn't just an unused column - `project-reminder/index.ts` filters on `profi
 
 ---
 
-### R-012 — Add Stories to the primary nav
+### R-012 — Add Stories to the primary nav *(shipped 2026-08-18)*
 **Priority:** TBD
-**Effort:** Small (likely a Webflow Designer nav-component edit, not new page content)
-**Affects:** Site-wide nav component (Webflow)
+**Effort:** Small
+**Affects:** `nav-2025.js` (desktop nav)
 
-**Background:** "Stories" already exists as a page and is already linked in the **footer** nav ("Home / Find a Creative / Events / Jobs / Resources / Stories / Magazine / Support and Contact", confirmed live on real pages today) - it's just missing from the **primary/header** nav, which currently only shows Find a Creative / Events / Jobs / Resources / Magazine / Become a Member. So this should be a straightforward addition to the existing header nav component, not new page or content work.
+**Background:** "Stories" already existed as a page and was already linked in the **footer** nav, just missing from the primary/header nav. Added between Jobs and Resources per instruction. Mobile overlay nav already had a Stories link (in a different position, between Resources and Magazine) - left that as-is, not part of this request.
 
 ---
 
@@ -464,3 +464,4 @@ This has never surfaced before purely because no one has ever published a batch 
 | — | `profile_complete` bug: fixed 12 members false-negative, 9 members false-positive | Mar 2026 |
 | — | Reece McMillan incident: fixed `createMember` slug-collision handling + `[object Object]` error masking; audited and fixed the same gap in `query-members` (R-015 tracks the one remaining signup-time nuance) | Aug 2026 |
 | — | Events "What's On" page incident: bulk-correcting 46 stuck-pending imported events wrongly published them live (wrong assumption that `webflow_id` present meant already-live). Fixed data on both sides, then hit a stuck Webflow publish queue (API-driven publishes silently not completing — `lastPublished` frozen 10h despite repeated accepted publish calls) that needed manual per-item unpublishing in the Designer to resolve before a client presentation. R-017 tracks the real structural gap it surfaced. | Aug 2026 |
+| R-012 | Add Stories to primary nav + "Change Account Type" added to member account dropdown (deep-links to the Membership Type section shipped earlier) | Aug 2026 |
