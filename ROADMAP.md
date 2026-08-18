@@ -432,6 +432,21 @@ Two genuinely separate populations, confirmed via a real Stripe price audit - do
 
 ---
 
+### R-017 — Events page has no real "hide past events" mechanism
+**Priority:** Medium
+**Effort:** Small
+**Affects:** Webflow "What's On" Collection List config, or a new scheduled function
+
+**Background:** discovered 2026-08-18 during cleanup of a live incident (see Completed table). The `events.is_past` column exists but is dead — grepped the whole sync pipeline, it's declared in one type definition and never read or written anywhere. No scheduled job auto-archives events once their date passes. The live "What's On" Collection List sorts **oldest-first, ascending**, with no date filter — so a published old event doesn't quietly sit at the bottom, it leads the page.
+
+This has never surfaced before purely because no one has ever published a batch of old events at once — not because anything was protecting against it. If it happens again (another bulk import, another sync bug, anyone unpublishing/republishing in bulk), the exact same thing recurs with nothing to catch it.
+
+**Fix, either one closes the gap:**
+1. Add a real date filter to the Collection List directly in Webflow ("only show events where date is today or later") — no code change, a Designer-side config fix.
+2. Or build a small scheduled function that auto-archives events once `date_end` (or `date_start` if no end) has passed.
+
+---
+
 ## Completed
 
 | ID | Item | Date |
@@ -448,3 +463,4 @@ Two genuinely separate populations, confirmed via a real Stripe price audit - do
 | R-002 | Missing emails (cancellation, reactivation) + admin address consistency | Jun 2026 |
 | — | `profile_complete` bug: fixed 12 members false-negative, 9 members false-positive | Mar 2026 |
 | — | Reece McMillan incident: fixed `createMember` slug-collision handling + `[object Object]` error masking; audited and fixed the same gap in `query-members` (R-015 tracks the one remaining signup-time nuance) | Aug 2026 |
+| — | Events "What's On" page incident: bulk-correcting 46 stuck-pending imported events wrongly published them live (wrong assumption that `webflow_id` present meant already-live). Fixed data on both sides, then hit a stuck Webflow publish queue (API-driven publishes silently not completing — `lastPublished` frozen 10h despite repeated accepted publish calls) that needed manual per-item unpublishing in the Designer to resolve before a client presentation. R-017 tracks the real structural gap it surfaced. | Aug 2026 |
