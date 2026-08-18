@@ -907,7 +907,8 @@
     grid: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>`,
     helpCircle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`,
     message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v2H7zm0 4h7v2H7z"/><path d="M20 2H4c-1.103 0-2 .897-2 2v18l5.333-4H20c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2m0 14H6.667L4 18V4h16z"/></svg>`,
-    login: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>`
+    login: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>`,
+    creditCard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`
   };
 
   // ============================================
@@ -927,6 +928,9 @@
       </a>
       <a href="/profile/edit-portfolio" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.briefcase}</span>Edit Portfolio
+      </a>
+      <a href="/profile/edit-profile#membership-type" class="x-nav-dropdown-item">
+        <span class="x-nav-dropdown-item-icon">${icons.creditCard}</span>Change Account Type
       </a>
       <a href="/profile/suggest-an-event" class="x-nav-dropdown-item">
         <span class="x-nav-dropdown-item-icon">${icons.calendar}</span>My Events
@@ -972,6 +976,7 @@
           </div>
           <div class="x-nav-item" data-priority="high"><a href="/events" class="x-nav-link">Events</a></div>
           <div class="x-nav-item" data-priority="high"><a href="/jobs" class="x-nav-link">Jobs</a></div>
+          <div class="x-nav-item" data-priority="low"><a href="/stories" class="x-nav-link">Stories</a></div>
           <div class="x-nav-item" data-priority="low"><a href="/resources" class="x-nav-link">Resources</a></div>
           <div class="x-nav-item" data-priority="low"><a href="/magazine" class="x-nav-link">Magazine</a></div>
         </div>

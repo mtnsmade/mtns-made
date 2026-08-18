@@ -620,7 +620,7 @@
 
     if (hasAnyPlanConnection()) {
       return `
-        <div class="ep-section">
+        <div class="ep-section" id="membership-type">
           <h3 class="ep-section-title">Membership Type</h3>
           <p class="ep-section-description">Current plan: <strong>${escapeHtml(typeName)}</strong></p>
           <button type="button" class="ep-btn ep-btn-secondary" id="ep-manage-membership-btn">Manage / Change Membership Type</button>
@@ -630,7 +630,7 @@
     }
 
     return `
-      <div class="ep-section">
+      <div class="ep-section" id="membership-type">
         <h3 class="ep-section-title">Membership Type</h3>
         <p class="ep-section-description">Your membership isn't fully set up yet - you'll need to complete checkout before you can manage your plan here.</p>
         <a href="/join" class="ep-btn ep-btn-secondary" style="text-decoration:none;display:inline-block;">Complete Your Membership</a>
@@ -2142,6 +2142,15 @@
 
       // Render form
       renderEditForm(container);
+
+      // Deep-link support (e.g. /profile/edit-profile#membership-type from
+      // the nav dropdown) - the target section doesn't exist in the DOM
+      // until the render above completes, so the browser's native
+      // scroll-to-hash on page load misses it. Do it manually once rendered.
+      if (window.location.hash) {
+        const target = document.querySelector(window.location.hash);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
 
     } catch (error) {
       console.error('Init error:', error);
