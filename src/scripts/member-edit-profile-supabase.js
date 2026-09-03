@@ -1137,6 +1137,25 @@
         profile_completed_at: profileCompletedAt
       };
 
+      // membership_type_id was never set anywhere in this upsert, meaning any
+      // member whose FIRST Supabase row gets created through this recovery
+      // path (see comment below) ended up with membership_type_id stuck null
+      // forever - found 2026-08-31 via a real member (Anna Gardiner, a Memberstack
+      // member since July with no Supabase row until she saved this page in
+      // August). Resolve it from the same slug already read for display elsewhere
+      // in this file; only include it when it actually resolves, so a lookup
+      // failure can't clobber an already-correct value on a routine edit.
+      const membershipTypeSlug = memberData.customFields?.['membership-type'];
+      let resolvedMembershipTypeId;
+      if (membershipTypeSlug) {
+        const { data: typeRow } = await supabase
+          .from('membership_types')
+          .select('id')
+          .eq('slug', membershipTypeSlug)
+          .maybeSingle();
+        if (typeRow) resolvedMembershipTypeId = typeRow.id;
+      }
+
       // Upsert member — handles the edge case where the Memberstack webhook
       // failed to create the Supabase record during signup (e.g. Link payment flow).
       const { data: savedMember, error: updateError } = await supabase
@@ -1146,6 +1165,7 @@
           email: memberData.auth?.email || null,
           first_name: memberData.customFields?.['first-name'] || formData.firstName || null,
           last_name: memberData.customFields?.['last-name'] || formData.lastName || null,
+          ...(resolvedMembershipTypeId ? { membership_type_id: resolvedMembershipTypeId } : {}),
           ...updateData
         }, { onConflict: 'memberstack_id' })
         .select('id')
