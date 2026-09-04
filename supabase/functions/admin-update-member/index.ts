@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
+import { MEMBERSTACK_PLAN_IDS as MEMBERSTACK_PLANS } from '../_shared/memberstack.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -12,17 +13,6 @@ const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
-
-// Memberstack Plan IDs mapped to membership type slugs
-const MEMBERSTACK_PLANS: Record<string, string> = {
-  'emerging': 'pln_emerging-i59k0l22',
-  'professional': 'pln_professional-ic970osr',
-  'not-for-profit': 'pln_not-for-profit-qaa106a4',
-  'small-business': 'pln_small-business-qsa506lc',
-  'large-business': 'pln_medium-large-business-9qa706pj',
-  'spaces-suppliers': 'pln_creative-spaces-suppliers-ck5s08g3',
-  // Partner has no plan - it's manually assigned
-};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

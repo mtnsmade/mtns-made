@@ -7,6 +7,29 @@
 // integration reference, and the 2026-08-08 stabilization plan for why this
 // module exists.
 
+// slug -> Memberstack plan ID for the 6 billed tiers. Previously duplicated
+// only in admin-update-member/index.ts; centralized here 2026-08-19 so a
+// webhook handler needing the reverse lookup (planId -> slug, below) has one
+// definition to stay in sync with, not a second copy that can drift.
+// Partner has no plan - it's manually assigned, never appears here.
+export const MEMBERSTACK_PLAN_IDS: Record<string, string> = {
+  'emerging': 'pln_emerging-i59k0l22',
+  'professional': 'pln_professional-ic970osr',
+  'not-for-profit': 'pln_not-for-profit-qaa106a4',
+  'small-business': 'pln_small-business-qsa506lc',
+  'large-business': 'pln_medium-large-business-9qa706pj',
+  'spaces-suppliers': 'pln_creative-spaces-suppliers-ck5s08g3',
+};
+
+const MEMBERSTACK_PLAN_SLUGS_BY_ID: Record<string, string> = Object.fromEntries(
+  Object.entries(MEMBERSTACK_PLAN_IDS).map(([slug, planId]) => [planId, slug])
+);
+
+export function getMembershipTypeSlugByPlanId(planId: string | undefined | null): string | null {
+  if (!planId) return null;
+  return MEMBERSTACK_PLAN_SLUGS_BY_ID[planId] || null;
+}
+
 export interface PlanConnection {
   status: string;
   planName?: string;
@@ -97,6 +120,52 @@ export async function getMembershipTypeIdBySlug(
 
   if (error || !data) return null;
   return data.id;
+}
+
+// Keep Memberstack's customFields['membership-type'] in sync with a member's
+// actual active plan. Added 2026-08-19 after Erin McCoy's upgrade (Emerging ->
+// Professional) went through correctly on Stripe/Memberstack, but her profile
+// kept showing Emerging - the custom field is only ever set once, at initial
+// signup, and nothing had ever updated it since. resolveMembershipTypeId()'s
+// fallback tier reads this exact field when it can't resolve via the active
+// plan name, so a stale field silently produces a wrong result the next time
+// that fallback tier is hit (as happened here). Call this ONLY from a context
+// that just resolved the member's type via their real active plan (the
+// authoritative source) - not from read-only/reporting callers of
+// resolveMembershipTypeId (check-consistency, reconcile-members, etc.), which
+// should stay side-effect-free.
+export async function syncMembershipTypeCustomField(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  memberstackId: string,
+  membershipTypeId: string,
+  currentCustomFieldValue: string | undefined | null
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('membership_types')
+    .select('slug')
+    .eq('id', membershipTypeId)
+    .maybeSingle();
+
+  if (error || !data?.slug || data.slug === currentCustomFieldValue) return;
+
+  const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
+  if (!MEMBERSTACK_API_KEY) return;
+
+  try {
+    const response = await fetch(`https://admin.memberstack.com/members/${memberstackId}`, {
+      method: 'PATCH',
+      headers: { 'X-API-KEY': MEMBERSTACK_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customFields: { 'membership-type': data.slug } }),
+    });
+    if (!response.ok) {
+      console.error('syncMembershipTypeCustomField failed:', response.status, await response.text());
+    } else {
+      console.log('Synced Memberstack membership-type custom field:', currentCustomFieldValue, '->', data.slug);
+    }
+  } catch (err) {
+    console.error('syncMembershipTypeCustomField error:', err);
+  }
 }
 
 // Find a slug that doesn't collide with an existing member. Added 2026-08-11
