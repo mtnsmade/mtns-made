@@ -28,7 +28,18 @@ Endpoints actually used and confirmed working in this codebase:
   Sequencing matters when swapping plans: removing the old one before adding the new
   avoids a same-cycle double-charge — this hasn't been rigorously tested end-to-end
   in this codebase yet, verify before trusting it on a real batch.
-- `POST /members/{id}/send-password-reset`
+
+**Confirmed NOT available on the raw REST API: password reset.** `POST
+/members/{id}/send-password-reset` does **not** exist — confirmed live 2026-09-16,
+returns a 404 "Cannot POST" (Express's default no-route-matched response, not an
+auth/ID problem — `GET /members/{id}` on the same base URL/key works fine). This
+was previously listed here as "confirmed working"; it wasn't — `admin-tools`'
+`send-password-reset` action had been silently failing for anyone who used the
+dashboard's "Send Password Reset" button. That action has been removed. The real,
+working mechanism is client-side only: the DOM package method
+`$memberstackDom.sendMemberResetPasswordEmail({ email })`, called directly from the
+browser (verified working live 2026-09-14) — `admin-dashboard.js`'s password reset
+button now calls this instead of routing through an edge function.
 
 **Confirmed NOT available on the raw REST API: Plans and Prices.** `GET /plans`
 returns a genuine 404 (tested directly, not assumed) — there is no way to read or

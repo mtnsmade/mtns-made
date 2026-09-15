@@ -1,14 +1,23 @@
 // Supabase Edge Function: Admin Tools
 // Provides privileged admin actions not available via anon key:
 //   - delete-project: soft-deletes a project (triggers sync-to-webflow to clean up Webflow)
-//   - send-password-reset: sends a Memberstack password reset email to a member
+//   - delete-opportunity: deletes an opportunity from Supabase + Webflow, then publishes
+//
+// NOTE: this used to also have a 'send-password-reset' action that POSTed to
+// admin.memberstack.com/members/{id}/send-password-reset. Removed 2026-09-16 -
+// confirmed live that endpoint doesn't exist (404 "Cannot POST", not an
+// auth/ID problem - GET /members/{id} on the same base URL/key works fine).
+// There is no server-side Memberstack Admin REST endpoint for this; the only
+// real mechanism is the client-side DOM package method
+// `$memberstackDom.sendMemberResetPasswordEmail({ email })`, which is what
+// admin-dashboard.js's "Send Password Reset" button now calls directly from
+// the browser instead of routing through here.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +31,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { action, projectId, memberstackId, opportunityId } = await req.json();
+    const { action, projectId, opportunityId } = await req.json();
 
     if (action === 'delete-project') {
       if (!projectId) {
@@ -94,38 +103,6 @@ serve(async (req: Request) => {
       }
 
       console.log('Opportunity deleted by admin:', opp?.name, opportunityId);
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (action === 'send-password-reset') {
-      if (!memberstackId) {
-        return new Response(JSON.stringify({ error: 'memberstackId required' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const response = await fetch(
-        `https://admin.memberstack.com/members/${memberstackId}/send-password-reset`,
-        {
-          method: 'POST',
-          headers: {
-            'X-API-KEY': MEMBERSTACK_API_KEY,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const responseText = await response.text();
-      console.log('Memberstack password reset response:', response.status, responseText);
-
-      if (!response.ok) {
-        return new Response(JSON.stringify({ error: `Memberstack returned ${response.status}: ${responseText}` }), {
-          status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

@@ -1468,25 +1468,29 @@ MTNS MADE Team`;
         passwordResetBtn.textContent = 'Sending...';
 
         try {
-          const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-tools`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'send-password-reset', memberstackId: member.memberstack_id }),
-          });
-
-          const result = await response.json();
-
-          if (result.success) {
-            alert('Password reset email sent successfully.');
-            passwordResetBtn.textContent = 'Sent';
-          } else {
-            alert(`Failed to send password reset: ${result.error}`);
-            passwordResetBtn.disabled = false;
-            passwordResetBtn.textContent = 'Send Password Reset';
+          // admin-tools' server-side 'send-password-reset' action used to call
+          // POST /members/{id}/send-password-reset on admin.memberstack.com -
+          // confirmed 2026-09-14 that this endpoint doesn't exist (404 "Cannot
+          // POST", not an auth/ID problem - GET /members/{id} on the same
+          // base URL/key works fine). There is no server-side Memberstack
+          // Admin REST endpoint for this. The only real mechanism is the
+          // client-side DOM package method below, verified working live the
+          // same day - so this runs here in the browser instead of routing
+          // through admin-tools.
+          if (!member.email) {
+            throw new Error('No email address on file for this member');
           }
+          if (!window.$memberstackDom) {
+            throw new Error('Memberstack is not loaded on this page - refresh and try again');
+          }
+
+          await window.$memberstackDom.sendMemberResetPasswordEmail({ email: member.email });
+
+          alert(`Password reset email sent to ${member.email}.`);
+          passwordResetBtn.textContent = 'Sent';
         } catch (error) {
           console.error('Password reset error:', error);
-          alert('Error sending password reset. Check console for details.');
+          alert(`Error sending password reset: ${error.message || error}`);
           passwordResetBtn.disabled = false;
           passwordResetBtn.textContent = 'Send Password Reset';
         }
