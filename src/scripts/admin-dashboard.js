@@ -3293,7 +3293,7 @@ MTNS MADE Team`;
                 <div style="font-size:11px;color:#999;margin-top:6px;">
                   ${task.source === 'member' && task.submitted_email
                     ? `Sent directly to ${escHtml(task.submitted_email)} (cc: hello@mtnsmade.com.au)`
-                    : 'Internal note only — emails hello@mtnsmade.com.au, not the member.'}
+                    : 'Internal note only: emails hello@mtnsmade.com.au, not the member.'}
                 </div>
               </div>
             ` : '<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
@@ -3375,7 +3375,7 @@ MTNS MADE Team`;
     const categoryLabel = SUPPORT_CATEGORY_LABELS[task.category] || task.category || '';
     const memberLine = task.member_name ? `\nMember: ${task.member_name}${task.member_profile_url ? ' — ' + task.member_profile_url : ''}` : '';
 
-    let to, subject, body, cc;
+    let to, subject, body, cc, bodyHtml;
 
     const dashboardLink = 'https://www.mtnsmade.com.au/admin/dashboard';
 
@@ -3397,6 +3397,14 @@ MTNS MADE Team`;
         cc = 'hello@mtnsmade.com.au';
         subject = `Re: ${task.title}`;
         body = `Hi ${firstName},\n\n${commentText}\n\nIf you have any further questions, just reply to this email.\n\nThanks,\nThe MTNS MADE Team`;
+        // commentText is staff-typed freeform text now going to a real
+        // external inbox for the first time (this same body was previously
+        // only ever sent to hello@, an internal address that could tolerate
+        // raw text) - escape it before it becomes HTML so '<', '>', '&' in a
+        // reply don't get parsed as tags/entities and silently vanish or
+        // mangle in the member's email client. The plain-text `body` above
+        // stays raw on purpose - only the HTML version needs escaping.
+        bodyHtml = `Hi ${escHtml(firstName)},<br><br>${escHtml(commentText).replace(/\n/g, '<br>')}<br><br>If you have any further questions, just reply to this email.<br><br>Thanks,<br>The MTNS MADE Team`;
       } else {
         to = 'hello@mtnsmade.com.au';
         subject = `New comment on: ${task.title}`;
@@ -3426,7 +3434,7 @@ MTNS MADE Team`;
       await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, cc, subject, text: body, html: body.replace(/\n/g, '<br>') }),
+        body: JSON.stringify({ to, cc, subject, text: body, html: bodyHtml || body.replace(/\n/g, '<br>') }),
       });
 
       // If a task is complete and is a member support ticket, notify the
@@ -3450,10 +3458,11 @@ MTNS MADE Team`;
           const firstName = memberDisplayName?.split(' ')[0] || 'there';
           const memberSubject = `Your support request has been resolved: ${task.title}`;
           const memberBody = `Hi ${firstName},\n\nWe wanted to let you know that your support request has been resolved.\n\nRequest: ${task.title}\n\nIf you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.\n\nThanks,\nThe MTNS MADE Team`;
+          const memberBodyHtml = `Hi ${escHtml(firstName)},<br><br>We wanted to let you know that your support request has been resolved.<br><br>Request: ${escHtml(task.title)}<br><br>If you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.<br><br>Thanks,<br>The MTNS MADE Team`;
           await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: memberEmail, cc: 'hello@mtnsmade.com.au', subject: memberSubject, text: memberBody, html: memberBody.replace(/\n/g, '<br>') }),
+            body: JSON.stringify({ to: memberEmail, cc: 'hello@mtnsmade.com.au', subject: memberSubject, text: memberBody, html: memberBodyHtml }),
           });
         }
       }
@@ -3638,7 +3647,7 @@ MTNS MADE Team`;
             <textarea class="form-input" id="et-description" style="min-height:80px;">${escHtml(task.description || '')}</textarea>
           </div>
           <div class="form-field">
-            <label class="form-label">Notes (internal only — not sent to the member)</label>
+            <label class="form-label">Notes (internal only, not sent to the member)</label>
             <textarea class="form-input" id="et-notes" style="min-height:60px;" placeholder="Internal notes, resolution summary...">${escHtml(task.notes || '')}</textarea>
           </div>
           <div class="form-field">
