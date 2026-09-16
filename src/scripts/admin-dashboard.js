@@ -3219,7 +3219,7 @@ MTNS MADE Team`;
         <td>
           <div class="action-btns">
             <button class="action-btn task-detail-btn" data-task-id="${task.id}">
-              ${comments.length > 0 ? `Notes (${comments.length})` : 'Notes'}
+              ${comments.length > 0 ? `Comments (${comments.length})` : 'Comments'}
             </button>
             <button class="action-btn edit-btn task-edit-btn" data-task-id="${task.id}">Edit</button>
           </div>
@@ -3638,7 +3638,7 @@ MTNS MADE Team`;
             <textarea class="form-input" id="et-description" style="min-height:80px;">${escHtml(task.description || '')}</textarea>
           </div>
           <div class="form-field">
-            <label class="form-label">Notes</label>
+            <label class="form-label">Notes (internal only — not sent to the member)</label>
             <textarea class="form-input" id="et-notes" style="min-height:60px;" placeholder="Internal notes, resolution summary...">${escHtml(task.notes || '')}</textarea>
           </div>
           <div class="form-field">

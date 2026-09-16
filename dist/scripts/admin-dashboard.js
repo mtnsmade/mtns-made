@@ -1784,7 +1784,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
         <td>
           <div class="action-btns">
             <button class="action-btn task-detail-btn" data-task-id="${e.id}">
-              ${t.length>0?`Notes (${t.length})`:"Notes"}
+              ${t.length>0?`Comments (${t.length})`:"Comments"}
             </button>
             <button class="action-btn edit-btn task-edit-btn" data-task-id="${e.id}">Edit</button>
           </div>
@@ -1994,7 +1994,7 @@ The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",he
             <textarea class="form-input" id="et-description" style="min-height:80px;">${u(e.description||"")}</textarea>
           </div>
           <div class="form-field">
-            <label class="form-label">Notes</label>
+            <label class="form-label">Notes (internal only — not sent to the member)</label>
             <textarea class="form-input" id="et-notes" style="min-height:60px;" placeholder="Internal notes, resolution summary...">${u(e.notes||"")}</textarea>
           </div>
           <div class="form-field">
