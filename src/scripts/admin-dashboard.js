@@ -3193,7 +3193,10 @@ MTNS MADE Team`;
     const comments = task.support_task_comments || [];
     return `
       <tr>
-        <td><span class="status ${task.category}">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span></td>
+        <td>
+          <span class="status ${task.category}">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span>
+          ${task.source === 'member' ? `<span style="display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600;background:#e8f4fc;color:#0066cc;" title="Submitted directly by the member">M</span>` : ''}
+        </td>
         <td class="time-cell">${formatDate(task.created_at)}</td>
         <td>
           <div class="name-cell" title="${escHtml(task.title)}" style="cursor:default;">${escHtml(task.title.length > 80 ? task.title.substring(0, 77) + '…' : task.title)}</div>
@@ -3234,6 +3237,7 @@ MTNS MADE Team`;
         <div class="modal-header">
           <div>
             <span class="status ${task.category}" style="margin-bottom:6px;display:inline-block;">${SUPPORT_CATEGORY_LABELS[task.category] || task.category}</span>
+            ${task.source === 'member' ? `<span style="margin:0 0 6px 6px;display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#e8f4fc;color:#0066cc;" title="Submitted directly by the member via /profile/support">Member submitted</span>` : ''}
             <h3 class="modal-title" style="margin-top:6px;">${escHtml(task.title)}</h3>
           </div>
           <button class="modal-close">&times;</button>
@@ -3278,13 +3282,18 @@ MTNS MADE Team`;
             </div>
             ${comments.length < 5 ? `
               <div class="comment-input-row" style="margin-top:16px;">
-                <textarea class="form-input" id="task-comment-input" placeholder="Add a comment..." style="min-height:70px;resize:none;flex:1;"></textarea>
+                <textarea class="form-input" id="task-comment-input" placeholder="${task.source === 'member' ? `Reply to ${escHtml(task.member_name || 'member')}...` : 'Add a comment...'}" style="min-height:70px;resize:none;flex:1;"></textarea>
                 <div style="margin-top:8px;">
                   <label style="font-size:12px;color:#666;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                     <input type="file" id="task-comment-image" accept="image/*" style="display:none;">
                     <span style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;background:#fafafa;">Attach screenshot</span>
                     <span id="task-comment-image-name" style="color:#888;"></span>
                   </label>
+                </div>
+                <div style="font-size:11px;color:#999;margin-top:6px;">
+                  ${task.source === 'member' && task.submitted_email
+                    ? `Sent directly to ${escHtml(task.submitted_email)} (cc: hello@mtnsmade.com.au)`
+                    : 'Internal note only — emails hello@mtnsmade.com.au, not the member.'}
                 </div>
               </div>
             ` : '<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
@@ -3366,7 +3375,7 @@ MTNS MADE Team`;
     const categoryLabel = SUPPORT_CATEGORY_LABELS[task.category] || task.category || '';
     const memberLine = task.member_name ? `\nMember: ${task.member_name}${task.member_profile_url ? ' — ' + task.member_profile_url : ''}` : '';
 
-    let to, subject, body;
+    let to, subject, body, cc;
 
     const dashboardLink = 'https://www.mtnsmade.com.au/admin/dashboard';
 
@@ -3375,9 +3384,24 @@ MTNS MADE Team`;
       subject = `New MTNS MADE support task: ${task.title}`;
       body = `A new support task has been logged.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n${task.description ? '\n' + task.description : ''}\n\nView on dashboard: ${dashboardLink}`;
     } else if (event === 'comment') {
-      to = 'hello@mtnsmade.com.au';
-      subject = `New comment on: ${task.title}`;
-      body = `Racket has added a comment to a support task.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n\nComment:\n${commentText}\n\nView on dashboard: ${dashboardLink}`;
+      // Member-submitted tickets (source: 'member', from /profile/support) go
+      // straight to the member who filed it - a comment here IS the reply,
+      // not just an internal note. hello@ is CC'd so staff keep visibility
+      // without it being the only recipient. Internally-relayed tickets
+      // (Hannah/Paul pasting in an email) keep the old internal-only
+      // notification - there's no member inbox to reply into for those, the
+      // "reply" IS the internal note.
+      if (task.source === 'member' && task.submitted_email) {
+        const firstName = (task.member_name || '').split(' ')[0] || 'there';
+        to = task.submitted_email;
+        cc = 'hello@mtnsmade.com.au';
+        subject = `Re: ${task.title}`;
+        body = `Hi ${firstName},\n\n${commentText}\n\nIf you have any further questions, just reply to this email.\n\nThanks,\nThe MTNS MADE Team`;
+      } else {
+        to = 'hello@mtnsmade.com.au';
+        subject = `New comment on: ${task.title}`;
+        body = `Racket has added a comment to a support task.\n\nCategory: ${categoryLabel}${memberLine}\nTask: ${task.title}\n\nComment:\n${commentText}\n\nView on dashboard: ${dashboardLink}`;
+      }
     } else if (event === 'in_progress') {
       to = 'hello@mtnsmade.com.au';
       subject = `Task in progress: ${task.title}`;
@@ -3402,24 +3426,34 @@ MTNS MADE Team`;
       await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, subject, text: body, html: body.replace(/\n/g, '<br>') }),
+        body: JSON.stringify({ to, cc, subject, text: body, html: body.replace(/\n/g, '<br>') }),
       });
 
-      // If a task is complete, has a linked member, and is a member support ticket, notify them
-      if (event === 'complete' && task.member_id && task.category === 'member_support') {
-        const { data: member } = await supabase
-          .from('members')
-          .select('email, name')
-          .eq('id', task.member_id)
-          .single();
-        if (member?.email) {
-          const firstName = member.name?.split(' ')[0] || 'there';
+      // If a task is complete and is a member support ticket, notify the
+      // member directly - prefer submitted_email (works even for the
+      // "orphaned Memberstack account, no member_id" case submit-support-ticket
+      // flags), falling back to a members.email lookup via member_id for
+      // internally-relayed tickets that don't have submitted_email set.
+      if (event === 'complete' && task.category === 'member_support') {
+        let memberEmail = task.submitted_email || null;
+        let memberDisplayName = task.member_name;
+        if (!memberEmail && task.member_id) {
+          const { data: member } = await supabase
+            .from('members')
+            .select('email, name')
+            .eq('id', task.member_id)
+            .single();
+          memberEmail = member?.email || null;
+          memberDisplayName = member?.name || memberDisplayName;
+        }
+        if (memberEmail) {
+          const firstName = memberDisplayName?.split(' ')[0] || 'there';
           const memberSubject = `Your support request has been resolved: ${task.title}`;
           const memberBody = `Hi ${firstName},\n\nWe wanted to let you know that your support request has been resolved.\n\nRequest: ${task.title}\n\nIf you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.\n\nThanks,\nThe MTNS MADE Team`;
           await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: member.email, subject: memberSubject, text: memberBody, html: memberBody.replace(/\n/g, '<br>') }),
+            body: JSON.stringify({ to: memberEmail, cc: 'hello@mtnsmade.com.au', subject: memberSubject, text: memberBody, html: memberBody.replace(/\n/g, '<br>') }),
           });
         }
       }

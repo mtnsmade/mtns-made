@@ -1,4 +1,4 @@
-(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",g="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",y="https://www.mtnsmade.com.au";let m=null,E=null,T=[];const I=`
+(function(){console.log("Admin dashboard v2 loaded");const v="https://epszwomtxkpjegbjbixr.supabase.co",g="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH",x="https://www.mtnsmade.com.au";let m=null,E=null,T=[];const O=`
     .admin-dashboard {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
@@ -1011,7 +1011,7 @@
     @media (max-width: 768px) {
       .support-toolbar { flex-direction: column; align-items: flex-start; }
     }
-  `;function x(e){if(!e)return"--";const t=new Date(e),o=Math.floor((new Date-t)/1e3);return o<60?"now":o<3600?`${Math.floor(o/60)}m`:o<86400?`${Math.floor(o/3600)}h`:o<604800?`${Math.floor(o/86400)}d`:t.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function R(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function j(e){const t=[];return e.profile_image_url||t.push("Profile Image"),e.header_image_url||t.push("Header Image"),(!e.bio||e.bio.length<50)&&t.push("Bio"),e.suburb_id||t.push("Location"),t}function U(e,t){const i=e.first_name||e.name||"there",o=t.length>0?`
+  `;function w(e){if(!e)return"--";const t=new Date(e),o=Math.floor((new Date-t)/1e3);return o<60?"now":o<3600?`${Math.floor(o/60)}m`:o<86400?`${Math.floor(o/3600)}h`:o<604800?`${Math.floor(o/86400)}d`:t.toLocaleDateString("en-AU",{day:"2-digit",month:"short"})}function R(){return new Date().toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).toUpperCase()}function j(e){const t=[];return e.profile_image_url||t.push("Profile Image"),e.header_image_url||t.push("Header Image"),(!e.bio||e.bio.length<50)&&t.push("Bio"),e.suburb_id||t.push("Location"),t}function U(e,t){const i=e.first_name||e.name||"there",o=t.length>0?`
 
 To complete your profile, you'll need:
 ${t.map(n=>`- ${n}`).join(`
@@ -1021,7 +1021,7 @@ Thanks for being part of MTNS MADE! We noticed your profile isn't quite complete
 
 A complete profile helps other creatives find you in the directory and shows off your amazing work.${o}
 
-Complete your profile here: ${y}/profile/start
+Complete your profile here: ${x}/profile/start
 
 Let us know if you need any help!
 
@@ -1132,13 +1132,13 @@ MTNS MADE Team`}async function M(){const[e,t,i,o,n,r,a,s,l,d,c,p]=await Promise.
 
 This will update the label only (no billing change).`:`Change ${t}'s type from "${o}" to "${l}"?
 
-This WILL change their Stripe subscription and billing.`;if(!confirm(d))return;const c=n.querySelector("#modal-save");c.disabled=!0,c.textContent="Updating Memberstack...";try{const b=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:e,newMembershipTypeId:a,skipPlanChange:s})}),f=await b.json();if(!b.ok)throw new Error(f.error||"Update failed");let $=`Membership type updated!
+This WILL change their Stripe subscription and billing.`;if(!confirm(d))return;const c=n.querySelector("#modal-save");c.disabled=!0,c.textContent="Updating Memberstack...";try{const b=await fetch(`${v}/functions/v1/admin-update-member`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId:e,newMembershipTypeId:a,skipPlanChange:s})}),f=await b.json();if(!b.ok)throw new Error(f.error||"Update failed");let y=`Membership type updated!
 
-${f.change.from} → ${f.change.to}`;f.results.warnings&&f.results.warnings.length>0&&($+=`
+${f.change.from} → ${f.change.to}`;f.results.warnings&&f.results.warnings.length>0&&(y+=`
 
 Warnings:
 - ${f.results.warnings.join(`
-- `)}`),alert($),n.remove();const k=document.querySelector(".dashboard-feed");k&&h(k)}catch(b){console.error("Error updating membership type:",b),alert("Error updating membership type: "+b.message),c.disabled=!1,c.textContent="Update Membership"}})}function ae(e){return e.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").substring(0,100)}async function ie(e){const t=ae(e),{data:i}=await m.from("opportunities").select("slug").eq("slug",t).maybeSingle();if(!i)return t;const{data:o}=await m.from("opportunities").select("slug").like("slug",`${t}-%`),n=new Set((o||[]).map(a=>a.slug));n.add(t);let r=2;for(;n.has(`${t}-${r}`);)r++;return`${t}-${r}`}const oe={job:"Job / Employment",commission:"Commission",collaboration:"Collaboration","call-for-entries":"Call for Entries",residency:"Residency / Fellowship",volunteer:"Volunteer"};function ne(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
+- `)}`),alert(y),n.remove();const k=document.querySelector(".dashboard-feed");k&&h(k)}catch(b){console.error("Error updating membership type:",b),alert("Error updating membership type: "+b.message),c.disabled=!1,c.textContent="Update Membership"}})}function ae(e){return e.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").substring(0,100)}async function ie(e){const t=ae(e),{data:i}=await m.from("opportunities").select("slug").eq("slug",t).maybeSingle();if(!i)return t;const{data:o}=await m.from("opportunities").select("slug").like("slug",`${t}-%`),n=new Set((o||[]).map(a=>a.slug));n.add(t);let r=2;for(;n.has(`${t}-${r}`);)r++;return`${t}-${r}`}const oe={job:"Job / Employment",commission:"Commission",collaboration:"Collaboration","call-for-entries":"Call for Entries",residency:"Residency / Fellowship",volunteer:"Volunteer"};function ne(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
       <div class="modal">
         <div class="modal-header">
           <h3 class="modal-title">New Opportunity</h3>
@@ -1363,7 +1363,7 @@ Warnings:
           </div>
         </div>
       </div>
-    `,e.querySelectorAll(".tab-btn").forEach(a=>{a.addEventListener("click",()=>{e.querySelectorAll(".tab-btn").forEach(s=>s.classList.remove("active")),e.querySelectorAll(".tab-content").forEach(s=>s.classList.remove("active")),a.classList.add("active"),e.querySelector(`#tab-${a.dataset.tab}`).classList.add("active"),a.dataset.tab==="support"&&w(),a.dataset.tab==="sop"&&xe()})}),e.querySelector("#refresh-btn").addEventListener("click",()=>h(e)),e.querySelectorAll(".contact-btn").forEach(a=>{a.addEventListener("click",()=>{const s=a.dataset.memberId,l=t.incompleteProfiles.find(d=>d.id===s)||t.recentMembers.find(d=>d.id===s)||t.failedSignups.find(d=>d.id===s);l&&ee(l)})}),e.querySelectorAll(".approve-btn").forEach(a=>{a.addEventListener("click",async()=>{const s=a.dataset.eventId,l=a.dataset.eventName;if(confirm(`Approve event "${l}"?
+    `,e.querySelectorAll(".tab-btn").forEach(a=>{a.addEventListener("click",()=>{e.querySelectorAll(".tab-btn").forEach(s=>s.classList.remove("active")),e.querySelectorAll(".tab-content").forEach(s=>s.classList.remove("active")),a.classList.add("active"),e.querySelector(`#tab-${a.dataset.tab}`).classList.add("active"),a.dataset.tab==="support"&&_(),a.dataset.tab==="sop"&&xe()})}),e.querySelector("#refresh-btn").addEventListener("click",()=>h(e)),e.querySelectorAll(".contact-btn").forEach(a=>{a.addEventListener("click",()=>{const s=a.dataset.memberId,l=t.incompleteProfiles.find(d=>d.id===s)||t.recentMembers.find(d=>d.id===s)||t.failedSignups.find(d=>d.id===s);l&&ee(l)})}),e.querySelectorAll(".approve-btn").forEach(a=>{a.addEventListener("click",async()=>{const s=a.dataset.eventId,l=a.dataset.eventName;if(confirm(`Approve event "${l}"?
 
 This will publish the event and notify the member.`)){a.disabled=!0,a.textContent="Approving...";try{const c=await(await fetch(`${v}/functions/v1/manage-event`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${g}`,apikey:g},body:JSON.stringify({eventId:s,action:"approve"})})).json();c.success?(alert(`Event "${l}" has been approved!
 
@@ -1441,12 +1441,12 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                   ${t.profile_complete?"Complete":"Incomplete"}
                 </span>
               </td>
-              <td class="time-cell">${x(t.created_at)}</td>
+              <td class="time-cell">${w(t.created_at)}</td>
               <td>
                 <div class="action-btns">
                   <button class="action-btn edit-btn" data-member-id="${t.id}" data-member-name="${t.name||t.first_name||"this member"}" data-current-type="${t.membership_type_id||""}">Edit</button>
                   ${t.webflow_id&&t.slug?`
-                    <a href="${y}/members/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
+                    <a href="${x}/members/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
                   `:""}
                   <button class="action-btn delete-btn" data-member-id="${t.id}" data-member-name="${t.name||t.first_name||"this member"}">Delete</button>
                 </div>
@@ -1480,9 +1480,9 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                   </div>
                 </td>
                 <td class="time-cell">
-                  ${t.profile_reminder_sent_at?x(t.profile_reminder_sent_at):"--"}
+                  ${t.profile_reminder_sent_at?w(t.profile_reminder_sent_at):"--"}
                 </td>
-                <td class="time-cell">${x(t.created_at)}</td>
+                <td class="time-cell">${w(t.created_at)}</td>
                 <td>
                   <div class="action-btns">
                     ${t.profile_reminder_sent_at?`
@@ -1491,7 +1491,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                       <button class="action-btn contact-btn" data-member-id="${t.id}">Contact</button>
                     `}
                     ${t.webflow_id&&t.slug?`
-                      <a href="${y}/members/${t.slug}" target="_blank" class="action-btn">View</a>
+                      <a href="${x}/members/${t.slug}" target="_blank" class="action-btn">View</a>
                     `:""}
                   </div>
                 </td>
@@ -1524,7 +1524,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                   ${t.subscription_status||"no status"}
                 </span>
               </td>
-              <td class="time-cell">${x(t.created_at)}</td>
+              <td class="time-cell">${w(t.created_at)}</td>
               <td>
                 <div class="action-btns">
                   ${t.profile_reminder_sent_at?`
@@ -1572,7 +1572,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                       ${i.webflow_id?"Synced":"--"}
                     </span>
                   </td>
-                  <td class="time-cell">${x(i.created_at)}</td>
+                  <td class="time-cell">${w(i.created_at)}</td>
                   <td>
                     <div class="action-btns">
                       ${o==="pending"?`
@@ -1581,7 +1581,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                         <button class="action-btn reject-btn" data-event-id="${i.id}" data-event-name="${i.name}">Reject</button>
                       `:""}
                       ${i.webflow_id&&i.slug?`
-                        <a href="${y}/event/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
+                        <a href="${x}/event/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
                       `:""}
                     </div>
                   </td>
@@ -1624,7 +1624,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                       ${o}
                     </span>
                   </td>
-                  <td class="time-cell">${x(i.created_at)}</td>
+                  <td class="time-cell">${w(i.created_at)}</td>
                   <td>
                     <div class="action-btns">
                       ${o==="pending"?`
@@ -1633,7 +1633,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                         <button class="action-btn reject-opp-btn" data-opp-id="${i.id}" data-opp-name="${i.name}">Reject</button>
                       `:""}
                       ${i.webflow_id&&i.slug?`
-                        <a href="${y}/opportunities/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
+                        <a href="${x}/opportunities/${i.slug}" target="_blank" class="action-btn view-btn">View</a>
                       `:""}
                       <button class="action-btn delete-opp-btn" data-opp-id="${i.id}" data-opp-name="${u(i.name||"this opportunity")}" style="color:#dc3545;border-color:#dc3545;">Delete</button>
                     </div>
@@ -1664,11 +1664,11 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                   ${t.webflow_id?"Synced":"Pending"}
                 </span>
               </td>
-              <td class="time-cell">${x(t.updated_at)}</td>
+              <td class="time-cell">${w(t.updated_at)}</td>
               <td>
                 <div class="action-btns">
                   ${t.webflow_id&&t.slug?`
-                    <a href="${y}/projects/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
+                    <a href="${x}/projects/${t.slug}" target="_blank" class="action-btn view-btn">View</a>
                   `:""}
                   <button class="action-btn delete-project-btn" data-project-id="${t.id}" data-project-name="${(t.name||"this project").replace(/"/g,"&quot;")}">Delete</button>
                 </div>
@@ -1693,7 +1693,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                   <strong>${o.member_name}</strong> ${o.description}
                 </div>
                 <div class="activity-meta">
-                  <span class="activity-time">${x(o.created_at)}</span>
+                  <span class="activity-time">${w(o.created_at)}</span>
                 </div>
               </div>
               <div class="activity-action">
@@ -1711,7 +1711,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
       </div>
       <div class="retainer-hours">${d}h / ${S}h</div>
       <div class="retainer-status">${l}</div>
-    `,c}async function w(){const e=document.getElementById("support-tracker-root");if(!e)return;e.innerHTML='<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';const t=await he();we(e,t)}async function xe(){const e=document.getElementById("sop-root");if(!e)return;e.innerHTML='<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';const{data:t,error:i}=await m.from("sops").select("*").order("category",{ascending:!0}).order("title",{ascending:!0});if(i){e.innerHTML=`<div class="empty-state" style="padding:40px 20px;">Error loading SOPs: ${u(i.message)}</div>`;return}if(!t||t.length===0){e.innerHTML='<div class="empty-state" style="padding:40px 20px;">No SOPs yet.</div>';return}e.innerHTML=t.map(o=>`
+    `,c}async function _(){const e=document.getElementById("support-tracker-root");if(!e)return;e.innerHTML='<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';const t=await he();we(e,t)}async function xe(){const e=document.getElementById("sop-root");if(!e)return;e.innerHTML='<div style="padding:20px;color:#888;font-size:13px;">Loading...</div>';const{data:t,error:i}=await m.from("sops").select("*").order("category",{ascending:!0}).order("title",{ascending:!0});if(i){e.innerHTML=`<div class="empty-state" style="padding:40px 20px;">Error loading SOPs: ${u(i.message)}</div>`;return}if(!t||t.length===0){e.innerHTML='<div class="empty-state" style="padding:40px 20px;">No SOPs yet.</div>';return}e.innerHTML=t.map(o=>`
       <div class="admin-section" style="margin-bottom:16px;border:1px solid #eee;border-radius:8px;padding:20px;">
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px;">
           <h3 style="margin:0;font-size:16px;">${u(o.title)}</h3>
@@ -1742,7 +1742,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
             <tbody>
               ${r.map(s=>$e(s)).join("")}
             </tbody>
-          </table>`,e.appendChild(a),e.querySelectorAll(".task-detail-btn").forEach(s=>{s.addEventListener("click",()=>{const l=t.find(d=>d.id===s.dataset.taskId);l&&P(l)})}),e.querySelectorAll(".form-input[data-task-id]").forEach(s=>{s.addEventListener("change",async()=>{const l=t.find(d=>d.id===s.dataset.taskId);await Se(s.dataset.taskId,s.value,l),await w()})}),e.querySelectorAll(".task-edit-btn").forEach(s=>{s.addEventListener("click",()=>{const l=t.find(d=>d.id===s.dataset.taskId);l&&Ee(l)})})}(o=e.querySelector("#new-task-btn"))==null||o.addEventListener("click",()=>ke()),(n=e.querySelector("#archive-view-btn"))==null||n.addEventListener("click",()=>{L=L==="archive"?"main":"archive",w()})}function _e(e,t){const i={};t.forEach(a=>{const s=new Date(a.created_at),l=`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,"0")}`;i[l]||(i[l]=[]),i[l].push(a)});const o=Object.keys(i).sort((a,s)=>s.localeCompare(a));if(o.length===0){const a=document.createElement("div");a.className="empty-state",a.style.padding="40px 20px",a.textContent="No archived tasks yet.",e.appendChild(a);return}function n(a){const[s,l]=a.split("-");return new Date(parseInt(s),parseInt(l)-1,1).toLocaleDateString("en-AU",{month:"long",year:"numeric"})}const r=document.createElement("div");r.className="archive-month-grid",o.forEach(a=>{const s=i[a].slice().sort((p,b)=>new Date(b.updated_at)-new Date(p.updated_at)),l=s.reduce((p,b)=>p+(parseFloat(b.hours)||0),0),d=l>0?`${l%1===0?l:l.toFixed(2)}h`:"—",c=document.createElement("div");c.className="month-card expanded",c.innerHTML=`
+          </table>`,e.appendChild(a),e.querySelectorAll(".task-detail-btn").forEach(s=>{s.addEventListener("click",()=>{const l=t.find(d=>d.id===s.dataset.taskId);l&&z(l)})}),e.querySelectorAll(".form-input[data-task-id]").forEach(s=>{s.addEventListener("change",async()=>{const l=t.find(d=>d.id===s.dataset.taskId);await Se(s.dataset.taskId,s.value,l),await _()})}),e.querySelectorAll(".task-edit-btn").forEach(s=>{s.addEventListener("click",()=>{const l=t.find(d=>d.id===s.dataset.taskId);l&&Ee(l)})})}(o=e.querySelector("#new-task-btn"))==null||o.addEventListener("click",()=>ke()),(n=e.querySelector("#archive-view-btn"))==null||n.addEventListener("click",()=>{L=L==="archive"?"main":"archive",_()})}function _e(e,t){const i={};t.forEach(a=>{const s=new Date(a.created_at),l=`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,"0")}`;i[l]||(i[l]=[]),i[l].push(a)});const o=Object.keys(i).sort((a,s)=>s.localeCompare(a));if(o.length===0){const a=document.createElement("div");a.className="empty-state",a.style.padding="40px 20px",a.textContent="No archived tasks yet.",e.appendChild(a);return}function n(a){const[s,l]=a.split("-");return new Date(parseInt(s),parseInt(l)-1,1).toLocaleDateString("en-AU",{month:"long",year:"numeric"})}const r=document.createElement("div");r.className="archive-month-grid",o.forEach(a=>{const s=i[a].slice().sort((p,b)=>new Date(b.updated_at)-new Date(p.updated_at)),l=s.reduce((p,b)=>p+(parseFloat(b.hours)||0),0),d=l>0?`${l%1===0?l:l.toFixed(2)}h`:"—",c=document.createElement("div");c.className="month-card expanded",c.innerHTML=`
         <div class="month-card-header">
           <div class="month-card-name">${n(a)}</div>
           <div class="month-card-chevron">▼</div>
@@ -1762,10 +1762,13 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
             </div>
           `).join("")}
         </div>
-      `,c.addEventListener("click",()=>{c.classList.toggle("expanded")}),c.querySelectorAll(".month-task-title").forEach(p=>{p.addEventListener("click",b=>{b.stopPropagation();const f=p.dataset.taskId;m.from("support_tasks").select("*, support_task_comments(*)").eq("id",f).single().then(({data:$})=>{var k;$&&((k=$.support_task_comments)==null||k.sort((Te,qe)=>new Date(Te.created_at)-new Date(qe.created_at)),P($))})})}),r.appendChild(c)}),e.appendChild(r)}function $e(e){const t=e.support_task_comments||[];return`
+      `,c.addEventListener("click",()=>{c.classList.toggle("expanded")}),c.querySelectorAll(".month-task-title").forEach(p=>{p.addEventListener("click",b=>{b.stopPropagation();const f=p.dataset.taskId;m.from("support_tasks").select("*, support_task_comments(*)").eq("id",f).single().then(({data:y})=>{var k;y&&((k=y.support_task_comments)==null||k.sort((Te,qe)=>new Date(Te.created_at)-new Date(qe.created_at)),z(y))})})}),r.appendChild(c)}),e.appendChild(r)}function $e(e){const t=e.support_task_comments||[];return`
       <tr>
-        <td><span class="status ${e.category}">${q[e.category]||e.category}</span></td>
-        <td class="time-cell">${z(e.created_at)}</td>
+        <td>
+          <span class="status ${e.category}">${q[e.category]||e.category}</span>
+          ${e.source==="member"?'<span style="display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600;background:#e8f4fc;color:#0066cc;" title="Submitted directly by the member">M</span>':""}
+        </td>
+        <td class="time-cell">${D(e.created_at)}</td>
         <td>
           <div class="name-cell" title="${u(e.title)}" style="cursor:default;">${u(e.title.length>80?e.title.substring(0,77)+"…":e.title)}</div>
         </td>
@@ -1787,11 +1790,12 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
           </div>
         </td>
       </tr>
-    `}function P(e){const t=e.support_task_comments||[],i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
+    `}function z(e){const t=e.support_task_comments||[],i=document.createElement("div");i.className="modal-overlay",i.innerHTML=`
       <div class="modal" style="max-width:620px;">
         <div class="modal-header">
           <div>
             <span class="status ${e.category}" style="margin-bottom:6px;display:inline-block;">${q[e.category]||e.category}</span>
+            ${e.source==="member"?'<span style="margin:0 0 6px 6px;display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#e8f4fc;color:#0066cc;" title="Submitted directly by the member via /profile/support">Member submitted</span>':""}
             <h3 class="modal-title" style="margin-top:6px;">${u(e.title)}</h3>
           </div>
           <button class="modal-close">&times;</button>
@@ -1825,7 +1829,7 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                 <div class="comment-item">
                   <div class="comment-author-badge ${r.author.toLowerCase()==="hannah"||r.author==="MTNS MADE"?"hannah":""}">${r.author.charAt(0).toUpperCase()}</div>
                   <div class="comment-body">
-                    <div class="comment-meta">${u(r.author)} &middot; ${z(r.created_at)}</div>
+                    <div class="comment-meta">${u(r.author)} &middot; ${D(r.created_at)}</div>
                     <div class="comment-text">${u(r.body)}</div>
                     ${r.image_url?`<img src="${u(r.image_url)}" style="max-width:100%;border-radius:4px;margin-top:8px;display:block;" loading="lazy">`:""}
                   </div>
@@ -1834,13 +1838,16 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
             </div>
             ${t.length<5?`
               <div class="comment-input-row" style="margin-top:16px;">
-                <textarea class="form-input" id="task-comment-input" placeholder="Add a comment..." style="min-height:70px;resize:none;flex:1;"></textarea>
+                <textarea class="form-input" id="task-comment-input" placeholder="${e.source==="member"?`Reply to ${u(e.member_name||"member")}...`:"Add a comment..."}" style="min-height:70px;resize:none;flex:1;"></textarea>
                 <div style="margin-top:8px;">
                   <label style="font-size:12px;color:#666;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                     <input type="file" id="task-comment-image" accept="image/*" style="display:none;">
                     <span style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;background:#fafafa;">Attach screenshot</span>
                     <span id="task-comment-image-name" style="color:#888;"></span>
                   </label>
+                </div>
+                <div style="font-size:11px;color:#999;margin-top:6px;">
+                  ${e.source==="member"&&e.submitted_email?`Sent directly to ${u(e.submitted_email)} (cc: hello@mtnsmade.com.au)`:"Internal note only — emails hello@mtnsmade.com.au, not the member."}
                 </div>
               </div>
             `:'<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
@@ -1851,15 +1858,22 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
           ${t.length<5?'<button class="admin-btn primary" id="td-add-comment">Add Comment</button>':""}
         </div>
       </div>
-    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#td-close").addEventListener("click",()=>i.remove()),i.addEventListener("click",r=>{r.target===i&&i.remove()});const o=i.querySelector("#task-comment-image");o&&o.addEventListener("change",()=>{var a;const r=i.querySelector("#task-comment-image-name");r&&(r.textContent=((a=o.files[0])==null?void 0:a.name)||"")});const n=i.querySelector("#td-add-comment");n&&n.addEventListener("click",async()=>{var l;const r=i.querySelector("#task-comment-input"),a=r==null?void 0:r.value.trim();if(!a)return;n.disabled=!0,n.textContent="Saving...";let s=null;if((l=o==null?void 0:o.files)!=null&&l[0]){const d=o.files[0],c=d.name.split(".").pop()||"png",p=`${e.id}/${Date.now()}.${c}`,{error:b}=await m.storage.from("support-screenshots").upload(p,d,{contentType:d.type});if(!b){const{data:f}=m.storage.from("support-screenshots").getPublicUrl(p);s=(f==null?void 0:f.publicUrl)||null}}await m.from("support_task_comments").insert({task_id:e.id,author:"Racket",body:a,image_url:s}),i.remove(),await _("comment",e,a),await w()})}async function Se(e,t,i){await m.from("support_tasks").update({status:t}).eq("id",e),t==="feedback_needed"?await _("feedback_needed",i||{id:e,title:"(task)",status:t}):t==="complete"?await _("complete",i||{id:e,title:"(task)",status:t}):t==="in_progress"?await _("in_progress",i||{id:e,title:"(task)",status:t}):t==="stalled"&&await _("stalled",i||{id:e,title:"(task)",status:t})}async function _(e,t,i){var d;const o=q[t.category]||t.category||"",n=t.member_name?`
-Member: ${t.member_name}${t.member_profile_url?" — "+t.member_profile_url:""}`:"";let r,a,s;const l="https://www.mtnsmade.com.au/admin/dashboard";if(e==="created")r="contact@racket.net.au",a=`New MTNS MADE support task: ${t.title}`,s=`A new support task has been logged.
+    `,document.body.appendChild(i),i.querySelector(".modal-close").addEventListener("click",()=>i.remove()),i.querySelector("#td-close").addEventListener("click",()=>i.remove()),i.addEventListener("click",r=>{r.target===i&&i.remove()});const o=i.querySelector("#task-comment-image");o&&o.addEventListener("change",()=>{var a;const r=i.querySelector("#task-comment-image-name");r&&(r.textContent=((a=o.files[0])==null?void 0:a.name)||"")});const n=i.querySelector("#td-add-comment");n&&n.addEventListener("click",async()=>{var l;const r=i.querySelector("#task-comment-input"),a=r==null?void 0:r.value.trim();if(!a)return;n.disabled=!0,n.textContent="Saving...";let s=null;if((l=o==null?void 0:o.files)!=null&&l[0]){const d=o.files[0],c=d.name.split(".").pop()||"png",p=`${e.id}/${Date.now()}.${c}`,{error:b}=await m.storage.from("support-screenshots").upload(p,d,{contentType:d.type});if(!b){const{data:f}=m.storage.from("support-screenshots").getPublicUrl(p);s=(f==null?void 0:f.publicUrl)||null}}await m.from("support_task_comments").insert({task_id:e.id,author:"Racket",body:a,image_url:s}),i.remove(),await $("comment",e,a),await _()})}async function Se(e,t,i){await m.from("support_tasks").update({status:t}).eq("id",e),t==="feedback_needed"?await $("feedback_needed",i||{id:e,title:"(task)",status:t}):t==="complete"?await $("complete",i||{id:e,title:"(task)",status:t}):t==="in_progress"?await $("in_progress",i||{id:e,title:"(task)",status:t}):t==="stalled"&&await $("stalled",i||{id:e,title:"(task)",status:t})}async function $(e,t,i){const o=q[t.category]||t.category||"",n=t.member_name?`
+Member: ${t.member_name}${t.member_profile_url?" — "+t.member_profile_url:""}`:"";let r,a,s,l;const d="https://www.mtnsmade.com.au/admin/dashboard";if(e==="created")r="contact@racket.net.au",a=`New MTNS MADE support task: ${t.title}`,s=`A new support task has been logged.
 
 Category: ${o}${n}
 Task: ${t.title}
 ${t.description?`
 `+t.description:""}
 
-View on dashboard: ${l}`;else if(e==="comment")r="hello@mtnsmade.com.au",a=`New comment on: ${t.title}`,s=`Racket has added a comment to a support task.
+View on dashboard: ${d}`;else if(e==="comment")if(t.source==="member"&&t.submitted_email){const c=(t.member_name||"").split(" ")[0]||"there";r=t.submitted_email,l="hello@mtnsmade.com.au",a=`Re: ${t.title}`,s=`Hi ${c},
+
+${i}
+
+If you have any further questions, just reply to this email.
+
+Thanks,
+The MTNS MADE Team`}else r="hello@mtnsmade.com.au",a=`New comment on: ${t.title}`,s=`Racket has added a comment to a support task.
 
 Category: ${o}${n}
 Task: ${t.title}
@@ -1867,7 +1881,7 @@ Task: ${t.title}
 Comment:
 ${i}
 
-View on dashboard: ${l}`;else if(e==="in_progress")r="hello@mtnsmade.com.au",a=`Task in progress: ${t.title}`,s=`A support task is now in progress.
+View on dashboard: ${d}`;else if(e==="in_progress")r="hello@mtnsmade.com.au",a=`Task in progress: ${t.title}`,s=`A support task is now in progress.
 
 Category: ${o}${n}
 Task: ${t.title}
@@ -1875,19 +1889,19 @@ ${t.notes?`
 Notes:
 `+t.notes:""}
 
-View on dashboard: ${l}`;else if(e==="feedback_needed")r="hello@mtnsmade.com.au",a=`Feedback needed: ${t.title}`,s=`A support task requires your feedback.
+View on dashboard: ${d}`;else if(e==="feedback_needed")r="hello@mtnsmade.com.au",a=`Feedback needed: ${t.title}`,s=`A support task requires your feedback.
 
 Category: ${o}${n}
 Task: ${t.title}
 ${t.description?`
 `+t.description:""}
 
-View on dashboard: ${l}`;else if(e==="complete")r="hello@mtnsmade.com.au",a=`Task complete: ${t.title}`,s=`A support task has been marked complete.
+View on dashboard: ${d}`;else if(e==="complete")r="hello@mtnsmade.com.au",a=`Task complete: ${t.title}`,s=`A support task has been marked complete.
 
 Category: ${o}${n}
 Task: ${t.title}
 
-View on dashboard: ${l}`;else if(e==="stalled")r="hello@mtnsmade.com.au",a=`Task stalled: ${t.title}`,s=`A support task has been marked stalled.
+View on dashboard: ${d}`;else if(e==="stalled")r="hello@mtnsmade.com.au",a=`Task stalled: ${t.title}`,s=`A support task has been marked stalled.
 
 Category: ${o}${n}
 Task: ${t.title}
@@ -1895,7 +1909,7 @@ ${t.notes?`
 Notes:
 `+t.notes:""}
 
-View on dashboard: ${l}`;else return;try{if(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:r,subject:a,text:s,html:s.replace(/\n/g,"<br>")})}),e==="complete"&&t.member_id&&t.category==="member_support"){const{data:c}=await m.from("members").select("email, name").eq("id",t.member_id).single();if(c!=null&&c.email){const p=((d=c.name)==null?void 0:d.split(" ")[0])||"there",b=`Your support request has been resolved: ${t.title}`,f=`Hi ${p},
+View on dashboard: ${d}`;else return;try{if(await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:r,cc:l,subject:a,text:s,html:s.replace(/\n/g,"<br>")})}),e==="complete"&&t.category==="member_support"){let c=t.submitted_email||null,p=t.member_name;if(!c&&t.member_id){const{data:b}=await m.from("members").select("email, name").eq("id",t.member_id).single();c=(b==null?void 0:b.email)||null,p=(b==null?void 0:b.name)||p}if(c){const b=(p==null?void 0:p.split(" ")[0])||"there",f=`Your support request has been resolved: ${t.title}`,y=`Hi ${b},
 
 We wanted to let you know that your support request has been resolved.
 
@@ -1904,7 +1918,7 @@ Request: ${t.title}
 If you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.
 
 Thanks,
-The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:c.email,subject:b,text:f,html:f.replace(/\n/g,"<br>")})})}}}catch(c){console.error("sendTaskNotification error:",c)}}let C=null;async function D(e){if(!e||e.length<2)return[];const{data:t}=await m.from("members").select("id, name, slug, business_name").or(`name.ilike.%${e}%,business_name.ilike.%${e}%`).eq("subscription_status","active").limit(8);return t||[]}function ke(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
+The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:c,cc:"hello@mtnsmade.com.au",subject:f,text:y,html:y.replace(/\n/g,"<br>")})})}}}catch(c){console.error("sendTaskNotification error:",c)}}let C=null;async function P(e){if(!e||e.length<2)return[];const{data:t}=await m.from("members").select("id, name, slug, business_name").or(`name.ilike.%${e}%,business_name.ilike.%${e}%`).eq("subscription_status","active").limit(8);return t||[]}function ke(){const e=document.createElement("div");e.className="modal-overlay",e.innerHTML=`
       <div class="modal" style="max-width:560px;">
         <div class="modal-header">
           <h3 class="modal-title">New Support Task</h3>
@@ -1943,10 +1957,10 @@ The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",he
           <button class="admin-btn primary" id="st-save">Create Task</button>
         </div>
       </div>
-    `,document.body.appendChild(e);const t=e.querySelector("#st-category"),i=e.querySelector("#st-member-field"),o=()=>{i.style.display=t.value==="member_support"?"block":"none"};o(),t.addEventListener("change",o);const n=e.querySelector("#st-member-search"),r=e.querySelector("#st-member-suggestions");n.addEventListener("input",()=>{clearTimeout(C);const a=n.value.trim();if(a.length<2){r.style.display="none";return}C=setTimeout(async()=>{const s=await D(a);if(s.length===0){r.style.display="none";return}r.innerHTML=s.map(l=>`<div class="member-suggestion-item" data-id="${l.id}" data-name="${u(l.name||"")}" data-slug="${l.slug||""}">
+    `,document.body.appendChild(e);const t=e.querySelector("#st-category"),i=e.querySelector("#st-member-field"),o=()=>{i.style.display=t.value==="member_support"?"block":"none"};o(),t.addEventListener("change",o);const n=e.querySelector("#st-member-search"),r=e.querySelector("#st-member-suggestions");n.addEventListener("input",()=>{clearTimeout(C);const a=n.value.trim();if(a.length<2){r.style.display="none";return}C=setTimeout(async()=>{const s=await P(a);if(s.length===0){r.style.display="none";return}r.innerHTML=s.map(l=>`<div class="member-suggestion-item" data-id="${l.id}" data-name="${u(l.name||"")}" data-slug="${l.slug||""}">
             ${u(l.name||l.id)}
             ${l.business_name?`<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${u(l.business_name)}</span>`:""}
-          </div>`).join(""),r.style.display="block",r.querySelectorAll(".member-suggestion-item").forEach(l=>{l.addEventListener("click",()=>{e.querySelector("#st-member-id").value=l.dataset.id,e.querySelector("#st-member-name").value=l.dataset.name,e.querySelector("#st-member-url").value=l.dataset.slug?`${y}/members/${l.dataset.slug}`:"",n.value=l.dataset.name,r.style.display="none"})})},250)}),e.querySelector(".modal-close").addEventListener("click",()=>e.remove()),e.querySelector("#st-cancel").addEventListener("click",()=>e.remove()),e.addEventListener("click",a=>{a.target===e&&e.remove()}),e.querySelector("#st-save").addEventListener("click",async()=>{const a=e.querySelector("#st-title").value.trim(),s=e.querySelector("#st-category").value;if(!a){alert("Please enter a task title.");return}const l=e.querySelector("#st-save");l.disabled=!0,l.textContent="Saving...";const d=e.querySelector("#st-member-id").value,c={category:s,title:a,description:e.querySelector("#st-description").value.trim()||null,status:"not_started",hours:null,member_id:d||null,member_name:e.querySelector("#st-member-name").value||null,member_profile_url:e.querySelector("#st-member-url").value||null},{data:p,error:b}=await m.from("support_tasks").insert(c).select().single();if(b){alert("Error creating task: "+b.message),l.disabled=!1,l.textContent="Create Task";return}e.remove(),await _("created",p),await w()})}function Ee(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
+          </div>`).join(""),r.style.display="block",r.querySelectorAll(".member-suggestion-item").forEach(l=>{l.addEventListener("click",()=>{e.querySelector("#st-member-id").value=l.dataset.id,e.querySelector("#st-member-name").value=l.dataset.name,e.querySelector("#st-member-url").value=l.dataset.slug?`${x}/members/${l.dataset.slug}`:"",n.value=l.dataset.name,r.style.display="none"})})},250)}),e.querySelector(".modal-close").addEventListener("click",()=>e.remove()),e.querySelector("#st-cancel").addEventListener("click",()=>e.remove()),e.addEventListener("click",a=>{a.target===e&&e.remove()}),e.querySelector("#st-save").addEventListener("click",async()=>{const a=e.querySelector("#st-title").value.trim(),s=e.querySelector("#st-category").value;if(!a){alert("Please enter a task title.");return}const l=e.querySelector("#st-save");l.disabled=!0,l.textContent="Saving...";const d=e.querySelector("#st-member-id").value,c={category:s,title:a,description:e.querySelector("#st-description").value.trim()||null,status:"not_started",hours:null,member_id:d||null,member_name:e.querySelector("#st-member-name").value||null,member_profile_url:e.querySelector("#st-member-url").value||null},{data:p,error:b}=await m.from("support_tasks").insert(c).select().single();if(b){alert("Error creating task: "+b.message),l.disabled=!1,l.textContent="Create Task";return}e.remove(),await $("created",p),await _()})}function Ee(e){const t=document.createElement("div");t.className="modal-overlay",t.innerHTML=`
       <div class="modal" style="max-width:560px;">
         <div class="modal-header">
           <h3 class="modal-title">Edit Task</h3>
@@ -2000,16 +2014,16 @@ The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",he
           <button class="admin-btn primary" id="et-save">Save Changes</button>
         </div>
       </div>
-    `,document.body.appendChild(t);const i=t.querySelector("#et-member-search"),o=t.querySelector("#et-member-suggestions");i.addEventListener("input",()=>{clearTimeout(C);const n=i.value.trim();if(n.length<2){o.style.display="none";return}C=setTimeout(async()=>{const r=await D(n);if(r.length===0){o.style.display="none";return}o.innerHTML=r.map(a=>`<div class="member-suggestion-item" data-id="${a.id}" data-name="${u(a.name||"")}" data-slug="${a.slug||""}">
+    `,document.body.appendChild(t);const i=t.querySelector("#et-member-search"),o=t.querySelector("#et-member-suggestions");i.addEventListener("input",()=>{clearTimeout(C);const n=i.value.trim();if(n.length<2){o.style.display="none";return}C=setTimeout(async()=>{const r=await P(n);if(r.length===0){o.style.display="none";return}o.innerHTML=r.map(a=>`<div class="member-suggestion-item" data-id="${a.id}" data-name="${u(a.name||"")}" data-slug="${a.slug||""}">
             ${u(a.name||a.id)}
             ${a.business_name?`<span style="display:block;font-size:11px;color:#888;margin-top:1px;">${u(a.business_name)}</span>`:""}
-          </div>`).join(""),o.style.display="block",o.querySelectorAll(".member-suggestion-item").forEach(a=>{a.addEventListener("click",()=>{t.querySelector("#et-member-id").value=a.dataset.id,t.querySelector("#et-member-name").value=a.dataset.name,t.querySelector("#et-member-url").value=a.dataset.slug?`${y}/members/${a.dataset.slug}`:"",i.value=a.dataset.name,o.style.display="none"})})},250)}),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.querySelector("#et-cancel").addEventListener("click",()=>t.remove()),t.addEventListener("click",n=>{n.target===t&&t.remove()}),t.querySelector("#et-delete").addEventListener("click",async()=>{if(!confirm(`Delete "${e.title}"? This cannot be undone.`))return;const n=t.querySelector("#et-delete");n.disabled=!0,n.textContent="Deleting...",await m.from("support_task_comments").delete().eq("task_id",e.id),await m.from("support_tasks").delete().eq("id",e.id),t.remove(),await w()}),t.querySelector("#et-save").addEventListener("click",async()=>{const n=t.querySelector("#et-save"),r=t.querySelector("#et-status").value,a=r!==e.status;n.disabled=!0,n.textContent="Saving...";const s=t.querySelector("#et-hours").value,l=t.querySelector("#et-member-name").value||t.querySelector("#et-member-search").value.trim()||null,d={category:t.querySelector("#et-category").value,title:t.querySelector("#et-title").value.trim(),description:t.querySelector("#et-description").value.trim()||null,notes:t.querySelector("#et-notes").value.trim()||null,status:r,hours:s?parseFloat(s):null,member_id:t.querySelector("#et-member-id").value||null,member_name:l,member_profile_url:t.querySelector("#et-member-url").value||null},{error:c}=await m.from("support_tasks").update(d).eq("id",e.id);if(c){alert("Error saving: "+c.message),n.disabled=!1,n.textContent="Save Changes";return}if(a){const p=["feedback_needed","complete","in_progress","stalled"].includes(r)?r:null;await _(p,{...e,...d})}t.remove(),await w()})}function z(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"2-digit"}):""}function u(e){return e?String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):""}async function h(e){const t=e.querySelector("#refresh-btn");t&&(t.disabled=!0,t.textContent="Loading...");try{E=await M(),A(e,E)}catch(i){console.error("Error refreshing dashboard:",i),t&&(t.disabled=!1,t.textContent="Refresh")}}async function O(){const e=document.querySelector(".dashboard-feed");if(!e){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){e.innerHTML=`
+          </div>`).join(""),o.style.display="block",o.querySelectorAll(".member-suggestion-item").forEach(a=>{a.addEventListener("click",()=>{t.querySelector("#et-member-id").value=a.dataset.id,t.querySelector("#et-member-name").value=a.dataset.name,t.querySelector("#et-member-url").value=a.dataset.slug?`${x}/members/${a.dataset.slug}`:"",i.value=a.dataset.name,o.style.display="none"})})},250)}),t.querySelector(".modal-close").addEventListener("click",()=>t.remove()),t.querySelector("#et-cancel").addEventListener("click",()=>t.remove()),t.addEventListener("click",n=>{n.target===t&&t.remove()}),t.querySelector("#et-delete").addEventListener("click",async()=>{if(!confirm(`Delete "${e.title}"? This cannot be undone.`))return;const n=t.querySelector("#et-delete");n.disabled=!0,n.textContent="Deleting...",await m.from("support_task_comments").delete().eq("task_id",e.id),await m.from("support_tasks").delete().eq("id",e.id),t.remove(),await _()}),t.querySelector("#et-save").addEventListener("click",async()=>{const n=t.querySelector("#et-save"),r=t.querySelector("#et-status").value,a=r!==e.status;n.disabled=!0,n.textContent="Saving...";const s=t.querySelector("#et-hours").value,l=t.querySelector("#et-member-name").value||t.querySelector("#et-member-search").value.trim()||null,d={category:t.querySelector("#et-category").value,title:t.querySelector("#et-title").value.trim(),description:t.querySelector("#et-description").value.trim()||null,notes:t.querySelector("#et-notes").value.trim()||null,status:r,hours:s?parseFloat(s):null,member_id:t.querySelector("#et-member-id").value||null,member_name:l,member_profile_url:t.querySelector("#et-member-url").value||null},{error:c}=await m.from("support_tasks").update(d).eq("id",e.id);if(c){alert("Error saving: "+c.message),n.disabled=!1,n.textContent="Save Changes";return}if(a){const p=["feedback_needed","complete","in_progress","stalled"].includes(r)?r:null;await $(p,{...e,...d})}t.remove(),await _()})}function D(e){return e?new Date(e).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"2-digit"}):""}function u(e){return e?String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):""}async function h(e){const t=e.querySelector("#refresh-btn");t&&(t.disabled=!0,t.textContent="Loading...");try{E=await M(),A(e,E)}catch(i){console.error("Error refreshing dashboard:",i),t&&(t.disabled=!1,t.textContent="Refresh")}}async function I(){const e=document.querySelector(".dashboard-feed");if(!e){console.warn("Could not find .dashboard-feed container");return}if(typeof window.supabase>"u"){e.innerHTML=`
         <div class="admin-dashboard">
           <div class="admin-loading">
             <div class="loading-text">Error: Supabase library not loaded</div>
           </div>
         </div>
-      `;return}if(m=window.supabase.createClient(v,g),!document.querySelector("#admin-dashboard-styles")){const t=document.createElement("style");t.id="admin-dashboard-styles",t.textContent=I,document.head.appendChild(t)}e.innerHTML=`
+      `;return}if(m=window.supabase.createClient(v,g),!document.querySelector("#admin-dashboard-styles")){const t=document.createElement("style");t.id="admin-dashboard-styles",t.textContent=O,document.head.appendChild(t)}e.innerHTML=`
       <div class="admin-dashboard">
         <div class="admin-loading">
           <div class="loader"></div>
@@ -2023,4 +2037,4 @@ The MTNS MADE Team`;await fetch(`${v}/functions/v1/send-email`,{method:"POST",he
             <div style="color: #666; font-size: 11px; margin-top: 8px;">${t.message}</div>
           </div>
         </div>
-      `}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",O):O()})();
+      `}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",I):I()})();

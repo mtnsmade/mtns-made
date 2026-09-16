@@ -119,6 +119,8 @@ serve(async (req) => {
         member_id: member.id,
         member_name: resolvedName,
         member_profile_url: member.slug ? `${SITE_URL}/members/${member.slug}` : null,
+        source: 'member',
+        submitted_email: memberEmail || null,
       };
     } else {
       // Orphaned Memberstack account with no matching members row (seen for
@@ -134,6 +136,8 @@ serve(async (req) => {
         member_name: memberName || null,
         member_profile_url: null,
         notes: `⚠ member_id not resolved — memberstack_id ${memberstackId}, no matching members row. Contact: ${memberEmail || 'unknown'}.`,
+        source: 'member',
+        submitted_email: memberEmail || null,
       };
     }
 

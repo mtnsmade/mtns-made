@@ -14,6 +14,7 @@ export interface EmailRequest {
   text?: string;
   from?: string;       // defaults to FROM_HELLO
   replyTo?: string;
+  cc?: string | string[];
 }
 
 export interface EmailResult {
@@ -102,6 +103,7 @@ function buildRfc2822(options: {
   html: string;
   text?: string;
   replyTo?: string;
+  cc?: string[];
 }): string {
   const lines: string[] = [
     `From: ${options.from}`,
@@ -109,6 +111,10 @@ function buildRfc2822(options: {
     `Subject: ${options.subject}`,
     'MIME-Version: 1.0',
   ];
+
+  if (options.cc && options.cc.length > 0) {
+    lines.push(`Cc: ${options.cc.join(', ')}`);
+  }
 
   if (options.replyTo) {
     lines.push(`Reply-To: ${options.replyTo}`);
@@ -150,6 +156,7 @@ export async function sendEmail(request: EmailRequest): Promise<EmailResult> {
   // Extract bare email address for impersonation (strips "Name <email>" format)
   const fromEmail = fromField.match(/<(.+)>/)?.[1] ?? fromField;
   const toArray = Array.isArray(request.to) ? request.to : [request.to];
+  const ccArray = request.cc ? (Array.isArray(request.cc) ? request.cc : [request.cc]) : undefined;
   const html = request.html || (request.text ? request.text.replace(/\n/g, '<br>') : '');
 
   try {
@@ -162,6 +169,7 @@ export async function sendEmail(request: EmailRequest): Promise<EmailResult> {
       html,
       text: request.text,
       replyTo: request.replyTo,
+      cc: ccArray,
     });
 
     const encodedMessage = btoa(unescape(encodeURIComponent(rawMessage)))

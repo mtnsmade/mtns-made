@@ -41,6 +41,7 @@ serve(async (req) => {
       text: body.text,
       from: body.from,
       replyTo: body.replyTo,
+      cc: body.cc,
     });
 
     return new Response(JSON.stringify(result), {
