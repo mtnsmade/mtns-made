@@ -3290,11 +3290,11 @@ MTNS MADE Team`;
                     <span id="task-comment-image-name" style="color:#888;"></span>
                   </label>
                 </div>
-                <div style="font-size:11px;color:#999;margin-top:6px;">
-                  ${task.source === 'member' && task.submitted_email
-                    ? `Sent directly to ${escHtml(task.submitted_email)} (cc: hello@mtnsmade.com.au)`
-                    : 'Internal note only: emails hello@mtnsmade.com.au, not the member.'}
-                </div>
+              </div>
+              <div style="font-size:11px;color:#999;margin-top:6px;">
+                ${task.source === 'member' && task.submitted_email
+                  ? `Sent directly to ${escHtml(task.submitted_email)} (cc: hello@mtnsmade.com.au)`
+                  : 'Internal note only: emails hello@mtnsmade.com.au, not the member.'}
               </div>
             ` : '<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
           </div>

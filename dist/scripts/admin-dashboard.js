@@ -1846,9 +1846,9 @@ This will remove it from the site. This cannot be undone.`)){a.disabled=!0,a.tex
                     <span id="task-comment-image-name" style="color:#888;"></span>
                   </label>
                 </div>
-                <div style="font-size:11px;color:#999;margin-top:6px;">
-                  ${e.source==="member"&&e.submitted_email?`Sent directly to ${u(e.submitted_email)} (cc: hello@mtnsmade.com.au)`:"Internal note only: emails hello@mtnsmade.com.au, not the member."}
-                </div>
+              </div>
+              <div style="font-size:11px;color:#999;margin-top:6px;">
+                ${e.source==="member"&&e.submitted_email?`Sent directly to ${u(e.submitted_email)} (cc: hello@mtnsmade.com.au)`:"Internal note only: emails hello@mtnsmade.com.au, not the member."}
               </div>
             `:'<div style="font-size:12px;color:#999;margin-top:8px;">Maximum 5 comments reached.</div>'}
           </div>
