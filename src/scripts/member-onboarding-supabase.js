@@ -17,6 +17,15 @@
   const BUSINESS_TYPES = ['small-business', 'large-business', 'not-for-profit', 'partner', 'spaces-suppliers'];
   const SPACES_SUPPLIERS_TYPE = 'spaces-suppliers';
 
+  // Not actually in the Blue Mountains LGA (R-015 / ticket 11802ecb, Hannah
+  // 2026-09-04) - kept in the suburbs table itself since existing members
+  // already have profiles set to one of these, but excluded from the
+  // selectable options below so no one new can pick them. A member who
+  // already has one of these as their current suburb still sees it in their
+  // own dropdown (see the filter at the render site) so editing the rest of
+  // their profile doesn't silently blank it out.
+  const EXCLUDED_SUBURB_NAMES = ['Bilpin', 'Penrith'];
+
   // ============================================
   // STATE
   // ============================================
@@ -2245,7 +2254,7 @@
             <label>Suburb <span class="required">*</span></label>
             <select class="ms-form-input" id="ms-suburb-select">
               <option value="">Select your suburb...</option>
-              ${suburbs.map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+              ${suburbs.filter(s => !EXCLUDED_SUBURB_NAMES.includes(s.name) || formData.suburb?.id === s.id).map(s => `<option value="${s.id}" ${formData.suburb?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
             </select>
             <div class="ms-hint">This helps members find you in the directory</div>
           </div>

@@ -50,10 +50,13 @@
     }
   };
 
-  // Suburbs data (from Webflow CMS)
+  // Suburbs data (from Webflow CMS). Bilpin and Penrith deliberately excluded
+  // here - not actually in the Blue Mountains LGA (R-015 / ticket 11802ecb,
+  // Hannah 2026-09-04). They're still in the Supabase suburbs table itself
+  // (existing members already have profiles set to one of these), just no
+  // longer offered to new signups.
   const SUBURBS = [
     { id: '64bfb65db1569eeda7582433', name: 'Bell', slug: 'bell' },
-    { id: '64bfb65dc335367110321546', name: 'Bilpin', slug: 'bilpin' },
     { id: '64bfb65d757e05b74ba0e403', name: 'Blackheath', slug: 'blackheath' },
     { id: '64bfb65d6a8497d80eb5b5c6', name: 'Blaxland', slug: 'blaxland' },
     { id: '64bfb65d409f7c767042076c', name: 'Bullaburra', slug: 'bullaburra' },
@@ -71,7 +74,6 @@
     { id: '64bfb65fafe29b2df8a63f02', name: 'Mount Tomah', slug: 'mount-tomah' },
     { id: '64bfb65f7519806dd636cccf', name: 'Mount Victoria', slug: 'mount-victoria' },
     { id: '64bfb65f2cc46c71a5be9045', name: 'Mount Wilson', slug: 'mount-wilson' },
-    { id: '6733dfdf795b2df6a1573dd1', name: 'Penrith', slug: 'penrith' },
     { id: '64bfb65f2cc46c71a5be907d', name: 'Springwood', slug: 'springwood' },
     { id: '64bfb65feec6228116d7a9f3', name: 'Sun Valley', slug: 'sun-valley' },
     { id: '64bfb65f73964b051a9b6baf', name: 'Valley Heights', slug: 'valley-heights' },
