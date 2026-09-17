@@ -50,11 +50,13 @@
     }
   };
 
-  // Suburbs data (from Webflow CMS). Bilpin and Penrith deliberately excluded
-  // here - not actually in the Blue Mountains LGA (R-015 / ticket 11802ecb,
-  // Hannah 2026-09-04). They're still in the Supabase suburbs table itself
-  // (existing members already have profiles set to one of these), just no
-  // longer offered to new signups.
+  // Suburbs data (from Webflow CMS). This must match the approved Blue
+  // Mountains LGA list Hannah confirmed 2026-09-17 (R-015 / ticket
+  // 11802ecb) - Bilpin and Penrith excluded (not actually in the LGA;
+  // still in the Supabase suburbs table itself since existing members
+  // already have profiles set to one of these), Hawkesbury Heights and
+  // Mount Riverview added (were missing entirely - created as new Webflow
+  // CMS items 2026-09-17, webflow_id below is real, not a placeholder).
   const SUBURBS = [
     { id: '64bfb65db1569eeda7582433', name: 'Bell', slug: 'bell' },
     { id: '64bfb65d757e05b74ba0e403', name: 'Blackheath', slug: 'blackheath' },
@@ -62,6 +64,7 @@
     { id: '64bfb65d409f7c767042076c', name: 'Bullaburra', slug: 'bullaburra' },
     { id: '64bfb65d409f7c767042076d', name: 'Faulconbridge', slug: 'faulconbridge' },
     { id: '64bfb65d655ee21e8c72ee13', name: 'Glenbrook', slug: 'glenbrook' },
+    { id: '6aaba004cf957261a1fbdd66', name: 'Hawkesbury Heights', slug: 'hawkesbury-heights' },
     { id: '64bfb65d2cc46c71a5be8efb', name: 'Hazelbrook', slug: 'hazelbrook' },
     { id: '64bfb65d7519806dd636ca2a', name: 'Katoomba', slug: 'katoomba' },
     { id: '64bfb65e2cc46c71a5be8f19', name: 'Lapstone', slug: 'lapstone' },
@@ -71,6 +74,7 @@
     { id: '64bfb65e75299ea8759da3c3', name: 'Medlow Bath', slug: 'medlow-bath' },
     { id: '64bfb65ec016ed44dbb8add3', name: 'Megalong Valley', slug: 'megalong-valley' },
     { id: '64bfb65ec7c3a0d4663a1577', name: 'Mount Irvine', slug: 'mount-irvine' },
+    { id: '6aaba005c9468760f802a52e', name: 'Mount Riverview', slug: 'mount-riverview' },
     { id: '64bfb65fafe29b2df8a63f02', name: 'Mount Tomah', slug: 'mount-tomah' },
     { id: '64bfb65f7519806dd636cccf', name: 'Mount Victoria', slug: 'mount-victoria' },
     { id: '64bfb65f2cc46c71a5be9045', name: 'Mount Wilson', slug: 'mount-wilson' },

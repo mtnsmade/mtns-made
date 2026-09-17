@@ -23,15 +23,19 @@
   // Maximum days in future for event expiry
   const MAX_EXPIRY_DAYS = 90;
 
-  // Suburbs data (from Webflow CMS)
+  // Suburbs data (from Webflow CMS). Must match the approved Blue Mountains
+  // LGA list Hannah confirmed 2026-09-17 (R-015 / ticket 11802ecb) - Bilpin
+  // and Penrith excluded (not actually in the LGA), Hawkesbury Heights and
+  // Mount Riverview added (were missing entirely - created as new Webflow
+  // CMS items 2026-09-17, ids below are real, not placeholders).
   const SUBURBS = [
     { id: '64bfb65db1569eeda7582433', name: 'Bell', slug: 'bell' },
-    { id: '64bfb65dc335367110321546', name: 'Bilpin', slug: 'bilpin' },
     { id: '64bfb65d757e05b74ba0e403', name: 'Blackheath', slug: 'blackheath' },
     { id: '64bfb65d6a8497d80eb5b5c6', name: 'Blaxland', slug: 'blaxland' },
     { id: '64bfb65d409f7c767042076c', name: 'Bullaburra', slug: 'bullaburra' },
     { id: '64bfb65d409f7c767042076d', name: 'Faulconbridge', slug: 'faulconbridge' },
     { id: '64bfb65d655ee21e8c72ee13', name: 'Glenbrook', slug: 'glenbrook' },
+    { id: '6aaba004cf957261a1fbdd66', name: 'Hawkesbury Heights', slug: 'hawkesbury-heights' },
     { id: '64bfb65d2cc46c71a5be8efb', name: 'Hazelbrook', slug: 'hazelbrook' },
     { id: '64bfb65d7519806dd636ca2a', name: 'Katoomba', slug: 'katoomba' },
     { id: '64bfb65e2cc46c71a5be8f19', name: 'Lapstone', slug: 'lapstone' },
@@ -41,10 +45,10 @@
     { id: '64bfb65e75299ea8759da3c3', name: 'Medlow Bath', slug: 'medlow-bath' },
     { id: '64bfb65ec016ed44dbb8add3', name: 'Megalong Valley', slug: 'megalong-valley' },
     { id: '64bfb65ec7c3a0d4663a1577', name: 'Mount Irvine', slug: 'mount-irvine' },
+    { id: '6aaba005c9468760f802a52e', name: 'Mount Riverview', slug: 'mount-riverview' },
     { id: '64bfb65fafe29b2df8a63f02', name: 'Mount Tomah', slug: 'mount-tomah' },
     { id: '64bfb65f7519806dd636cccf', name: 'Mount Victoria', slug: 'mount-victoria' },
     { id: '64bfb65f2cc46c71a5be9045', name: 'Mount Wilson', slug: 'mount-wilson' },
-    { id: '6733dfdf795b2df6a1573dd1', name: 'Penrith', slug: 'penrith' },
     { id: '64bfb65f2cc46c71a5be907d', name: 'Springwood', slug: 'springwood' },
     { id: '64bfb65feec6228116d7a9f3', name: 'Sun Valley', slug: 'sun-valley' },
     { id: '64bfb65f73964b051a9b6baf', name: 'Valley Heights', slug: 'valley-heights' },
