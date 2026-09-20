@@ -608,6 +608,72 @@ serve(async (req) => {
       );
     }
 
+    // Read-only: list every Memberstack member holding a given plan
+    // (POST { mode: 'list-by-plan', plan_id, statuses? }). Memberstack's
+    // planConnections is the source of truth for who is actually on a plan -
+    // Supabase's membership_type_id / flags can be stale or mistagged, so
+    // this scans Memberstack directly. Defaults to ACTIVE + TRIALING.
+    if (body.mode === 'list-by-plan' && body.plan_id) {
+      if (!MEMBERSTACK_API_KEY) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'MEMBERSTACK_API_KEY not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const wanted: string[] = Array.isArray(body.statuses) && body.statuses.length ? body.statuses : ['ACTIVE', 'TRIALING'];
+      const matches: unknown[] = [];
+      let scanned = 0;
+      let after: string | undefined;
+      let hasNext = true;
+      while (hasNext) {
+        const url = new URL('https://admin.memberstack.com/members');
+        url.searchParams.set('limit', '100');
+        if (after) url.searchParams.set('after', after);
+        const r = await fetch(url.toString(), {
+          headers: { 'X-API-KEY': MEMBERSTACK_API_KEY, 'Content-Type': 'application/json' },
+        });
+        if (!r.ok) {
+          return new Response(
+            JSON.stringify({ success: false, error: `Memberstack API error: ${r.status} ${await r.text()}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const page = await r.json();
+        const members = page.data || [];
+        scanned += members.length;
+        for (const m of members) {
+          const conns = (m.planConnections || []).filter(
+            (p: { planId?: string; status?: string }) => p.planId === body.plan_id && wanted.includes(p.status || '')
+          );
+          if (conns.length > 0) {
+            matches.push({
+              id: m.id,
+              email: m.auth?.email,
+              name: [m.customFields?.['first-name'], m.customFields?.['last-name']].filter(Boolean).join(' '),
+              tradingName: m.customFields?.['trading-name'] || null,
+              createdAt: m.createdAt,
+              connections: conns.map((p: { status?: string; planName?: string; payment?: { amount?: number; priceId?: string; nextBillingDate?: number } }) => ({
+                status: p.status,
+                planName: p.planName,
+                amount: p.payment?.amount,
+                priceId: p.payment?.priceId,
+                nextBillingDate: p.payment?.nextBillingDate,
+              })),
+            });
+          }
+        }
+        if (page.hasNextPage && members.length > 0) {
+          after = page.endCursor || members[members.length - 1].id;
+        } else {
+          hasNext = false;
+        }
+      }
+      return new Response(
+        JSON.stringify({ success: true, scanned, matches }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Find and create missing members from Memberstack (by email)
     if (body.mode === 'create-missing-members' && body.emails && Array.isArray(body.emails)) {
       if (!MEMBERSTACK_API_KEY) {
