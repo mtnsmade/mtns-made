@@ -18,6 +18,24 @@
     .support-form-section {
       font-family: inherit;
     }
+    .support-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      align-items: start;
+    }
+    /* Two columns (form + tickets left, FAQs right) only once FAQs have
+       loaded and there is room; otherwise a single stacked column with the
+       form on top, then tickets, then FAQs. */
+    @media (min-width: 1100px) {
+      .support-layout.has-faq {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 40px;
+      }
+      .support-layout.has-faq .support-faq {
+        margin-top: 0;
+      }
+    }
     .support-form input[type="text"],
     .support-form textarea {
       width: 100%;
@@ -231,6 +249,8 @@
   function render(container) {
     container.innerHTML = `
       <div class="support-form-section">
+       <div class="support-layout" id="support-layout">
+        <div class="support-col-main">
         <div id="support-form-message"></div>
         <form class="support-form" id="support-form">
           <label for="support-title">Subject</label>
@@ -243,7 +263,9 @@
           <div class="support-tickets-title">My Support Tickets</div>
           <div id="support-tickets-container">Loading...</div>
         </div>
-        <div id="support-faq-container"></div>
+        </div>
+        <div class="support-col-faq" id="support-faq-container"></div>
+       </div>
       </div>
     `;
 
@@ -349,6 +371,8 @@
       const result = await response.json();
       if (!result.success || !result.faqs || result.faqs.length === 0) return;
 
+      const layout = document.getElementById('support-layout');
+      if (layout) layout.classList.add('has-faq');
       faqContainer.innerHTML = `
         <div class="support-faq">
           <div class="support-faq-title">Member FAQs</div>

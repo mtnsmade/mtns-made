@@ -1,6 +1,24 @@
-(function(){const p="https://epszwomtxkpjegbjbixr.supabase.co",i="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTE5MzUsImV4cCI6MjA4NTg4NzkzNX0.TJPI5NQmWHR6F5eGVZH26Mzj601RDp5bgcpYZFVymwQ";let s=null;const h=`
+(function(){const p="https://epszwomtxkpjegbjbixr.supabase.co",n="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTE5MzUsImV4cCI6MjA4NTg4NzkzNX0.TJPI5NQmWHR6F5eGVZH26Mzj601RDp5bgcpYZFVymwQ";let i=null;const h=`
     .support-form-section {
       font-family: inherit;
+    }
+    .support-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      align-items: start;
+    }
+    /* Two columns (form + tickets left, FAQs right) only once FAQs have
+       loaded and there is room; otherwise a single stacked column with the
+       form on top, then tickets, then FAQs. */
+    @media (min-width: 1100px) {
+      .support-layout.has-faq {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 40px;
+      }
+      .support-layout.has-faq .support-faq {
+        margin-top: 0;
+      }
     }
     .support-form input[type="text"],
     .support-form textarea {
@@ -159,8 +177,10 @@
       margin: 0 0 8px 0;
       padding-left: 20px;
     }
-  `,k={not_started:"Not Started",in_progress:"In Progress",feedback_needed:"Feedback Needed",complete:"Complete",stalled:"Stalled"};function w(){if(!document.getElementById("support-form-styles")){const t=document.createElement("style");t.id="support-form-styles",t.textContent=h,document.head.appendChild(t)}}function a(t){if(!t)return"";const e=document.createElement("div");return e.textContent=t,e.innerHTML}async function c(){const t=document.getElementById("support-form-root");if(!t){console.log("Support form container not found");return}w();const e=window.$memberstackDom;if(!e){t.innerHTML="<p>Please log in to submit a support ticket.</p>";return}const{data:o}=await e.getCurrentMember();if(!o){t.innerHTML="<p>Please log in to submit a support ticket.</p>";return}s=o,v(t),await u(),z()}function v(t){t.innerHTML=`
+  `,k={not_started:"Not Started",in_progress:"In Progress",feedback_needed:"Feedback Needed",complete:"Complete",stalled:"Stalled"};function v(){if(!document.getElementById("support-form-styles")){const t=document.createElement("style");t.id="support-form-styles",t.textContent=h,document.head.appendChild(t)}}function a(t){if(!t)return"";const e=document.createElement("div");return e.textContent=t,e.innerHTML}async function u(){const t=document.getElementById("support-form-root");if(!t){console.log("Support form container not found");return}v();const e=window.$memberstackDom;if(!e){t.innerHTML="<p>Please log in to submit a support ticket.</p>";return}const{data:o}=await e.getCurrentMember();if(!o){t.innerHTML="<p>Please log in to submit a support ticket.</p>";return}i=o,w(t),await c(),q()}function w(t){t.innerHTML=`
       <div class="support-form-section">
+       <div class="support-layout" id="support-layout">
+        <div class="support-col-main">
         <div id="support-form-message"></div>
         <form class="support-form" id="support-form">
           <label for="support-title">Subject</label>
@@ -173,9 +193,11 @@
           <div class="support-tickets-title">My Support Tickets</div>
           <div id="support-tickets-container">Loading...</div>
         </div>
-        <div id="support-faq-container"></div>
+        </div>
+        <div class="support-col-faq" id="support-faq-container"></div>
+       </div>
       </div>
-    `,document.getElementById("support-form").addEventListener("submit",async e=>{e.preventDefault(),await I(t)})}async function I(t){var l,f,b,g;const e=document.getElementById("support-title"),o=document.getElementById("support-description"),r=document.getElementById("support-submit-btn"),n=document.getElementById("support-form-message"),d=e.value.trim(),m=o.value.trim();if(!(!d||!m)){r.disabled=!0,r.textContent="Submitting...",n.innerHTML="";try{const y=await(await fetch(`${p}/functions/v1/submit-support-ticket`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${i}`,apikey:i},body:JSON.stringify({mode:"create",memberstackId:s.id,memberName:[(l=s.customFields)==null?void 0:l["first-name"],(f=s.customFields)==null?void 0:f["last-name"]].filter(Boolean).join(" ")||((b=s.auth)==null?void 0:b.email)||"",memberEmail:((g=s.auth)==null?void 0:g.email)||"",title:d,description:m})})).json();if(!y.success)throw new Error(y.error||"Failed to submit ticket");n.innerHTML=`<div class="support-form-message success">Your ticket has been submitted. We'll be in touch soon.</div>`,e.value="",o.value="",await u(t)}catch(x){console.error("Error submitting support ticket:",x),n.innerHTML='<div class="support-form-message error">Something went wrong submitting your ticket. Please try again.</div>'}finally{r.disabled=!1,r.textContent="Submit Ticket"}}}async function u(t){const e=document.getElementById("support-tickets-container");if(e)try{const r=await(await fetch(`${p}/functions/v1/submit-support-ticket`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${i}`,apikey:i},body:JSON.stringify({mode:"list",memberstackId:s.id})})).json();if(!r.success)throw new Error(r.error||"Failed to load tickets");E(e,r.tickets||[])}catch(o){console.error("Error loading support tickets:",o),e.innerHTML='<p class="support-tickets-empty">Error loading your tickets.</p>'}}async function z(){const t=document.getElementById("support-faq-container");if(t)try{const o=await(await fetch(`${p}/functions/v1/get-member-faqs`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${i}`,apikey:i},body:"{}"})).json();if(!o.success||!o.faqs||o.faqs.length===0)return;t.innerHTML=`
+    `,document.getElementById("support-form").addEventListener("submit",async e=>{e.preventDefault(),await I(t)})}async function I(t){var l,f,g,b;const e=document.getElementById("support-title"),o=document.getElementById("support-description"),s=document.getElementById("support-submit-btn"),r=document.getElementById("support-form-message"),d=e.value.trim(),m=o.value.trim();if(!(!d||!m)){s.disabled=!0,s.textContent="Submitting...",r.innerHTML="";try{const x=await(await fetch(`${p}/functions/v1/submit-support-ticket`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${n}`,apikey:n},body:JSON.stringify({mode:"create",memberstackId:i.id,memberName:[(l=i.customFields)==null?void 0:l["first-name"],(f=i.customFields)==null?void 0:f["last-name"]].filter(Boolean).join(" ")||((g=i.auth)==null?void 0:g.email)||"",memberEmail:((b=i.auth)==null?void 0:b.email)||"",title:d,description:m})})).json();if(!x.success)throw new Error(x.error||"Failed to submit ticket");r.innerHTML=`<div class="support-form-message success">Your ticket has been submitted. We'll be in touch soon.</div>`,e.value="",o.value="",await c(t)}catch(y){console.error("Error submitting support ticket:",y),r.innerHTML='<div class="support-form-message error">Something went wrong submitting your ticket. Please try again.</div>'}finally{s.disabled=!1,s.textContent="Submit Ticket"}}}async function c(t){const e=document.getElementById("support-tickets-container");if(e)try{const s=await(await fetch(`${p}/functions/v1/submit-support-ticket`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${n}`,apikey:n},body:JSON.stringify({mode:"list",memberstackId:i.id})})).json();if(!s.success)throw new Error(s.error||"Failed to load tickets");z(e,s.tickets||[])}catch(o){console.error("Error loading support tickets:",o),e.innerHTML='<p class="support-tickets-empty">Error loading your tickets.</p>'}}async function q(){const t=document.getElementById("support-faq-container");if(t)try{const o=await(await fetch(`${p}/functions/v1/get-member-faqs`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${n}`,apikey:n},body:"{}"})).json();if(!o.success||!o.faqs||o.faqs.length===0)return;const s=document.getElementById("support-layout");s&&s.classList.add("has-faq"),t.innerHTML=`
         <div class="support-faq">
           <div class="support-faq-title">Member FAQs</div>
           ${o.faqs.map(r=>`
@@ -185,12 +207,12 @@
             </details>
           `).join("")}
         </div>
-      `}catch(e){console.error("Error loading member FAQs:",e)}}function E(t,e){if(e.length===0){t.innerHTML=`<p class="support-tickets-empty">You haven't submitted any support tickets yet.</p>`;return}t.innerHTML=e.map(o=>{const r=new Date(o.created_at).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}),n=k[o.status]||o.status;return`
+      `}catch(e){console.error("Error loading member FAQs:",e)}}function z(t,e){if(e.length===0){t.innerHTML=`<p class="support-tickets-empty">You haven't submitted any support tickets yet.</p>`;return}t.innerHTML=e.map(o=>{const s=new Date(o.created_at).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}),r=k[o.status]||o.status;return`
         <div class="support-ticket-item">
           <div class="support-ticket-header">
             <p class="support-ticket-title">${a(o.title)}</p>
-            <span class="support-ticket-status">${a(n)}</span>
+            <span class="support-ticket-status">${a(r)}</span>
           </div>
-          <div class="support-ticket-date">Submitted ${r}</div>
+          <div class="support-ticket-date">Submitted ${s}</div>
         </div>
-      `}).join("")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",c):c()})();
+      `}).join("")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",u):u()})();
