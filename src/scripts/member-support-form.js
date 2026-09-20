@@ -113,6 +113,68 @@
       color: #666;
       font-size: 14px;
     }
+
+    .support-faq {
+      margin-top: 32px;
+    }
+    .support-faq-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+    }
+    .support-faq details {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .support-faq summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 14px 44px 14px 16px;
+      font-weight: 600;
+      font-size: 15px;
+      color: #333;
+      position: relative;
+    }
+    .support-faq summary::-webkit-details-marker {
+      display: none;
+    }
+    .support-faq summary::after {
+      content: '+';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 1;
+    }
+    .support-faq details[open] summary::after {
+      content: '\\2212';
+    }
+    .support-faq-answer {
+      padding: 0 16px 16px 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #444;
+    }
+    .support-faq-answer h2 {
+      font-size: 16px;
+      margin: 0 0 8px 0;
+    }
+    .support-faq-answer h3 {
+      font-size: 14px;
+      margin: 16px 0 4px 0;
+    }
+    .support-faq-answer p {
+      margin: 0 0 8px 0;
+    }
+    .support-faq-answer ul {
+      margin: 0 0 8px 0;
+      padding-left: 20px;
+    }
   `;
 
   const STATUS_LABELS = {
@@ -163,6 +225,7 @@
     currentMember = member;
     render(container);
     await loadTickets(container);
+    loadFaqs();
   }
 
   function render(container) {
@@ -180,6 +243,7 @@
           <div class="support-tickets-title">My Support Tickets</div>
           <div id="support-tickets-container">Loading...</div>
         </div>
+        <div id="support-faq-container"></div>
       </div>
     `;
 
@@ -262,6 +326,42 @@
     } catch (error) {
       console.error('Error loading support tickets:', error);
       ticketsContainer.innerHTML = '<p class="support-tickets-empty">Error loading your tickets.</p>';
+    }
+  }
+
+  // Member FAQs (same source as the dashboard accordion: published "Member FAQ"
+  // items from the Webflow FAQ collection via the get-member-faqs edge function).
+  // Shown under the form and tickets. A failure here must never affect the form.
+  async function loadFaqs() {
+    const faqContainer = document.getElementById('support-faq-container');
+    if (!faqContainer) return;
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/get-member-faqs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: '{}',
+      });
+      const result = await response.json();
+      if (!result.success || !result.faqs || result.faqs.length === 0) return;
+
+      faqContainer.innerHTML = `
+        <div class="support-faq">
+          <div class="support-faq-title">Member FAQs</div>
+          ${result.faqs.map(faq => `
+            <details>
+              <summary>${escapeHtml(faq.question)}</summary>
+              <div class="support-faq-answer">${faq.answer}</div>
+            </details>
+          `).join('')}
+        </div>
+      `;
+    } catch (error) {
+      console.error('Error loading member FAQs:', error);
     }
   }
 

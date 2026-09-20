@@ -977,7 +977,6 @@
           <div class="x-nav-item" data-priority="high"><a href="/events" class="x-nav-link">Events</a></div>
           <div class="x-nav-item" data-priority="high"><a href="/jobs" class="x-nav-link">Jobs</a></div>
           <div class="x-nav-item" data-priority="low"><a href="/stories" class="x-nav-link">Stories</a></div>
-          <div class="x-nav-item" data-priority="low"><a href="/resources" class="x-nav-link">Resources</a></div>
           <div class="x-nav-item" data-priority="low"><a href="/magazine" class="x-nav-link">Magazine</a></div>
         </div>
 
@@ -1032,7 +1031,6 @@
             </div>
             <div class="x-nav-overlay-item"><a href="/events" class="x-nav-overlay-link">Events</a></div>
             <div class="x-nav-overlay-item"><a href="/opportunities" class="x-nav-overlay-link">Opportunities</a></div>
-            <div class="x-nav-overlay-item"><a href="/resources" class="x-nav-overlay-link">Resources</a></div>
             <div class="x-nav-overlay-item"><a href="/stories" class="x-nav-overlay-link">Stories</a></div>
             <div class="x-nav-overlay-item"><a href="/magazine" class="x-nav-overlay-link">Magazine</a></div>
           </div>
