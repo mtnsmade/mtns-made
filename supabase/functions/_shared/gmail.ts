@@ -7,6 +7,31 @@
 export const FROM_HELLO = 'MTNS MADE <hello@mtnsmade.com.au>';
 export const FROM_SUPPORT = 'MTNS MADE <support@mtnsmade.com.au>';
 
+// The ONLY addresses this service account may send as.
+//
+// The Google service account has domain-wide delegation, so whatever address it
+// is handed becomes the Gmail impersonation subject - an unconstrained `from`
+// lets a caller send DKIM-valid mail as ANY @mtnsmade.com.au user (paul@,
+// accounts@, ...). Every legitimate caller in this repo already passes
+// FROM_HELLO or FROM_SUPPORT, so pinning to this list changes no real behaviour.
+// Anything else is coerced to FROM_HELLO rather than rejected, so a bad `from`
+// can never silently drop a member-facing email.
+const ALLOWED_FROM = new Set([FROM_HELLO, FROM_SUPPORT]);
+
+function resolveFrom(requested?: string): string {
+  if (!requested) return FROM_HELLO;
+  if (ALLOWED_FROM.has(requested)) return requested;
+  console.warn(`gmail: rejected non-allowlisted from "${requested}" - using FROM_HELLO`);
+  return FROM_HELLO;
+}
+
+// Strip CR/LF from anything interpolated into an RFC2822 header. Without this a
+// newline in `subject`/`replyTo`/etc. injects arbitrary headers (Bcc, ...) into
+// the message - header injection.
+function headerSafe(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ').trim();
+}
+
 export interface EmailRequest {
   to: string | string[];
   subject: string;
@@ -106,18 +131,18 @@ function buildRfc2822(options: {
   cc?: string[];
 }): string {
   const lines: string[] = [
-    `From: ${options.from}`,
-    `To: ${options.to.join(', ')}`,
-    `Subject: ${options.subject}`,
+    `From: ${headerSafe(options.from)}`,
+    `To: ${options.to.map(headerSafe).join(', ')}`,
+    `Subject: ${headerSafe(options.subject)}`,
     'MIME-Version: 1.0',
   ];
 
   if (options.cc && options.cc.length > 0) {
-    lines.push(`Cc: ${options.cc.join(', ')}`);
+    lines.push(`Cc: ${options.cc.map(headerSafe).join(', ')}`);
   }
 
   if (options.replyTo) {
-    lines.push(`Reply-To: ${options.replyTo}`);
+    lines.push(`Reply-To: ${headerSafe(options.replyTo)}`);
   }
 
   if (options.text && options.html) {
@@ -152,8 +177,10 @@ export async function sendEmail(request: EmailRequest): Promise<EmailResult> {
     return { success: false, error: 'Invalid GMAIL_SERVICE_ACCOUNT_JSON' };
   }
 
-  const fromField = request.from ?? FROM_HELLO;
-  // Extract bare email address for impersonation (strips "Name <email>" format)
+  const fromField = resolveFrom(request.from);
+  // Extract bare email address for impersonation (strips "Name <email>" format).
+  // Safe to use as the impersonation subject because resolveFrom() has already
+  // constrained fromField to the allowlist above.
   const fromEmail = fromField.match(/<(.+)>/)?.[1] ?? fromField;
   const toArray = Array.isArray(request.to) ? request.to : [request.to];
   const ccArray = request.cc ? (Array.isArray(request.cc) ? request.cc : [request.cc]) : undefined;

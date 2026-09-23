@@ -198,7 +198,13 @@ serve(async (req: Request) => {
   // Send via existing send-email function
   const emailResp = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      // Identifies this as a trusted server-to-server call so send-email skips
+      // its recipient allowlist. REPORT_TO is one of our own inboxes, so this
+      // still works if the secret is unset - it just takes the public path.
+      'x-internal-secret': Deno.env.get('INTERNAL_FN_SECRET') || '',
+    },
     body: JSON.stringify({
       to: REPORT_TO,
       subject: `MTNS MADE Support - ${todayStr}`,
