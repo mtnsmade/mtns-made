@@ -3255,6 +3255,12 @@ MTNS MADE Team`;
               <div style="font-size:13px;line-height:1.7;color:#555;white-space:pre-wrap;">${escHtml(task.notes)}</div>
             </div>
           ` : ''}
+          ${task.member_note ? `
+            <div class="form-field">
+              <div class="form-label">Message to member</div>
+              <div style="font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;">${escHtml(task.member_note)}</div>
+            </div>
+          ` : ''}
           ${task.member_name ? `
             <div class="form-field">
               <div class="form-label">Member</div>
@@ -3457,8 +3463,13 @@ MTNS MADE Team`;
         if (memberEmail) {
           const firstName = memberDisplayName?.split(' ')[0] || 'there';
           const memberSubject = `Your support request has been resolved: ${task.title}`;
-          const memberBody = `Hi ${firstName},\n\nWe wanted to let you know that your support request has been resolved.\n\nRequest: ${task.title}\n\nIf you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.\n\nThanks,\nThe MTNS MADE Team`;
-          const memberBodyHtml = `Hi ${escHtml(firstName)},<br><br>We wanted to let you know that your support request has been resolved.<br><br>Request: ${escHtml(task.title)}<br><br>If you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.<br><br>Thanks,<br>The MTNS MADE Team`;
+          // Optional staff message (support_tasks.member_note). Deliberately
+          // NOT task.notes, which is internal-only and never goes to members.
+          const memberNote = (task.member_note || '').trim();
+          const noteText = memberNote ? `\n\n${memberNote}` : '';
+          const noteHtml = memberNote ? `<br><br>${escHtml(memberNote).replace(/\n/g, '<br>')}` : '';
+          const memberBody = `Hi ${firstName},\n\nWe wanted to let you know that your support request has been resolved.\n\nRequest: ${task.title}${noteText}\n\nIf you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.\n\nThanks,\nThe MTNS MADE Team`;
+          const memberBodyHtml = `Hi ${escHtml(firstName)},<br><br>We wanted to let you know that your support request has been resolved.<br><br>Request: ${escHtml(task.title)}${noteHtml}<br><br>If you have any further questions or need anything else, feel free to reach out at hello@mtnsmade.com.au.<br><br>Thanks,<br>The MTNS MADE Team`;
           await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3651,6 +3662,11 @@ MTNS MADE Team`;
             <textarea class="form-input" id="et-notes" style="min-height:60px;" placeholder="Internal notes, resolution summary...">${escHtml(task.notes || '')}</textarea>
           </div>
           <div class="form-field">
+            <label class="form-label">Message to member (sent with the resolution email)</label>
+            <textarea class="form-input" id="et-member-note" style="min-height:60px;" placeholder="Optional. What you did, or what they need to do next...">${escHtml(task.member_note || '')}</textarea>
+            <div style="font-size:11px;color:#999;margin-top:4px;">Emailed to the member when a Member Support task is marked Complete. Leave blank to send the standard message.</div>
+          </div>
+          <div class="form-field">
             <label class="form-label">Status</label>
             <select class="form-input" id="et-status">
               ${Object.entries(SUPPORT_STATUS_LABELS).map(([val, label]) =>
@@ -3732,6 +3748,7 @@ MTNS MADE Team`;
         title:              modal.querySelector('#et-title').value.trim(),
         description:        modal.querySelector('#et-description').value.trim() || null,
         notes:              modal.querySelector('#et-notes').value.trim() || null,
+        member_note:        modal.querySelector('#et-member-note').value.trim() || null,
         status:             newStatus,
         hours:              hours ? parseFloat(hours) : null,
         member_id:          modal.querySelector('#et-member-id').value || null,
