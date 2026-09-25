@@ -11,7 +11,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_HELLO, FROM_SUPPORT } from '../_shared/gmail.ts';
-import { hasActivePlan, getActivePlanConnection, resolveMembershipTypeId, syncMembershipTypeCustomField, findAvailableMemberSlug, getMembershipTypeSlugByPlanId, getMembershipTypeIdBySlug } from '../_shared/memberstack.ts';
+import { hasActivePlan, getActivePlanConnection, resolveMembershipTypeId, syncMembershipTypeCustomField, findAvailableMemberSlug, getMembershipTypeSlugByPlanId, getMembershipTypeIdBySlug, getMembershipPaymentState, recordPaymentState } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -1053,8 +1053,12 @@ async function handleMemberPlanCanceled(data: MemberstackMemberData): Promise<vo
   // "membership has ended" email sent, then a "welcome back" email once the
   // add-side event catches up. Check the payload before acting on the event
   // type alone.
-  if (hasActivePlan(data.planConnections)) {
-    console.log('member.plan.canceled received but member still has an active plan connection - skipping archive:', data.id);
+  //
+  // Same for a remaining plan whose payment is failing (e.g. a plan swap
+  // where the new plan's first charge is being retried): that's a grace
+  // period under the Non-Payment Lifecycle SOP, not an ended membership.
+  if (getMembershipPaymentState(data.planConnections) !== 'inactive') {
+    console.log('member.plan.canceled received but member still has an active or payment-retrying plan connection - skipping archive:', data.id);
     return;
   }
 
@@ -1113,7 +1117,16 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
   if (data.planConnections && data.planConnections.length > 0) {
     // Was ACTIVE-only, which wrongly marked TRIALING members lapsed (and
     // archived their Webflow profile) on any unrelated member.updated event.
-    newStatus = hasActivePlan(data.planConnections) ? 'active' : 'lapsed';
+    //
+    // A card Stripe is still retrying (payment_failing) leaves the status
+    // exactly as it was: per the Non-Payment Lifecycle SOP that is never
+    // grounds to lapse or archive. Until 2026-09-25 this was
+    // `hasActivePlan(...) ? 'active' : 'lapsed'`, which hid members mid-retry
+    // and then sent them "Welcome back" when the card went through.
+    const paymentState = getMembershipPaymentState(data.planConnections);
+    if (paymentState === 'active') newStatus = 'active';
+    else if (paymentState === 'inactive') newStatus = 'lapsed';
+    await recordPaymentState(supabase, data.id, paymentState);
 
     // Only overwrite membership_type_id when something actually resolves -
     // preserve the undefined "don't touch" sentinel on a null result so an

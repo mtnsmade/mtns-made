@@ -8,7 +8,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
-import { hasActivePlan } from '../_shared/memberstack.ts';
+import { hasActivePlan, getMembershipPaymentState, recordPaymentState } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -336,6 +336,18 @@ async function runReconciliation(): Promise<{ fixes: ReconciliationFix[]; summar
     }
   }
 
+  // Members currently recorded as payment-failing. Loaded once so the loop
+  // below only writes when a member's payment state actually changes, rather
+  // than a write per member per night.
+  const supabase = getSupabaseClient();
+  const { data: paymentRows, error: paymentRowsError } = await supabase
+    .from('member_payment_status')
+    .select('memberstack_id');
+  if (paymentRowsError) console.error('Could not load member_payment_status:', paymentRowsError.message);
+  const recordedAsFailing = new Set<string>((paymentRows || []).map((r: { memberstack_id: string }) => r.memberstack_id));
+  let paymentFailingRecorded = 0;
+  let paymentFailingCleared = 0;
+
   // Check each Memberstack member
   for (const msMember of memberstackMembers) {
     // Check for ACTIVE or TRIALING status (both are valid paying states)
@@ -346,6 +358,23 @@ async function runReconciliation(): Promise<{ fixes: ReconciliationFix[]; summar
     if (!supabaseMember) {
       // Member exists in Memberstack but not Supabase - skip (handled by webhook)
       continue;
+    }
+
+    // Record when a payment starts failing and clear it when it recovers or
+    // ends, catching any change the webhook missed. Bookkeeping only: this
+    // never lapses anyone (a grace-period lapse is a separate, later step).
+    // Skipped if the table couldn't be loaded, so a read failure can't turn
+    // into a night of spurious inserts.
+    if (!paymentRowsError) {
+      const paymentState = getMembershipPaymentState(msMember.planConnections);
+      const isRecorded = recordedAsFailing.has(msMember.id);
+      if (paymentState === 'payment_failing' && !isRecorded) {
+        await recordPaymentState(supabase, msMember.id, paymentState);
+        paymentFailingRecorded++;
+      } else if (paymentState !== 'payment_failing' && isRecorded) {
+        await recordPaymentState(supabase, msMember.id, paymentState);
+        paymentFailingCleared++;
+      }
     }
 
     const sbStatus = supabaseMember.subscription_status;
@@ -407,7 +436,7 @@ async function runReconciliation(): Promise<{ fixes: ReconciliationFix[]; summar
     await sendReconciliationReport(fixes);
   }
 
-  const summary = `Reconciliation complete. Found ${fixes.length} mismatches, fixed ${fixes.filter(f => f.success).length}.`;
+  const summary = `Reconciliation complete. Found ${fixes.length} mismatches, fixed ${fixes.filter(f => f.success).length}. Payment failing: ${paymentFailingRecorded} newly recorded, ${paymentFailingCleared} cleared.`;
   console.log(summary);
 
   return { fixes, summary };

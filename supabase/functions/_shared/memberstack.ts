@@ -44,10 +44,17 @@ export interface MemberstackCustomFields {
 }
 
 // ACTIVE = paying member. TRIALING = in trial period, also a live subscription.
-// REQUIRES_PAYMENT is a mid-retry state (Stripe is still trying the card) and
-// must NEVER be treated as lapsed here - a member archived during a retry
-// window that then succeeds is exactly the kind of bug this module exists to
-// stop. CANCELED and anything else count as not active.
+// CANCELED and anything else count as not active.
+//
+// REQUIRES_PAYMENT (Stripe retrying a failed card) is deliberately NOT in this
+// list, but it is not "lapsed" either - it's a third state. Anything deciding
+// whether to lapse or archive a member must use getMembershipPaymentState()
+// below, never hasActivePlan() alone. (This comment used to claim
+// REQUIRES_PAYMENT was never treated as lapsed, while the member.updated
+// webhook did exactly that - found 2026-09-25.) Don't "fix" it by adding
+// REQUIRES_PAYMENT here: subscription-reconcile would then restore unpaid
+// members every day, and lapsed-member-cleanup's live re-check would treat
+// them as reactivated, so nobody unpaid could ever lapse.
 const ACTIVE_STATUSES = ['ACTIVE', 'TRIALING'];
 
 export function isActiveStatus(status: string | undefined | null): boolean {
@@ -202,4 +209,70 @@ export async function findAvailableMemberSlug(
   }
 
   return `${baseSlug}-${Date.now().toString(36)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Failed payments
+//
+// The "Member Non-Payment Lifecycle" SOP (admin dashboard, SOPs tab): only a
+// real CANCELED archives a member, never a card Stripe is still retrying.
+// Retry-then-success is common (some members' cards need 4-5 attempts most
+// months), so hiding them on the first failure is wrong. But Stripe never
+// cancels on its own either - once retries run out (~5 attempts, ~2 weeks) it
+// leaves the subscription past_due indefinitely - so a failing payment gets a
+// grace period, after which it's treated as ended.
+// ---------------------------------------------------------------------------
+
+const PAYMENT_FAILING_STATUSES = ['REQUIRES_PAYMENT'];
+
+// Days a payment may fail before the membership is treated as ended. Covers
+// Stripe's ~2-week retry window with room to spare. Proposed 2026-09-25,
+// pending Hannah's confirmation. Currently only used for reporting - nothing
+// lapses anyone on this yet.
+export const PAYMENT_GRACE_DAYS = 21;
+
+export type MembershipPaymentState = 'active' | 'payment_failing' | 'inactive';
+
+export function getMembershipPaymentState(
+  planConnections: PlanConnection[] | undefined | null
+): MembershipPaymentState {
+  if (hasActivePlan(planConnections)) return 'active';
+  const failing = (planConnections || []).some(
+    (p) => !!p.status && PAYMENT_FAILING_STATUSES.includes(p.status)
+  );
+  return failing ? 'payment_failing' : 'inactive';
+}
+
+// Record when a member's payment started failing, or clear it once it isn't.
+// Stored in member_payment_status (service role only), not on `members`,
+// whose rows are readable with the public anon key. A row exists only while
+// the payment is failing. The insert never overwrites an existing row, so the
+// original start date survives repeated webhooks and daily runs and the grace
+// period can't be reset. Never throws: payment bookkeeping failing must not
+// break whatever handler called it.
+export async function recordPaymentState(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  memberstackId: string,
+  state: MembershipPaymentState
+): Promise<void> {
+  try {
+    if (state === 'payment_failing') {
+      const { error } = await supabase
+        .from('member_payment_status')
+        .upsert(
+          { memberstack_id: memberstackId, payment_failing_since: new Date().toISOString() },
+          { onConflict: 'memberstack_id', ignoreDuplicates: true }
+        );
+      if (error) console.error('recordPaymentState insert failed:', memberstackId, error.message);
+    } else {
+      const { error } = await supabase
+        .from('member_payment_status')
+        .delete()
+        .eq('memberstack_id', memberstackId);
+      if (error) console.error('recordPaymentState delete failed:', memberstackId, error.message);
+    }
+  } catch (err) {
+    console.error('recordPaymentState error:', memberstackId, err);
+  }
 }

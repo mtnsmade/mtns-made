@@ -5,7 +5,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_SUPPORT } from '../_shared/gmail.ts';
-import { hasActivePlan, resolveMembershipTypeId } from '../_shared/memberstack.ts';
+import { hasActivePlan, resolveMembershipTypeId, getMembershipPaymentState, PAYMENT_GRACE_DAYS } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -83,7 +83,7 @@ interface ContentSyncRecord {
 }
 
 interface ConsistencyIssue {
-  type: 'missing_supabase' | 'missing_webflow' | 'orphaned_supabase' | 'orphaned_webflow' | 'status_mismatch' | 'profile_mismatch' | 'missing_webflow_content';
+  type: 'missing_supabase' | 'missing_webflow' | 'orphaned_supabase' | 'orphaned_webflow' | 'status_mismatch' | 'profile_mismatch' | 'missing_webflow_content' | 'payment_failing';
   severity: 'critical' | 'warning' | 'info';
   memberstackId?: string;
   supabaseId?: string;
@@ -333,6 +333,16 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
     }
   }
 
+  // When each currently payment-failing member's payment started failing
+  // (service-role-only table, maintained by the webhook and the daily
+  // subscription-reconcile).
+  const paymentFailingSince = new Map<string, string>();
+  const { data: paymentRows, error: paymentRowsError } = await getSupabaseClient()
+    .from('member_payment_status')
+    .select('memberstack_id, payment_failing_since');
+  if (paymentRowsError) console.error('Could not load member_payment_status:', paymentRowsError.message);
+  for (const row of paymentRows || []) paymentFailingSince.set(row.memberstack_id, row.payment_failing_since);
+
   const issues: ConsistencyIssue[] = [];
 
   // 1. Check Memberstack members exist in Supabase
@@ -399,14 +409,32 @@ async function runConsistencyCheck(): Promise<ConsistencyReport> {
         details: `Memberstack shows ACTIVE but Supabase shows lapsed`,
       });
     } else if (!isActive && supabaseMember.subscription_status === 'active' && !supabaseMember.is_deleted) {
-      issues.push({
-        type: 'status_mismatch',
-        severity: 'warning',
-        memberstackId: msMember.id,
-        supabaseId: supabaseMember.id,
-        email: msMember.auth?.email,
-        details: `Memberstack shows inactive but Supabase shows active`,
-      });
+      if (getMembershipPaymentState(msMember.planConnections) === 'payment_failing') {
+        // Not a mismatch: Stripe is retrying the card, and the Non-Payment
+        // Lifecycle SOP deliberately keeps the member visible meanwhile.
+        // Reported as its own category so it doesn't read as a sync fault.
+        const since = paymentFailingSince.get(msMember.id);
+        const day = since ? Math.floor((Date.now() - new Date(since).getTime()) / 86_400_000) + 1 : null;
+        issues.push({
+          type: 'payment_failing',
+          severity: 'info',
+          memberstackId: msMember.id,
+          supabaseId: supabaseMember.id,
+          email: msMember.auth?.email,
+          details: since
+            ? `Payment failing since ${since.slice(0, 10)} (day ${day} of ${PAYMENT_GRACE_DAYS}) - card being retried, profile intentionally still visible`
+            : `Payment failing (start date not yet recorded) - card being retried, profile intentionally still visible`,
+        });
+      } else {
+        issues.push({
+          type: 'status_mismatch',
+          severity: 'warning',
+          memberstackId: msMember.id,
+          supabaseId: supabaseMember.id,
+          email: msMember.auth?.email,
+          details: `Memberstack shows inactive but Supabase shows active`,
+        });
+      }
     }
 
     // Check Webflow consistency for active, profile-complete members
@@ -610,14 +638,26 @@ async function saveReport(report: ConsistencyReport): Promise<void> {
 
 // Send email alert if there are critical issues
 async function sendAlertEmail(report: ConsistencyReport): Promise<void> {
-  // Only send if there are critical or warning issues
-  if (report.summary.issues_critical === 0 && report.summary.issues_warning === 0) {
-    console.log('No critical/warning issues, skipping alert email');
+  const paymentFailingIssues = report.issues.filter(i => i.type === 'payment_failing');
+
+  // Only send if there are critical or warning issues, or payments failing.
+  // Payment-failing members used to arrive here as "Memberstack shows inactive"
+  // warnings; now they're info, so they're checked explicitly to keep them
+  // visible rather than silently dropping out of the email.
+  if (report.summary.issues_critical === 0 && report.summary.issues_warning === 0 && paymentFailingIssues.length === 0) {
+    console.log('No critical/warning issues or failing payments, skipping alert email');
     return;
   }
 
   const criticalIssues = report.issues.filter(i => i.severity === 'critical');
   const warningIssues = report.issues.filter(i => i.severity === 'warning');
+
+  const paymentFailingRows = paymentFailingIssues.map(issue => `
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;">${issue.email || issue.memberstackId || 'N/A'}</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">${issue.details}</td>
+    </tr>
+  `).join('');
 
   const issueRows = [...criticalIssues, ...warningIssues].slice(0, 20).map(issue => `
     <tr>
@@ -762,6 +802,22 @@ async function sendAlertEmail(report: ConsistencyReport): Promise<void> {
         </tbody>
       </table>
       ${report.issues.length > 20 ? `<p style="color: #666; font-size: 14px;">... and ${report.issues.length - 20} more issues</p>` : ''}
+      ` : ''}
+
+      ${paymentFailingIssues.length > 0 ? `
+      <h2>Payments Failing (grace period)</h2>
+      <p style="color: #666; font-size: 14px;">Stripe is retrying these members' cards. Per the Non-Payment Lifecycle SOP their profiles stay visible during the grace period; no action needed unless you want to contact them.</p>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f0f0f0;">
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Member</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${paymentFailingRows}
+        </tbody>
+      </table>
       ` : ''}
 
       <p style="margin-top: 20px; color: #666; font-size: 14px;">
