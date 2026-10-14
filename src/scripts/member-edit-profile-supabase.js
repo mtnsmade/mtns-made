@@ -812,10 +812,14 @@
 
   async function loadMemberData(memberstackId) {
     try {
-      // Load member
+      // Load member. The membership type is embedded (not just the id) because
+      // save() reads supabaseMember.membership_type.slug to decide whether the
+      // display name is the business name or the personal name. Without this
+      // embed that value was always empty, so every business member's save
+      // overwrote their name with first + last name (found 2026-10-15).
       const { data: member, error } = await supabase
         .from('members')
-        .select('*')
+        .select('*, membership_type:membership_types(id, name, slug)')
         .eq('memberstack_id', memberstackId)
         .single();
 
