@@ -56,7 +56,7 @@ Emerging and Professional profiles live at /members/first-last. The business tie
 The same steps apply in reverse (business to individual), using the personal-name slug.
 
 Steps, in this order
-1. Business name first. The member completes Business Details in Edit Profile. Confirm it saved: Supabase business_name and the Webflow "Trading or business name" field. Do not pick a slug until it is there, because the name they use may differ from what we assumed.
+1. Business name first. Best: the member completes Business Details in Edit Profile, because saving there sets BOTH business_name and the display name (the profile's "name", which becomes the page heading and title) in one go. If you enter it by hand instead, set both business_name AND name in Supabase (business members have name equal to the business name). Setting only business_name leaves the page heading and browser title on the personal name. Either way the change reaches Webflow within seconds and publishes itself. Confirm: Supabase business_name and name, and the Webflow "Trading or business name" field and item name. The Memberstack trading-name field does not need updating: the profile form never writes it. Do not pick a slug until the name is there, because the name they use may differ from what we assumed.
 2. Choose the new slug: the business name, lowercase, letters and numbers with single hyphens, no punctuation (the same rule onboarding uses). Check it is free: no other row in Supabase members.slug, no other Webflow member with that slug (add -2 if taken), and no static page at that address.
 3. Webflow CMS: change the member item's slug to the new one (CMS editor, or the Webflow API).
 4. Redirect: Webflow site settings > Publishing > 301 Redirects. Add /members/old-slug pointing to /members/new-slug. This has to be done by hand: Webflow's redirect API is Enterprise only and our site is not on that plan (confirmed). Redirects only take effect when the site is published.
@@ -74,7 +74,7 @@ VERIFY ALL OF THESE
 - Stripe: new invoice paid, one active subscription item on the new price.
 - Memberstack: one plan connection showing the new plan and amount, and membership-type set to the new tier.
 - Supabase members: membership type is the new tier, subscription_status is active.
-- Webflow: the member's type is the new tier, and the live profile shows the new layout after a hard refresh.
+- Webflow: the member's type is the new tier, and the live profile shows the new layout after a hard refresh. For a business tier, the page heading and browser title show the business name, not the personal name.
 - If the URL was moved: the old URL answers with a 301 to the new one (check with curl -I), the new URL answers 200 and shows the business name, the nav "My profile" link goes to the new URL, and Supabase slug, Memberstack slug and Webflow slug all match.
 
 TELL THE MEMBER
