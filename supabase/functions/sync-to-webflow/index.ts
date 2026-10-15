@@ -1081,7 +1081,21 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
     header_image_url: record.header_image_url,
   });
 
-  const displayName = [record.first_name, record.last_name].filter(Boolean).join(' ')
+  // Business-tier members are listed under their business name (that is what
+  // the page heading, browser title and directory listing show); individual
+  // tiers use first + last name. A 2026-05-23 change ("fix member name sync")
+  // made every member use first + last name so nobody fell back to an email
+  // prefix, which silently replaced the business name on every business
+  // profile at its next sync. Business name now wins for business tiers, and
+  // the first + last fallback still covers an empty business name.
+  const membershipSlug = record.membership_type_id
+    ? await getMembershipTypeSlug(record.membership_type_id)
+    : null;
+  const businessName = (record.business_name || '').trim();
+  const useBusinessName = isBusinessMembershipType(membershipSlug) && !!businessName;
+
+  const displayName = (useBusinessName ? businessName : '')
+    || [record.first_name, record.last_name].filter(Boolean).join(' ')
     || record.name
     || record.email?.split('@')[0]
     || 'Member';
@@ -1094,11 +1108,6 @@ async function mapMemberToWebflowFields(record: MemberRecord, includeSlug: boole
     // Determine if this is a business membership type
     // Business types (small-business, large-business, not-for-profit, partner, spaces-suppliers): use business name
     // Individual types (emerging, professional): use first name + last name
-    const membershipSlug = record.membership_type_id
-      ? await getMembershipTypeSlug(record.membership_type_id)
-      : null;
-    const useBusinessName = isBusinessMembershipType(membershipSlug) && record.business_name;
-
     let baseSlug: string;
     if (useBusinessName) {
       baseSlug = generateSlug(record.business_name!);
