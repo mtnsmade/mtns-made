@@ -56,7 +56,7 @@ Emerging and Professional profiles live at /members/first-last. The business tie
 The same steps apply in reverse (business to individual), using the personal-name slug.
 
 Steps, in this order
-1. Business name first. The member completes Business Details in Edit Profile (or you enter it by hand). Either way, check BOTH business_name AND name in Supabase, and set name to the business name by hand if it is not. Business members have name equal to the business name, and name is what becomes the page heading and browser title. Known bug (found 15 Oct 2026): Edit Profile does not do this for business members. It decides whether someone is a business member from a value the page never loads, so every save writes their personal name back into name. Until that script is fixed, the member's own saves will undo a manual fix, so fix the script first, or re-check name after every profile save. Confirm the change reaches Webflow (Trading or business name, and the item name). The Memberstack trading-name field does not need updating: the profile form never writes it. Do not pick a slug until the name is there, because the name they use may differ from what we assumed.
+1. Business name first. The member completes Business Details in Edit Profile (or you enter it by hand). Check business_name in Supabase and the Webflow "Trading or business name" field. Then check the NAME the public page shows (the page heading, browser title and directory listing come from the Webflow item's name). Business members should show the business name. Two known bugs, found 15 Oct 2026, work against this: (a) Edit Profile writes the member's personal name into Supabase name on every save, because it never loads their membership type (fixed in the script on 15 Oct, but browsers can hold the old script for up to 7 days); (b) the Webflow sync always writes first name + last name into the Webflow item name, whatever the tier, so it overwrites any hand edit in Webflow on the next sync. Until the sync is fixed, a business member's public name will show their personal name. Set the Webflow item name by hand if it matters, and re-check it after any later profile save. The Memberstack trading-name field does not need updating: the profile form never writes it. Do not pick a slug until the business name is there, because the name they use may differ from what we assumed.
 2. Choose the new slug: the business name, lowercase, letters and numbers with single hyphens, no punctuation (the same rule onboarding uses). Check it is free: no other row in Supabase members.slug, no other Webflow member with that slug (add -2 if taken), and no static page at that address.
 3. Webflow CMS: change the member item's slug to the new one (CMS editor, or the Webflow API).
 4. Redirect: Webflow site settings > Publishing > 301 Redirects. Add /members/old-slug pointing to /members/new-slug. This has to be done by hand: Webflow's redirect API is Enterprise only and our site is not on that plan (confirmed). Redirects only take effect when the site is published.
@@ -74,7 +74,7 @@ VERIFY ALL OF THESE
 - Stripe: new invoice paid, one active subscription item on the new price.
 - Memberstack: one plan connection showing the new plan and amount, and membership-type set to the new tier.
 - Supabase members: membership type is the new tier, subscription_status is active.
-- Webflow: the member's type is the new tier, and the live profile shows the new layout after a hard refresh. For a business tier, the page heading and browser title show the business name, not the personal name.
+- Webflow: the member's type is the new tier, and the live profile shows the new layout after a hard refresh. For a business tier, the page heading and browser title should show the business name, not the personal name (see the known bugs in Part 2, step 1).
 - If the URL was moved: the old URL answers with a 301 to the new one (check with curl -I), the new URL answers 200 and shows the business name, the nav "My profile" link goes to the new URL, and Supabase slug, Memberstack slug and Webflow slug all match.
 
 TELL THE MEMBER
@@ -82,6 +82,7 @@ TELL THE MEMBER
 - If they moved to a business tier, they can now complete the Business Details section (trading name and so on) in Edit Profile, and what their new profile URL is.
 
 OPEN ITEMS
+- Fix sync-to-webflow so a business-tier member's Webflow name is the business name, then re-sync the members still showing a personal name. Once done, update Part 2 step 1.
 - Fix the member.plan.updated handler so it does not depend on the "reason" list (re-read the member from Memberstack and re-resolve their type). Once shipped, the label step becomes a check only, and this SOP should be updated.
 - Steps 6 and 7 of PART 2 are separate manual jobs today. A small admin action that sets the slug in Supabase, Memberstack and Webflow together would remove most of the risk.
 - Not yet tested the same way: a billing-interval change on the same tier, and a downgrade. A downgrade should leave a credit on the customer rather than a refund. Check before promising a refund.
