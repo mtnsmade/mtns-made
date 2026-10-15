@@ -11,13 +11,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_HELLO, FROM_SUPPORT } from '../_shared/gmail.ts';
-import { hasActivePlan, getActivePlanConnection, resolveMembershipTypeId, syncMembershipTypeCustomField, findAvailableMemberSlug, getMembershipTypeSlugByPlanId, getMembershipTypeIdBySlug, getMembershipPaymentState, recordPaymentState } from '../_shared/memberstack.ts';
+import { hasActivePlan, isActiveStatus, getActivePlanConnection, resolveMembershipTypeId, syncMembershipTypeCustomField, findAvailableMemberSlug, getMembershipTypeSlugByPlanId, getMembershipTypeIdBySlug, getMembershipPaymentState, recordPaymentState } from '../_shared/memberstack.ts';
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const WEBFLOW_API_TOKEN = Deno.env.get('WEBFLOW_API_TOKEN') || '';
 const MEMBERSTACK_WEBHOOK_SECRET = Deno.env.get('MEMBERSTACK_WEBHOOK_SECRET') || '';
+const MEMBERSTACK_API_KEY = Deno.env.get('MEMBERSTACK_API_KEY') || '';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'support@mtnsmade.com.au';
 const SITE_URL = 'https://www.mtnsmade.com.au';
 
@@ -1212,11 +1213,18 @@ async function handleMemberUpdated(data: MemberstackMemberData): Promise<void> {
 // Handles member.plan.updated - an in-place change to one existing plan
 // connection (no planConnections array, no planName - see the switch
 // statement comment for the full context on why this needs its own handler
-// rather than reusing handleMemberUpdated). Only membership_type_id is in
-// scope here; subscription_status/archiving stays owned by
-// member.plan.canceled and member.updated as before, since every reason this
-// event has been confirmed to fire for so far is either a routine renewal
-// (nothing to do) or a plan/price swap (a type change, not a status change).
+// rather than reusing handleMemberUpdated). Only membership_type_id (and the
+// custom field that mirrors it) is in scope here; subscription_status/archiving
+// stays owned by member.plan.canceled and member.updated as before.
+//
+// Confirmed 2026-10-14 on a real tier change made directly in the Stripe
+// Dashboard: Memberstack moved the plan connection in place and sent this event
+// with an EMPTY `reason` list. The first version of this handler only acted
+// when `reason` said planId/priceId changed, so it logged "nothing to do" and
+// left the member on their old type in Supabase, the custom field and Webflow.
+// So the payload is no longer trusted for the answer: unless the event is a
+// plain renewal (only nextBillingDate changed), re-read the member from
+// Memberstack and work out their type from their real active plan.
 async function handleMemberPlanUpdated(payload: {
   member?: { id: string; customFields?: Record<string, string> };
   planConnection?: { planId?: string; priceId?: string; status?: string };
@@ -1225,21 +1233,55 @@ async function handleMemberPlanUpdated(payload: {
   const reasons = payload.reason || [];
   console.log('Handling member.plan.updated:', payload.member?.id, 'reason:', reasons);
 
-  if (!reasons.includes('planId.changed') && !reasons.includes('priceId.changed')) {
-    console.log('member.plan.updated - no plan/price change, nothing to do');
+  // Routine renewal: nothing about the plan or price changed.
+  if (reasons.length > 0 && reasons.every((r) => r === 'nextBillingDate.changed')) {
+    console.log('member.plan.updated - renewal only, nothing to do');
     return;
   }
 
   const memberstackId = payload.member?.id;
-  const newPlanId = payload.planConnection?.planId;
-  if (!memberstackId || !newPlanId) {
-    console.log('member.plan.updated - missing member id or planId, skipping');
+  if (!memberstackId) {
+    console.log('member.plan.updated - missing member id, skipping');
     return;
   }
 
-  const newSlug = getMembershipTypeSlugByPlanId(newPlanId);
+  // Re-read the live member. Fall back to the single plan connection in the
+  // payload only if the lookup fails.
+  let planConnections: Array<{ planId?: string; status?: string }> = [];
+  let currentCustomField: string | undefined = payload.member?.customFields?.['membership-type'];
+  let readLive = false;
+  if (MEMBERSTACK_API_KEY) {
+    try {
+      const res = await fetch(`https://admin.memberstack.com/members/${memberstackId}`, {
+        headers: { 'X-API-KEY': MEMBERSTACK_API_KEY, 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const live = (await res.json())?.data;
+        planConnections = live?.planConnections || [];
+        currentCustomField = live?.customFields?.['membership-type'] ?? currentCustomField;
+        readLive = true;
+      } else {
+        console.error('member.plan.updated - Memberstack lookup failed:', res.status);
+      }
+    } catch (err) {
+      console.error('member.plan.updated - Memberstack lookup error:', err);
+    }
+  }
+  if (!readLive && payload.planConnection) {
+    planConnections = [payload.planConnection];
+  }
+
+  // The first ACTIVE plan that is one of our tier plans decides the type.
+  // Unmapped plans (legacy flat plan, add-ons, complimentary) are ignored, and
+  // if none is mapped we leave the member alone rather than guess.
+  let newSlug: string | null = null;
+  for (const plan of planConnections) {
+    if (!isActiveStatus(plan.status)) continue;
+    const slug = getMembershipTypeSlugByPlanId(plan.planId);
+    if (slug) { newSlug = slug; break; }
+  }
   if (!newSlug) {
-    console.log('member.plan.updated - planId not in our known tier map, skipping:', newPlanId);
+    console.log('member.plan.updated - no active plan in our tier map, skipping (live read:', readLive, ')');
     return;
   }
 
@@ -1261,10 +1303,12 @@ async function handleMemberPlanUpdated(payload: {
       .from('members')
       .update({ membership_type_id: newMembershipTypeId })
       .eq('memberstack_id', memberstackId);
-    console.log('Membership type updated via plan.updated:', member.membership_type_id, '->', newMembershipTypeId);
+    console.log('Membership type updated via plan.updated:', member.membership_type_id, '->', newMembershipTypeId, `(${newSlug})`);
+  } else {
+    console.log('member.plan.updated - type already', newSlug);
   }
 
-  await syncMembershipTypeCustomField(supabase, memberstackId, newMembershipTypeId, payload.member?.customFields?.['membership-type']);
+  await syncMembershipTypeCustomField(supabase, memberstackId, newMembershipTypeId, currentCustomField);
 }
 
 // Verify a Memberstack webhook signature. Memberstack signs webhooks via
