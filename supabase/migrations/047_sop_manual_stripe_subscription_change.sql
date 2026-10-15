@@ -41,12 +41,11 @@ Expect the member's total paid to land slightly under the new tier price, becaus
 What happens automatically (observed)
 - Stripe: same subscription, item swapped, one invoice created and paid.
 - Memberstack: the plan connection updates in place within seconds (new plan, new price, same renewal date). No cancel event, no lapse emails, no archiving.
-- Our webhook: Memberstack sends member.plan.updated, but with an empty "reason" list, and the handler only acts when the reason says the plan or price changed. So it logs "nothing to do" and ignores it.
-- Result: the membership-type custom field in Memberstack, the membership type in Supabase, and the member type in Webflow all STAY ON THE OLD TIER. No scheduled job corrects this later.
+- Our webhook: Memberstack sends member.plan.updated with an EMPTY "reason" list for a change made in Stripe. Until 15 Oct 2026 the handler only acted when the reason said the plan or price changed, so it ignored the event and left the membership-type custom field, Supabase and Webflow on the old tier. The handler now re-reads the member from Memberstack and sets the type from their active tier plan (a plain renewal is skipped). This was deployed on 15 Oct but has NOT yet been proven on a live Stripe-side change, so treat the check below as required, and the manual step as the fallback.
 - The Stripe subscription's own metadata keeps the old plan label. This is cosmetic: nothing in our code reads it.
 
-Required manual step afterwards
-Admin dashboard > the member > Manage Membership > choose the new type > TICK "Skip billing change (update label only)" > Update Membership. This updates the Memberstack custom field, Supabase and Webflow only. It does not touch billing. The profile page then shows the new tier's layout.
+Check, and fallback if needed
+Wait a minute, then check the type in Memberstack (membership-type field), Supabase and Webflow. If any still shows the old tier, use the fallback: admin dashboard > the member > Manage Membership > choose the new type > TICK "Skip billing change (update label only)" > Update Membership. That updates the Memberstack custom field, Supabase and Webflow only, and does not touch billing. If you needed the fallback, the webhook fix did not work on a live change: tell whoever maintains the site, and check the memberstack-webhook logs for "member.plan.updated".
 
 PART 2: PROFILE URL WHEN CROSSING THE INDIVIDUAL / BUSINESS LINE
 
@@ -83,7 +82,7 @@ TELL THE MEMBER
 
 OPEN ITEMS
 - Fix sync-to-webflow so a business-tier member's Webflow name is the business name, then re-sync the members still showing a personal name. Once done, update Part 2 step 1.
-- Fix the member.plan.updated handler so it does not depend on the "reason" list (re-read the member from Memberstack and re-resolve their type). Once shipped, the label step becomes a check only, and this SOP should be updated.
+- Confirm the member.plan.updated fix (15 Oct 2026) on the next live Stripe-side change. If the type follows by itself, remove the fallback wording above.
 - Steps 6 and 7 of PART 2 are separate manual jobs today. A small admin action that sets the slug in Supabase, Memberstack and Webflow together would remove most of the risk.
 - Not yet tested the same way: a billing-interval change on the same tier, and a downgrade. A downgrade should leave a credit on the customer rather than a refund. Check before promising a refund.
 - The self-service Stripe portal does not currently show a "switch plan" option, so members cannot do this themselves.$sop$
