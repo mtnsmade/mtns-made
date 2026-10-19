@@ -5,4 +5,6 @@ scripts/**/results-*.json
 recovery-results-*.json
 winback-lists/
 pricing-migration/
+docs/track2-member-migration-plan.md
 .claude/settings.local.json
+memberstack/
