@@ -218,18 +218,19 @@ export async function findAvailableMemberSlug(
 // real CANCELED archives a member, never a card Stripe is still retrying.
 // Retry-then-success is common (some members' cards need 4-5 attempts most
 // months), so hiding them on the first failure is wrong. But Stripe never
-// cancels on its own either - once retries run out (~5 attempts, ~2 weeks) it
+// cancels on its own either - once retries run out (30 days, see below) it
 // leaves the subscription past_due indefinitely - so a failing payment gets a
 // grace period, after which it's treated as ended.
 // ---------------------------------------------------------------------------
 
 const PAYMENT_FAILING_STATUSES = ['REQUIRES_PAYMENT'];
 
-// Days a payment may fail before the membership is treated as ended. Covers
-// Stripe's ~2-week retry window with room to spare. Proposed 2026-09-25,
-// pending Hannah's confirmation. Currently only used for reporting - nothing
-// lapses anyone on this yet.
-export const PAYMENT_GRACE_DAYS = 21;
+// Days a payment may fail before the membership is treated as ended. Matches
+// Stripe's retry window, which Hannah set to 30 days on 2026-10-20 (it was
+// ~2 weeks). Must never be shorter than that window, or a member would be
+// treated as ended while Stripe is still retrying their card. Currently only
+// used for reporting - nothing lapses anyone on this yet.
+export const PAYMENT_GRACE_DAYS = 30;
 
 export type MembershipPaymentState = 'active' | 'payment_failing' | 'inactive';
 
