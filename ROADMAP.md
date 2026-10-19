@@ -447,6 +447,19 @@ This has never surfaced before purely because no one has ever published a batch 
 
 ---
 
+### R-018 — Spaces & Suppliers pricing is inconsistent *(ON HOLD: awaiting MTNS MADE decision on whether this tier is being retired)*
+**Priority:** On hold
+**Effort:** Small once decided (price + join page), plus a small migration for existing members
+**Affects:** Stripe/Memberstack prices on the Spaces & Suppliers plan, the `/join/type` page card, `src/scripts/member-signup-2026.js`
+
+**Background:** raised 2026-10-20 (spotted by Nicola). The join page offers $12/month or **$275/year badged "Best Price"**, but 12 x $12 = $144, so the annual option costs nearly double. Every other tier charges about 10 months' worth for a year (e.g. Professional $5/$50, Small Business $9.50/$100). The $275 matches the hidden Partner tier's price exactly and was likely carried over from it (flagged as a possible mix-up in the August price audit).
+
+The tier was originally priced by organisation type, which is how all 7 current members still pay: $40/yr not-for-profit/collective, $60/yr educational or cultural institution, $80/yr company/business. The 2026 flat pair replaced those on the join page, so $275 would be roughly 3.5 to 7 times what existing members pay. As of 2026-10-20 nobody has been charged either new price.
+
+**Do not invest in fixing until MTNS MADE confirms whether the tier is being retired.** If it stays, decide: (1) organisation-type pricing or one flat price; (2) a consistent monthly/yearly pair (a yearly in line with other tiers implies about $120-130 for $12/month). Then update the price, the join-page price attribute and its visible "$X / Year" text together, and plan a small migration for the 7 existing members.
+
+---
+
 ## Completed
 
 | ID | Item | Date |
