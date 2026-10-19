@@ -447,7 +447,7 @@ This has never surfaced before purely because no one has ever published a batch 
 
 ---
 
-### R-018 — Spaces & Suppliers pricing is inconsistent *(ON HOLD: awaiting MTNS MADE decision on whether this tier is being retired)*
+### R-018: Spaces & Suppliers pricing is inconsistent *(ON HOLD: awaiting MTNS MADE decision on whether this tier is being retired)*
 **Priority:** On hold
 **Effort:** Small once decided (price + join page), plus a small migration for existing members
 **Affects:** Stripe/Memberstack prices on the Spaces & Suppliers plan, the `/join/type` page card, `src/scripts/member-signup-2026.js`
