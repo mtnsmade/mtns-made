@@ -1,12 +1,19 @@
 /**
- * MTNS MADE - Track 2 member notices (DRY RUN ONLY)
+ * MTNS MADE - Track 2 member notices
  *
  * Builds the price-change notice for every Group A member in the automated
  * Professional batch and writes the rendered emails to files for review.
- * Sends nothing. Makes NO changes to Stripe, Memberstack, Supabase or Webflow.
+ * By default it sends nothing. Never changes Stripe, Memberstack, Supabase or
+ * Webflow.
  *
  * Usage:
  *   node track2-notices.js --out <dir> [--overrides <file.csv>] [--notice-days 30] [--send-date YYYY-MM-DD]
+ *   node track2-notices.js --out <dir> [--overrides ...] --send --only a@x.com,b@y.com
+ *
+ *   --send         Actually send, but ONLY to the addresses listed in --only.
+ *                  There is no "send to everyone" mode: each batch is named.
+ *   --only         Comma-separated recipient emails for this batch. Every one
+ *                  must be in the rendered, non-excluded list or nothing sends.
  *
  *   --out          Directory for manifest.csv and emails.txt. Both contain
  *                  member names and emails, so keep it outside the repo
@@ -15,7 +22,14 @@
  *                  whose tier was decided outside Memberstack.
  *   --notice-days  Days between the email and the first charge at the new
  *                  fee. Default 30.
- *   --send-date    Date the notices will go out. Default today.
+ *   --send-date    Date the notices will go out. Default today. Ignored
+ *                  with --send (always today, so the dates in the email are
+ *                  counted from the real send).
+ *
+ * Every send is recorded in pricing-migration/track2-notices-sent.json
+ * (gitignored). An address already in that ledger, in any state, is never
+ * emailed again by this script; a "sending" entry means a run stopped mid-send
+ * and must be checked by hand in the support@ Sent folder.
  *
  * Credentials from ../../cred.env: STRIPE_RESTRICTED_KEY, SECRET_KEY
  * (Memberstack admin). Values are never printed.
@@ -36,21 +50,30 @@ const argValue = (flag) => {
 const OUT_DIR = argValue('--out');
 const OVERRIDES_PATH = argValue('--overrides');
 const NOTICE_DAYS = Number(argValue('--notice-days') || 30);
-const SEND_DATE = argValue('--send-date') ? new Date(argValue('--send-date') + 'T00:00:00Z') : new Date();
+const SEND = args.includes('--send');
+const ONLY = (argValue('--only') || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+const SEND_DATE = !SEND && argValue('--send-date') ? new Date(argValue('--send-date') + 'T00:00:00Z') : new Date();
+const LEDGER_PATH = path.join(__dirname, '../../pricing-migration/track2-notices-sent.json');
 
 if (!OUT_DIR) {
   console.error('Missing --out <dir>. Write it outside the repo.');
   process.exit(1);
 }
-if (args.includes('--send')) {
-  console.error('This script is dry-run only. Sending is a separate, approved step.');
+if (SEND && ONLY.length === 0) {
+  console.error('--send needs --only <emails>. Each batch must be named.');
   process.exit(1);
 }
 
 const STRIPE_KEY = process.env.STRIPE_RESTRICTED_KEY;
 const MS_KEY = process.env.SECRET_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const INTERNAL_SECRET = process.env.INTERNAL_FN_SECRET;
 if (!STRIPE_KEY || !MS_KEY) {
   console.error('STRIPE_RESTRICTED_KEY and SECRET_KEY must be set in cred.env');
+  process.exit(1);
+}
+if (SEND && (!SUPABASE_URL || !INTERNAL_SECRET)) {
+  console.error('SUPABASE_URL and INTERNAL_FN_SECRET must be set in cred.env to send');
   process.exit(1);
 }
 
@@ -182,6 +205,75 @@ ${SIGN_OFF}`,
 }
 
 // ============================================
+// SENDING
+// ============================================
+
+function readLedger() {
+  return fs.existsSync(LEDGER_PATH) ? JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8')) : {};
+}
+
+function writeLedger(ledger) {
+  fs.mkdirSync(path.dirname(LEDGER_PATH), { recursive: true });
+  const tmp = LEDGER_PATH + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(ledger, null, 2) + '\n');
+  fs.renameSync(tmp, LEDGER_PATH);
+}
+
+// Through the send-email edge function, so mail goes out via the existing
+// Gmail service account from the allowlisted support@ sender. The internal
+// secret marks this as a trusted server-side caller.
+async function sendOne(row) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-internal-secret': INTERNAL_SECRET },
+    body: JSON.stringify({
+      to: row.email,
+      from: 'MTNS MADE <support@mtnsmade.com.au>',
+      replyTo: 'support@mtnsmade.com.au',
+      subject: row.email_out.subject,
+      text: row.email_out.body,
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.success) throw new Error(`send-email HTTP ${res.status}: ${body.error || 'unknown error'}`);
+  return body.id || '';
+}
+
+async function sendBatch(rows) {
+  const sendable = new Map(rows.filter((r) => r.email_out).map((r) => [r.email.toLowerCase(), r]));
+  const ledger = readLedger();
+  const problems = [];
+  for (const e of ONLY) {
+    if (!sendable.has(e)) problems.push(`${e}: not in the rendered, non-excluded list`);
+    else if (ledger[e]) problems.push(`${e}: already in the ledger (${ledger[e].status}, ${ledger[e].at})`);
+  }
+  if (problems.length) {
+    console.error('Nothing sent. Fix these first:\n  ' + problems.join('\n  '));
+    process.exit(1);
+  }
+
+  for (const e of ONLY) {
+    const row = sendable.get(e);
+    const base = { template: row.template, effective_date: row.effective_date, stripe_subscription: row.stripe_subscription, memberstack_id: row.memberstack_id };
+    ledger[e] = { ...base, status: 'sending', at: new Date().toISOString() };
+    writeLedger(ledger);
+    try {
+      const id = await sendOne(row);
+      ledger[e] = { ...base, status: 'sent', at: new Date().toISOString(), gmail_id: id };
+      writeLedger(ledger);
+      console.log(`  sent      ${e} (template ${row.template}${row.effective_date ? ', from ' + row.effective_date : ''})`);
+    } catch (err) {
+      ledger[e] = { ...base, status: 'failed', at: new Date().toISOString(), error: err.message };
+      writeLedger(ledger);
+      console.error(`  FAILED    ${e}: ${err.message}`);
+      console.error('Stopping the batch on the first failure.');
+      process.exit(1);
+    }
+  }
+  console.log(`Sent ${ONLY.length}. Ledger: ${LEDGER_PATH}`);
+}
+
+// ============================================
 // MAIN
 // ============================================
 
@@ -274,6 +366,15 @@ async function main() {
   const deferred = rows.filter((r) => r.template === 'A' && r.effective_date !== r.renews).length;
   console.log(`  Annual members renewing inside the notice window (pay old fee once more): ${deferred}`);
   console.log(`Wrote ${path.join(OUT_DIR, 'manifest.csv')} and emails.txt`);
+
+  const ledger = readLedger();
+  const alreadySent = rows.filter((r) => ledger[r.email.toLowerCase()]).length;
+  if (alreadySent) console.log(`  Already in the sent ledger: ${alreadySent}`);
+
+  if (SEND) {
+    console.log(`\nSENDING to ${ONLY.length} named recipient(s):`);
+    await sendBatch(rows);
+  }
 }
 
 main().catch((err) => {
