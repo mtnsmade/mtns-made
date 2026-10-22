@@ -18,8 +18,9 @@
  *   --out          Directory for manifest.csv and emails.txt. Both contain
  *                  member names and emails, so keep it outside the repo
  *                  (the repo is public).
- *   --overrides    Optional CSV with columns email,target_slug for members
- *                  whose tier was decided outside Memberstack.
+ *   --overrides    CSV with columns email,target_slug for members whose tier
+ *                  was decided outside Memberstack. Default
+ *                  pricing-migration/track2-overrides.csv (gitignored).
  *   --notice-days  Days between the email and the first charge at the new
  *                  fee. Default 30.
  *   --send-date    Date the notices will go out. Default today. Ignored
@@ -32,15 +33,27 @@
  * and must be checked by hand in the support@ Sent folder.
  *
  * Credentials from ../../cred.env: STRIPE_RESTRICTED_KEY, SECRET_KEY
- * (Memberstack admin). Values are never printed.
+ * (Memberstack admin). Values are never printed. Shared definitions
+ * (prices, exclusion rules) live in track2-lib.js.
  *
  * See docs/track2-member-migration-plan.md (gitignored) for the plan.
  */
 
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config({ path: path.join(__dirname, '../../cred.env') });
-const { parse } = require('csv-parse/sync');
+const {
+  LEDGER_PATH,
+  OVERRIDES_PATH: DEFAULT_OVERRIDES_PATH,
+  LEGACY_PRICES,
+  PROFESSIONAL,
+  requireKeys,
+  stripeListAll,
+  memberstackAll,
+  loadOverrides,
+  readLedger,
+  memberEmail,
+  exclusionReason,
+} = require('./track2-lib');
 
 const args = process.argv.slice(2);
 const argValue = (flag) => {
@@ -48,12 +61,11 @@ const argValue = (flag) => {
   return i >= 0 ? args[i + 1] : null;
 };
 const OUT_DIR = argValue('--out');
-const OVERRIDES_PATH = argValue('--overrides');
+const OVERRIDES_PATH = argValue('--overrides') || DEFAULT_OVERRIDES_PATH;
 const NOTICE_DAYS = Number(argValue('--notice-days') || 30);
 const SEND = args.includes('--send');
 const ONLY = (argValue('--only') || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 const SEND_DATE = !SEND && argValue('--send-date') ? new Date(argValue('--send-date') + 'T00:00:00Z') : new Date();
-const LEDGER_PATH = path.join(__dirname, '../../pricing-migration/track2-notices-sent.json');
 
 if (!OUT_DIR) {
   console.error('Missing --out <dir>. Write it outside the repo.');
@@ -64,68 +76,12 @@ if (SEND && ONLY.length === 0) {
   process.exit(1);
 }
 
-const STRIPE_KEY = process.env.STRIPE_RESTRICTED_KEY;
-const MS_KEY = process.env.SECRET_KEY;
+requireKeys();
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const INTERNAL_SECRET = process.env.INTERNAL_FN_SECRET;
-if (!STRIPE_KEY || !MS_KEY) {
-  console.error('STRIPE_RESTRICTED_KEY and SECRET_KEY must be set in cred.env');
-  process.exit(1);
-}
 if (SEND && (!SUPABASE_URL || !INTERNAL_SECRET)) {
   console.error('SUPABASE_URL and INTERNAL_FN_SECRET must be set in cred.env to send');
   process.exit(1);
-}
-
-// Live legacy flat-plan prices (checked 2026-10-18; the other legacy prices
-// have no live subscriptions).
-const LEGACY_PRICES = {
-  price_1NmyKdI0ScLVLNgq2k7wyA2P: { kind: 'annual', amount: 40 }, // every 12 months
-  price_1NdB3BI0ScLVLNgqXtoO86ux: { kind: 'annual', amount: 40 }, // every year
-  price_1NdB2HI0ScLVLNgqHLPfPaXb: { kind: 'monthly', amount: 5 },
-  price_1NmyK1I0ScLVLNgqAbElYu4x: { kind: 'monthly', amount: 5 },
-};
-const PROFESSIONAL = { annual: 50, monthly: 5 };
-
-// ============================================
-// API HELPERS (GET only)
-// ============================================
-
-async function stripeGet(apiPath, params = {}) {
-  const url = new URL('https://api.stripe.com/v1' + apiPath);
-  for (const [k, v] of Object.entries(params)) url.searchParams.append(k, v);
-  const res = await fetch(url, {
-    headers: { Authorization: 'Basic ' + Buffer.from(STRIPE_KEY + ':').toString('base64') },
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Stripe ${apiPath} HTTP ${res.status}: ${body.error ? body.error.message : ''}`);
-  return body;
-}
-
-async function stripeListAll(apiPath, params) {
-  const out = [];
-  let after = null;
-  for (;;) {
-    const page = await stripeGet(apiPath, { ...params, limit: '100', ...(after ? { starting_after: after } : {}) });
-    out.push(...page.data);
-    if (!page.has_more) return out;
-    after = page.data[page.data.length - 1].id;
-  }
-}
-
-async function memberstackAll() {
-  const out = [];
-  let after = null;
-  for (;;) {
-    const url = 'https://admin.memberstack.com/members?limit=100' + (after ? `&after=${after}` : '');
-    // Memberstack's edge rejects default runtime user agents (Cloudflare 1010).
-    const res = await fetch(url, { headers: { 'X-API-KEY': MS_KEY, 'User-Agent': 'curl/8.7.1' } });
-    if (!res.ok) throw new Error(`Memberstack HTTP ${res.status}`);
-    const body = await res.json();
-    out.push(...(body.data || []));
-    if (!body.hasNextPage || !body.data || body.data.length === 0) return out;
-    after = body.endCursor;
-  }
 }
 
 // ============================================
@@ -208,10 +164,6 @@ ${SIGN_OFF}`,
 // SENDING
 // ============================================
 
-function readLedger() {
-  return fs.existsSync(LEDGER_PATH) ? JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8')) : {};
-}
-
 function writeLedger(ledger) {
   fs.mkdirSync(path.dirname(LEDGER_PATH), { recursive: true });
   const tmp = LEDGER_PATH + '.tmp';
@@ -278,12 +230,7 @@ async function sendBatch(rows) {
 // ============================================
 
 async function main() {
-  const overrides = new Map();
-  if (OVERRIDES_PATH) {
-    for (const r of parse(fs.readFileSync(OVERRIDES_PATH, 'utf8'), { columns: true, skip_empty_lines: true })) {
-      overrides.set(r.email.trim().toLowerCase(), r.target_slug.trim());
-    }
-  }
+  const overrides = loadOverrides(OVERRIDES_PATH);
 
   const members = await memberstackAll();
   const byCustomer = new Map();
@@ -304,18 +251,11 @@ async function main() {
     const rec = item.price.recurring;
     const periodEnd = item.current_period_end || s.current_period_end;
     const m = byCustomer.get(s.customer);
-    const email = m ? (m.auth && m.auth.email) || '' : '';
+    const email = memberEmail(m);
     const cf = (m && m.customFields) || {};
     const target = overrides.get(email.toLowerCase()) || cf['membership-type'] || '';
 
-    let exclude = '';
-    if (!m) exclude = 'no Memberstack member for this Stripe customer';
-    else if (s.cancel_at_period_end) exclude = 'cancelling at period end';
-    else if (s.collection_method !== 'charge_automatically') exclude = 'invoice billing, handled individually';
-    else if (s.items.data.length !== 1) exclude = 'subscription has more than one item';
-    else if (perCustomer.get(s.customer) > 1) exclude = 'customer has more than one legacy subscription';
-    else if (!target) exclude = 'no tier decided';
-    else if (target !== 'professional') exclude = `outlier (${target}), awaiting Hannah`;
+    const exclude = exclusionReason({ s, m, target, legacySubsForCustomer: perCustomer.get(s.customer) });
 
     const row = {
       email,
