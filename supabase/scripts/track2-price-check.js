@@ -14,13 +14,16 @@
 
 const fs = require('fs');
 const { parse } = require('csv-parse/sync');
-const { LEGACY_PRICES, PROFESSIONAL_TARGET, requireKeys, stripeGet, readLedger } = require('./track2-lib');
+const { PROFESSIONAL_TARGET, GROUP_B_TARGET, requireKeys, stripeGet, readLedger } = require('./track2-lib');
 
 const args = process.argv.slice(2);
 const argValue = (flag) => args[args.indexOf(flag) + 1];
 const EMAILS = argValue('--emails');
 const MANIFEST = argValue('--manifest');
 const OUT = argValue('--out');
+
+// Group A (legacy flat plan) and Group B (2024 tier prices) targets.
+const TARGET = { ...PROFESSIONAL_TARGET, ...GROUP_B_TARGET };
 
 const longDate = (ts) => new Date(ts * 1000).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' });
 const dollars = (cents) => (cents % 100 ? (cents / 100).toFixed(2) : String(cents / 100));
@@ -32,7 +35,7 @@ function parseEmails(text) {
     if (!to) continue;
     const cur = block.match(/Current fee: \$([\d.]+) a (year|month)/);
     const neu = block.match(/New fee: \$([\d.]+) a (year|month)/);
-    const start = (block.match(/Starting: at your renewal on (.+)$/m) || [])[1];
+    const start = (block.match(/Starting: (?:at your renewal|with your payment) on (.+)$/m) || [])[1];
     const monthly = block.match(/Your fee stays at \$([\d.]+) a month/);
     out.set(to.trim().toLowerCase(), monthly
       ? { old: monthly[1], new: monthly[1], per: 'month', start: '' }
@@ -50,7 +53,7 @@ function parseEmails(text) {
   // The target prices themselves.
   console.log('Target prices in Stripe now:');
   const targets = {};
-  for (const id of new Set(Object.values(PROFESSIONAL_TARGET).map((t) => t.stripe))) {
+  for (const id of new Set(rows.map((r) => TARGET[r.current_price]).filter(Boolean).map((t) => t.stripe))) {
     const p = await stripeGet(`/prices/${id}`, { 'expand[]': 'product' });
     targets[id] = p;
     const r = p.recurring;
@@ -64,9 +67,9 @@ function parseEmails(text) {
     const said = emails.get(email);
     const s = await stripeGet(`/subscriptions/${r.stripe_subscription}`, { 'expand[]': 'customer' });
     const item = s.items.data[0];
-    const target = PROFESSIONAL_TARGET[item.price.id];
+    const target = TARGET[item.price.id];
     const issues = [];
-    if (!target) issues.push(`not on a legacy price (${item.price.id})`);
+    if (!target) issues.push(`not on a Track 2 source price (${item.price.id})`);
     const tp = target && targets[target.stripe];
     const periodEnd = item.current_period_end || s.current_period_end;
     const renews = longDate(periodEnd);
@@ -77,7 +80,8 @@ function parseEmails(text) {
     if (said && target) {
       if (Number(said.old) * 100 !== item.price.unit_amount) issues.push(`email current fee $${said.old}, Stripe price $${dollars(item.price.unit_amount)}`);
       if (Number(said.new) * 100 !== tp.unit_amount) issues.push(`email new fee $${said.new}, target price $${dollars(tp.unit_amount)}`);
-      const per = LEGACY_PRICES[item.price.id].kind === 'monthly' ? 'month' : 'year';
+      const rec = item.price.recurring;
+      const per = rec.interval === 'year' || rec.interval_count === 12 ? 'year' : 'month';
       if (said.per !== per) issues.push(`email says a ${said.per}, billing is ${per}ly`);
     }
     if (s.customer.discount || s.discount || (s.discounts && s.discounts.length)) issues.push('has a discount or coupon');

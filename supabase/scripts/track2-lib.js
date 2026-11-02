@@ -40,6 +40,21 @@ const PROFESSIONAL_TARGET = {
   price_1NmyK1I0ScLVLNgqAbElYu4x: { stripe: 'price_1U0iCHI0ScLVLNgqSqo0DmL4', memberstack: 'prc_2026-professional-monthly-e72ib06fg' },
 };
 
+// Group B: already on the right tier, still on a 2024 price. Each 2024 price
+// maps to the tier's one active 2026 price with the same billing period
+// (found by track2-groupb-dry-run.js, 2026-11-02). Spaces & Suppliers is not
+// here: its 2026 price is not decided.
+const GROUP_B_TARGET = {
+  price_1PhVBqI0ScLVLNgqwimq6Phx: { tier: 'emerging', name: 'Emerging', stripe: 'price_1U0i40I0ScLVLNgqPy793m7K', memberstack: 'prc_2026-emerging-annual-lk2i906t0', plan: 'pln_emerging-i59k0l22' },
+  price_1Q3syRI0ScLVLNgqMOQgC3M2: { tier: 'emerging', name: 'Emerging', stripe: 'price_1U0i9hI0ScLVLNgqmvuGAraN', memberstack: 'prc_2026-emerging-monthly-fd2ia06uj', plan: 'pln_emerging-i59k0l22' },
+  price_1PhVFlI0ScLVLNgqMjnUpLpE: { tier: 'professional', name: 'Professional', stripe: 'price_1U0iBqI0ScLVLNgqy1h3qaQ5', memberstack: 'prc_2026-professional-annual-8x2ix01w6', plan: 'pln_professional-ic970osr' },
+  price_1Q3sFeI0ScLVLNgqzYR05G5U: { tier: 'professional', name: 'Professional', stripe: 'price_1U0iCHI0ScLVLNgqSqo0DmL4', memberstack: 'prc_2026-professional-monthly-e72ib06fg', plan: 'pln_professional-ic970osr' },
+  price_1PhVA6I0ScLVLNgqBU9pVQll: { tier: 'not-for-profit', name: 'Not For Profit', stripe: 'price_1U0iFAI0ScLVLNgqQg1Po8Ix', memberstack: 'prc_2026-not-for-profit-annual-0j2go0ypj', plan: 'pln_not-for-profit-qaa106a4' },
+  price_1Q3sfcI0ScLVLNgqc0G27iy4: { tier: 'not-for-profit', name: 'Not For Profit', stripe: 'price_1U0iFWI0ScLVLNgqVRYK76F2', memberstack: 'prc_2026-not-for-profit-monthly-442j001xz', plan: 'pln_not-for-profit-qaa106a4' },
+  price_1PhVH1I0ScLVLNgqI0wsbQ05: { tier: 'small-business', name: 'Small Business', stripe: 'price_1U0iD7I0ScLVLNgq1VzQNnJm', memberstack: 'prc_2026-small-business-annual-el2ic068k', plan: 'pln_small-business-qsa506lc' },
+  price_1PhVI2I0ScLVLNgqpwNWVx7g: { tier: 'large-business', name: 'Large Business', stripe: 'price_1U0iEAI0ScLVLNgqxEce82Lh', memberstack: 'prc_2026-medium-large-business-annual-su2iy0155', plan: 'pln_medium-large-business-9qa706pj' },
+};
+
 function requireKeys() {
   if (!STRIPE_KEY || !MS_KEY) {
     console.error('STRIPE_RESTRICTED_KEY and SECRET_KEY must be set in cred.env');
@@ -47,10 +62,23 @@ function requireKeys() {
   }
 }
 
+// fetch that retries on network errors (not on HTTP errors). Stripe writes
+// carry an Idempotency-Key, so a retried POST cannot apply twice.
+async function fetchRetry(url, opts, tries = 5) {
+  for (let i = 1; ; i++) {
+    try {
+      return await fetch(url, opts);
+    } catch (err) {
+      if (i >= tries) throw err;
+      await new Promise((r) => setTimeout(r, 5000 * i));
+    }
+  }
+}
+
 async function stripeGet(apiPath, params = {}) {
   const url = new URL('https://api.stripe.com/v1' + apiPath);
   for (const [k, v] of Object.entries(params)) url.searchParams.append(k, v);
-  const res = await fetch(url, {
+  const res = await fetchRetry(url, {
     headers: { Authorization: 'Basic ' + Buffer.from(STRIPE_KEY + ':').toString('base64') },
   });
   const body = await res.json();
@@ -75,7 +103,7 @@ async function memberstackAll() {
   for (;;) {
     const url = 'https://admin.memberstack.com/members?limit=100' + (after ? `&after=${after}` : '');
     // Memberstack's edge rejects default runtime user agents (Cloudflare 1010).
-    const res = await fetch(url, { headers: { 'X-API-KEY': MS_KEY, 'User-Agent': 'curl/8.7.1' } });
+    const res = await fetchRetry(url, { headers: { 'X-API-KEY': MS_KEY, 'User-Agent': 'curl/8.7.1' } });
     if (!res.ok) throw new Error(`Memberstack HTTP ${res.status}`);
     const body = await res.json();
     out.push(...(body.data || []));
@@ -116,6 +144,25 @@ function exclusionReason({ s, m, target, legacySubsForCustomer }) {
   return '';
 }
 
+// Same idea for Group B, where the tier is already right: '' if the
+// subscription can go in the automated batch.
+function groupBExclusionReason({ s, m, liveSubsForCustomer }) {
+  const target = GROUP_B_TARGET[s.items.data[0] && s.items.data[0].price.id];
+  const paid = ((m && m.planConnections) || []).filter((c) => c.status === 'ACTIVE' && c.payment && c.payment.amount);
+  if (!target) return 'no 2026 price for this period';
+  if (!m) return 'no Memberstack member for this Stripe customer';
+  if (s.status !== 'active') return `status ${s.status}`;
+  if (s.cancel_at_period_end || s.cancel_at) return 'cancelling';
+  if (s.collection_method !== 'charge_automatically') return 'invoice billing, handled individually';
+  if (s.items.data.length !== 1) return 'subscription has more than one item';
+  if (liveSubsForCustomer > 1) return 'customer has more than one live subscription';
+  if (s.discount || (s.discounts && s.discounts.length)) return 'discount on subscription';
+  if (s.pending_update || s.schedule) return 'pending update or schedule';
+  if (paid.length !== 1) return `${paid.length} paid Memberstack plans`;
+  if (paid[0].planId !== target.plan) return `Memberstack plan ${paid[0].planId}`;
+  return '';
+}
+
 module.exports = {
   PRIVATE_DIR,
   OVERRIDES_PATH,
@@ -124,6 +171,7 @@ module.exports = {
   PROFESSIONAL,
   PROFESSIONAL_PLAN_ID,
   PROFESSIONAL_TARGET,
+  GROUP_B_TARGET,
   requireKeys,
   stripeGet,
   stripeListAll,
@@ -132,4 +180,6 @@ module.exports = {
   readLedger,
   memberEmail,
   exclusionReason,
+  groupBExclusionReason,
+  fetchRetry,
 };

@@ -9,7 +9,10 @@
  * Usage:
  *   node track2-notices.js --out <dir> [--overrides <file.csv>] [--notice-days 30] [--send-date YYYY-MM-DD]
  *   node track2-notices.js --out <dir> [--overrides ...] --send --only a@x.com,b@y.com
+ *   node track2-notices.js --group b --out <dir> [--send --only ...]
  *
+ *   --group b      Group B: members already on the right tier but on a 2024
+ *                  price (template C, fee change only). Default is Group A.
  *   --send         Actually send, but ONLY to the addresses listed in --only.
  *                  There is no "send to everyone" mode: each batch is named.
  *   --only         Comma-separated recipient emails for this batch. Every one
@@ -46,13 +49,16 @@ const {
   OVERRIDES_PATH: DEFAULT_OVERRIDES_PATH,
   LEGACY_PRICES,
   PROFESSIONAL,
+  GROUP_B_TARGET,
   requireKeys,
+  stripeGet,
   stripeListAll,
   memberstackAll,
   loadOverrides,
   readLedger,
   memberEmail,
   exclusionReason,
+  groupBExclusionReason,
 } = require('./track2-lib');
 
 const args = process.argv.slice(2);
@@ -61,6 +67,7 @@ const argValue = (flag) => {
   return i >= 0 ? args[i + 1] : null;
 };
 const OUT_DIR = argValue('--out');
+const GROUP = (argValue('--group') || 'a').toLowerCase();
 const OVERRIDES_PATH = argValue('--overrides') || DEFAULT_OVERRIDES_PATH;
 const NOTICE_DAYS = Number(argValue('--notice-days') || 30);
 const SEND = args.includes('--send');
@@ -69,6 +76,10 @@ const SEND_DATE = !SEND && argValue('--send-date') ? new Date(argValue('--send-d
 
 if (!OUT_DIR) {
   console.error('Missing --out <dir>. Write it outside the repo.');
+  process.exit(1);
+}
+if (!['a', 'b'].includes(GROUP)) {
+  console.error('--group must be a or b');
   process.exit(1);
 }
 if (SEND && ONLY.length === 0) {
@@ -160,6 +171,31 @@ ${SIGN_OFF}`,
   };
 }
 
+// Group B: same tier, new fee. Annual and monthly differ only in wording.
+function templateC({ first_name, tier, old_amount, new_amount, per, effective_date }) {
+  const start = per === 'year' ? `at your renewal on ${effective_date}` : `with your payment on ${effective_date}`;
+  return {
+    subject: 'A change to your MTNS MADE membership fee',
+    body: `Hi ${first_name},
+
+We're writing to let you know about a change to your MTNS MADE membership fee.
+
+We've updated our membership fees, and the new fees now apply to existing members as well as new ones. You'll stay on the ${tier} tier.
+
+Here's how your ${per === 'year' ? 'annual' : 'monthly'} fee changes:
+
+Current fee: $${old_amount} a ${per}
+New fee: $${new_amount} a ${per}
+Starting: ${start}
+
+The new fee replaces your current fee. It isn't an extra charge, and nothing changes before ${effective_date}.
+
+${SIGN_OFF}`,
+  };
+}
+
+const dollars = (cents) => (cents % 100 ? (cents / 100).toFixed(2) : String(cents / 100));
+
 // ============================================
 // SENDING
 // ============================================
@@ -229,7 +265,49 @@ async function sendBatch(rows) {
 // MAIN
 // ============================================
 
+async function groupBRows(members) {
+  const byCustomer = new Map();
+  for (const m of members) if (m.stripeCustomerId) byCustomer.set(m.stripeCustomerId, m);
+  const live = (await stripeListAll('/subscriptions', { status: 'all' })).filter((s) => ['active', 'trialing', 'past_due'].includes(s.status));
+  const perCustomer = new Map();
+  for (const s of live) perCustomer.set(s.customer, (perCustomer.get(s.customer) || 0) + 1);
+  const amounts = {};
+  for (const t of Object.values(GROUP_B_TARGET)) amounts[t.stripe] = (await stripeGet(`/prices/${t.stripe}`)).unit_amount;
+
+  const rows = [];
+  for (const s of live) {
+    const item = s.items.data[0];
+    const target = item && GROUP_B_TARGET[item.price.id];
+    if (!target) continue;
+    const rec = item.price.recurring;
+    const periodEnd = item.current_period_end || s.current_period_end;
+    const m = byCustomer.get(s.customer);
+    const cf = (m && m.customFields) || {};
+    const row = {
+      email: memberEmail(m),
+      first_name: firstNameOf(cf['first-name']),
+      memberstack_id: m ? m.id : '',
+      stripe_subscription: s.id,
+      current_price: item.price.id,
+      billing: `${rec.interval_count} x ${rec.interval}`,
+      renews: periodEnd ? formatDate(new Date(periodEnd * 1000)) : '',
+      target: target.tier,
+      template: '',
+      effective_date: '',
+      excluded: groupBExclusionReason({ s, m, liveSubsForCustomer: perCustomer.get(s.customer) }),
+    };
+    if (!row.excluded) {
+      row.template = 'C';
+      row.effective_date = formatDate(effectiveRenewal(periodEnd, rec.interval, rec.interval_count));
+      row.email_out = templateC({ ...row, tier: target.name, old_amount: dollars(item.price.unit_amount), new_amount: dollars(amounts[target.stripe]), per: rec.interval });
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
 async function main() {
+  if (GROUP === 'b') return finish(await groupBRows(await memberstackAll()));
   const overrides = loadOverrides(OVERRIDES_PATH);
 
   const members = await memberstackAll();
@@ -283,7 +361,10 @@ async function main() {
     }
     rows.push(row);
   }
+  return finish(rows);
+}
 
+async function finish(rows) {
   rows.sort((a, b) => (a.excluded ? 1 : 0) - (b.excluded ? 1 : 0) || a.template.localeCompare(b.template) || a.email.localeCompare(b.email));
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -298,13 +379,13 @@ async function main() {
 
   const count = (f) => rows.filter(f).length;
   console.log(`Send date ${formatDate(SEND_DATE)}, notice ${NOTICE_DAYS} days`);
-  console.log(`Live legacy subscriptions: ${rows.length}`);
-  console.log(`  To notify: ${sendable.length} (template A ${count((r) => r.template === 'A')}, template B ${count((r) => r.template === 'B')})`);
+  console.log(`Group ${GROUP.toUpperCase()} live subscriptions: ${rows.length}`);
+  console.log(`  To notify: ${sendable.length} (template A ${count((r) => r.template === 'A')}, B ${count((r) => r.template === 'B')}, C ${count((r) => r.template === 'C')})`);
   const reasons = {};
   for (const r of rows) if (r.excluded) reasons[r.excluded] = (reasons[r.excluded] || 0) + 1;
   for (const [k, v] of Object.entries(reasons)) console.log(`  Excluded, ${k}: ${v}`);
-  const deferred = rows.filter((r) => r.template === 'A' && r.effective_date !== r.renews).length;
-  console.log(`  Annual members renewing inside the notice window (pay old fee once more): ${deferred}`);
+  const deferred = rows.filter((r) => r.effective_date && r.effective_date !== r.renews).length;
+  console.log(`  Renewing inside the notice window (pay the old fee once more): ${deferred}`);
   console.log(`Wrote ${path.join(OUT_DIR, 'manifest.csv')} and emails.txt`);
 
   const ledger = readLedger();

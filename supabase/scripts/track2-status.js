@@ -1,7 +1,7 @@
 /**
  * MTNS MADE - Track 2 progress tracker (READ ONLY)
  *
- * Takes a live snapshot of every Group A subscription, works out where each
+ * Takes a live snapshot of every Group A and Group B subscription, works out where each
  * member is in the migration, records the snapshot, and writes a local HTML
  * page to view progress. Makes NO changes to Stripe, Memberstack, Supabase or
  * Webflow, and sends nothing.
@@ -10,7 +10,8 @@
  *   node track2-status.js [--open] [--notice-days 30]
  *
  * Writes to pricing-migration/ (gitignored; the repo is public):
- *   track2-roster.json    every subscription ever seen on a legacy price.
+ *   track2-roster.json    every subscription ever seen on a legacy (Group A)
+ *                         or 2024 tier (Group B) price.
  *                         Members stay on it after their price is swapped,
  *                         so they can be followed to the end.
  *   track2-history.json   one entry per run: counts and each member's stage,
@@ -33,6 +34,7 @@ const {
   LEGACY_PRICES,
   PROFESSIONAL_PLAN_ID,
   PROFESSIONAL_TARGET,
+  GROUP_B_TARGET,
   requireKeys,
   stripeGet,
   stripeListAll,
@@ -41,7 +43,14 @@ const {
   readLedger,
   memberEmail,
   exclusionReason,
+  groupBExclusionReason,
 } = require('./track2-lib');
+
+// Swap target for every source price, Group A and Group B, in one shape.
+const TARGETS = { ...GROUP_B_TARGET };
+for (const [id, t] of Object.entries(PROFESSIONAL_TARGET)) TARGETS[id] = { ...t, tier: 'professional', name: 'Professional', plan: PROFESSIONAL_PLAN_ID };
+// Group B was swapped before it joined the roster, so seed it from the notice run.
+const GROUP_B_MANIFEST = path.join(PRIVATE_DIR, 'notices-groupb-2026-11-02', 'manifest.csv');
 
 const ROSTER_PATH = path.join(PRIVATE_DIR, 'track2-roster.json');
 const HISTORY_PATH = path.join(PRIVATE_DIR, 'track2-history.json');
@@ -95,6 +104,11 @@ function periodEndOf(s) {
 }
 
 function groupOf(entry, exclusion) {
+  if (GROUP_B_TARGET[entry.legacy_price]) {
+    if (exclusion) return 'Group B, excluded';
+    const t = GROUP_B_TARGET[entry.legacy_price];
+    return `Group B, ${t.name} ${entry.monthly ? 'monthly' : 'yearly'}`;
+  }
   if (exclusion.startsWith('outlier')) return 'Outliers';
   if (exclusion) return 'Excluded (other)';
   const legacy = LEGACY_PRICES[entry.legacy_price];
@@ -122,6 +136,18 @@ async function main() {
   const perCustomer = new Map();
   for (const { s } of legacySubs) perCustomer.set(s.customer, (perCustomer.get(s.customer) || 0) + 1);
 
+  // Group B: still on a 2024 price now, or in the notice run.
+  const allLive = (await stripeListAll('/subscriptions', { status: 'all' })).filter((s) => LIVE.has(s.status));
+  const livePerCustomer = new Map();
+  for (const s of allLive) livePerCustomer.set(s.customer, (livePerCustomer.get(s.customer) || 0) + 1);
+  const groupBSubs = allLive.filter((s) => s.items.data[0] && GROUP_B_TARGET[s.items.data[0].price.id]).map((s) => ({ s, priceId: s.items.data[0].price.id }));
+  if (fs.existsSync(GROUP_B_MANIFEST)) {
+    const { parse } = require('csv-parse/sync');
+    for (const r of parse(fs.readFileSync(GROUP_B_MANIFEST, 'utf8'), { columns: true })) {
+      if (!groupBSubs.some((x) => x.s.id === r.stripe_subscription)) groupBSubs.push({ s: { id: r.stripe_subscription }, priceId: r.current_price, fromManifest: true });
+    }
+  }
+
   const roster = readJson(ROSTER_PATH, { created_at: new Date(now).toISOString(), subs: {} });
   const firstRun = Object.keys(roster.subs).length === 0;
   const added = [];
@@ -130,6 +156,14 @@ async function main() {
       roster.subs[s.id] = { customer: s.customer, legacy_price: priceId, added_at: new Date(now).toISOString() };
       added.push(s.id);
     }
+  }
+  const groupBFirst = !Object.values(roster.subs).some((e) => e.group === 'B');
+  for (const { s, priceId, fromManifest } of groupBSubs) {
+    if (roster.subs[s.id]) continue;
+    const full = fromManifest ? await stripeGet(`/subscriptions/${s.id}`) : s;
+    const rec = (await stripeGet(`/prices/${priceId}`)).recurring;
+    roster.subs[s.id] = { customer: full.customer, legacy_price: priceId, group: 'B', monthly: rec.interval === 'month', added_at: new Date(now).toISOString() };
+    if (!groupBFirst) added.push(s.id);
   }
 
   // Live state of every roster subscription, swapped or not.
@@ -145,7 +179,7 @@ async function main() {
     const email = memberEmail(m);
     const cf = (m && m.customFields) || {};
     const target = overrides.get(email.toLowerCase()) || cf['membership-type'] || '';
-    const pro = PROFESSIONAL_TARGET[entry.legacy_price];
+    const pro = TARGETS[entry.legacy_price];
     const sent = ledger[email.toLowerCase()];
     const row = {
       sub: id,
@@ -181,7 +215,12 @@ async function main() {
     row.renews_ts = periodEnd;
 
     const onLegacy = priceId === entry.legacy_price;
-    const exclusion = onLegacy ? exclusionReason({ s, m, target, legacySubsForCustomer: perCustomer.get(s.customer) || 1 }) : entry.last_exclusion || '';
+    const exclusion = !onLegacy
+      ? entry.last_exclusion || ''
+      : entry.group === 'B'
+        ? groupBExclusionReason({ s, m, liveSubsForCustomer: livePerCustomer.get(s.customer) || 1 })
+        : exclusionReason({ s, m, target, legacySubsForCustomer: perCustomer.get(s.customer) || 1 });
+    if (entry.group === 'B') row.target = GROUP_B_TARGET[entry.legacy_price].tier;
     if (onLegacy) {
       entry.last_exclusion = exclusion;
       entry.last_legacy_period_end = periodEnd;
@@ -201,7 +240,7 @@ async function main() {
         row.stage = 'Ready';
       }
     } else if (pro && priceId === pro.stripe) {
-      // Swapped to the Professional target: verify across systems.
+      // Swapped to the target price: verify across systems.
       const failed = [];
       if (s.items.data.length !== 1) failed.push('Stripe: more than one item');
       if (entry.last_legacy_period_end && periodEnd !== entry.last_legacy_period_end) {
@@ -210,12 +249,12 @@ async function main() {
       const paid = ((m && m.planConnections) || []).filter((p) => p.status === 'ACTIVE' && p.payment && p.payment.amount);
       if (paid.length !== 1) failed.push(`Memberstack: ${paid.length} paid active plans`);
       const pc = paid[0];
-      if (pc && pc.planId !== PROFESSIONAL_PLAN_ID) failed.push(`Memberstack: plan ${pc.planId}`);
+      if (pc && pc.planId !== pro.plan) failed.push(`Memberstack: plan ${pc.planId}`);
       if (pc && pc.payment.priceId !== pro.memberstack) failed.push(`Memberstack: price ${pc.payment.priceId}`);
       const sb = sbMembers && m ? sbMembers.get(m.id) : null;
       if (!sb) failed.push('Supabase: member not found');
       else {
-        if (sb.type !== 'professional') failed.push(`Supabase: type ${sb.type}`);
+        if (sb.type !== pro.tier) failed.push(`Supabase: type ${sb.type}`);
         if (sb.status !== 'active') failed.push(`Supabase: status ${sb.status}`);
       }
       const custSubs = await stripeListAll('/subscriptions', { customer: entry.customer, status: 'all' });
@@ -232,7 +271,7 @@ async function main() {
       }
     } else {
       row.stage = 'Other price';
-      row.note = `On ${priceId || 'no price'}, not the legacy or Professional target price`;
+      row.note = `On ${priceId || 'no price'}, not the source or target price`;
     }
     rows.push(row);
   }
@@ -263,7 +302,7 @@ async function main() {
     if (!Number.isNaN(eff) && r.renews_ts * 1000 < eff - DAY) r.note = `Swap only after the ${r.renews} renewal (still at the old fee)`;
   }
   for (const r of rows) {
-    // Monthly members pay $5 before and after, so this only matters for annual.
+    // Group A monthly members pay $5 before and after, so this only matters for fee changes.
     if (r.stage === 'Ready' && r.group !== 'Monthly' && r.renews_ts && r.renews_ts * 1000 - now < NOTICE_DAYS * DAY) {
       r.note = `Renews inside the ${NOTICE_DAYS}-day notice window: pays the old fee once more`;
     }

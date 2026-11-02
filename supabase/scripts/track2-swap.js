@@ -39,14 +39,20 @@ const path = require('path');
 const fs = require('fs');
 const {
   PRIVATE_DIR,
-  LEGACY_PRICES,
   PROFESSIONAL_PLAN_ID,
   PROFESSIONAL_TARGET,
+  GROUP_B_TARGET,
   requireKeys,
   stripeGet,
   stripeListAll,
   readLedger,
+  fetchRetry: fetch,
 } = require('./track2-lib');
+
+// Group A (legacy flat plan to Professional) and Group B (2024 to 2026 price,
+// same tier), in one shape.
+const TARGETS = { ...GROUP_B_TARGET };
+for (const [id, t] of Object.entries(PROFESSIONAL_TARGET)) TARGETS[id] = { ...t, tier: 'professional', name: 'Professional', plan: PROFESSIONAL_PLAN_ID };
 
 const SWAPS_PATH = path.join(PRIVATE_DIR, 'track2-swaps.json');
 const LIVE = new Set(['active', 'trialing', 'past_due']);
@@ -89,20 +95,21 @@ async function memberstackMember(id) {
 }
 
 async function supabaseMember(msId) {
-  const url = `${process.env.SUPABASE_URL}/rest/v1/members?select=subscription_status,webflow_id,membership_types(slug)&memberstack_id=eq.${msId}`;
+  const url = `${process.env.SUPABASE_URL}/rest/v1/members?select=subscription_status,webflow_id,profile_complete,membership_types(slug)&memberstack_id=eq.${msId}`;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const res = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
   if (!res.ok) throw new Error(`Supabase HTTP ${res.status}`);
   return (await res.json())[0] || null;
 }
 
-async function professionalWebflowId() {
+// Tier slug -> Webflow membership type item id.
+async function tierWebflowIds() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/membership_types?select=webflow_id&slug=eq.professional`, {
+  const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/membership_types?select=slug,webflow_id`, {
     headers: { apikey: key, Authorization: `Bearer ${key}` },
   });
   if (!res.ok) throw new Error(`Supabase HTTP ${res.status}`);
-  return ((await res.json())[0] || {}).webflow_id || null;
+  return Object.fromEntries((await res.json()).map((t) => [t.slug, t.webflow_id]));
 }
 
 async function webflowItem(itemId) {
@@ -135,25 +142,26 @@ async function preflight(subId, ledgerBySub) {
   const s = await stripeGet(`/subscriptions/${subId}`);
   const item = s.items.data[0];
   const oldPrice = item ? item.price.id : '';
-  const target = PROFESSIONAL_TARGET[oldPrice];
+  const target = TARGETS[oldPrice];
   const notice = ledgerBySub.get(subId);
   const periodEnd = periodEndOf(s);
   const plan = { s, item, oldPrice, target, notice, periodEnd };
 
   if (!target) {
-    failed.push(`not on a legacy price (on ${oldPrice || 'nothing'})`);
+    failed.push(`not on a Track 2 source price (on ${oldPrice || 'nothing'})`);
     return { failed, plan };
   }
   if (s.status !== 'active') failed.push(`status ${s.status}`);
   if (s.cancel_at_period_end) failed.push('cancelling at period end');
   if (s.collection_method !== 'charge_automatically') failed.push('invoice billing');
   if (s.items.data.length !== 1) failed.push('more than one item');
+  const targetPrice = await stripeGet(`/prices/${target.stripe}`);
+  // Where the fee changes, the next charge must be the one the notice named.
   if (!notice || notice.status !== 'sent') failed.push('no sent notice in the ledger');
-  else if (LEGACY_PRICES[oldPrice].kind === 'annual' && notice.effective_date !== longDate(periodEnd)) {
+  else if (targetPrice.unit_amount !== item.price.unit_amount && notice.effective_date !== longDate(periodEnd)) {
     failed.push(`renews ${longDate(periodEnd)} but the new fee starts ${notice.effective_date}: swap after that renewal`);
   }
 
-  const targetPrice = await stripeGet(`/prices/${target.stripe}`);
   if (!targetPrice.active) failed.push('target price is archived');
   if (describe(targetPrice.recurring) !== describe(item.price.recurring)) failed.push('billing period differs from the target');
 
@@ -182,7 +190,7 @@ async function preflight(subId, ledgerBySub) {
 }
 
 // Checks after a swap, polling while Memberstack and the webhook catch up.
-async function verify(subId, plan, startedAt, proWebflowId) {
+async function verify(subId, plan, startedAt, webflowTierIds) {
   const failed = [];
   const s = await stripeGet(`/subscriptions/${subId}`);
   if (s.items.data[0].price.id !== plan.target.stripe) failed.push(`Stripe: item on ${s.items.data[0].price.id}`);
@@ -197,7 +205,7 @@ async function verify(subId, plan, startedAt, proWebflowId) {
     msFailed = [];
     if (paid.length !== 1) msFailed.push(`Memberstack: ${paid.length} paid active plans`);
     else {
-      if (paid[0].planId !== PROFESSIONAL_PLAN_ID) msFailed.push(`Memberstack: plan ${paid[0].planId}`);
+      if (paid[0].planId !== plan.target.plan) msFailed.push(`Memberstack: plan ${paid[0].planId}`);
       if (paid[0].payment.priceId !== plan.target.memberstack) msFailed.push(`Memberstack: price ${paid[0].payment.priceId}`);
     }
     if (!msFailed.length) break;
@@ -211,13 +219,15 @@ async function verify(subId, plan, startedAt, proWebflowId) {
   if (!sb) failed.push('Supabase: member not found');
   else {
     const type = sb.membership_types ? sb.membership_types.slug : null;
-    if (type !== 'professional') failed.push(`Supabase: type ${type}`);
+    if (type !== plan.target.tier) failed.push(`Supabase: type ${type}`);
     if (sb.subscription_status !== 'active') failed.push(`Supabase: status ${sb.subscription_status}`);
     if (sb.webflow_id) {
       const wf = await webflowItem(sb.webflow_id);
       if (wf.isArchived || wf.isDraft) failed.push('Webflow: profile archived or draft');
-      if (proWebflowId && wf.fieldData['choose-membership-type'] !== proWebflowId) failed.push('Webflow: tier is not Professional');
-    } else failed.push('Webflow: no webflow_id in Supabase');
+      const tierId = webflowTierIds[plan.target.tier];
+      if (tierId && wf.fieldData['choose-membership-type'] !== tierId) failed.push(`Webflow: tier is not ${plan.target.name}`);
+    } else if (sb.profile_complete) failed.push('Webflow: no webflow_id in Supabase');
+    // An incomplete profile has no Webflow item by design, so there is nothing to check.
   }
 
   const custSubs = await stripeListAll('/subscriptions', { customer: s.customer, status: 'all' });
@@ -257,14 +267,14 @@ async function main() {
     return;
   }
   const ledgerBySub = new Map(Object.values(readLedger()).map((e) => [e.stripe_subscription, e]));
-  const proWebflowId = await professionalWebflowId();
+  const webflowTierIds = await tierWebflowIds();
   console.log(`${EXECUTE ? 'EXECUTE' : 'PREVIEW (no changes)'}: ${SUBS.length} subscription(s)\n`);
 
   let done = 0;
   for (const subId of SUBS) {
     const { failed, plan } = await preflight(subId, ledgerBySub);
     const line = plan.target
-      ? `${subId}: ${plan.amountBefore / 100} to ${plan.amountAfter / 100} ${describe(plan.item.price.recurring)}, renews ${longDate(plan.periodEnd)}`
+      ? `${subId}: ${plan.target.name} ${plan.amountBefore / 100} to ${plan.amountAfter / 100} ${describe(plan.item.price.recurring)}, renews ${longDate(plan.periodEnd)}`
       : subId;
     if (failed.length) {
       console.log(`SKIP  ${line}\n      ${failed.join('; ')}`);
@@ -288,7 +298,7 @@ async function main() {
     }, `track2-swap-${subId}-${startedAt}`);
     recordSwap(subId, { status: 'swapped', item_id: plan.item.id, old_price: plan.oldPrice, new_price: plan.target.stripe });
 
-    const problems = await verify(subId, plan, startedAt, proWebflowId);
+    const problems = await verify(subId, plan, startedAt, webflowTierIds);
     recordSwap(subId, { status: problems.length ? 'verify_failed' : 'verified', problems });
     console.log(`${problems.length ? 'FAIL' : 'DONE'}  ${line}${problems.length ? '\n      ' + problems.join('; ') : ''}`);
     if (problems.length) {
