@@ -34,7 +34,7 @@ Every query uses the verified member ID. A `memberstack_id` or member ID in the 
 
 ## 3. Client side
 
-Get the token with `(await window.$memberstackDom.getMemberToken())?.data?.token` and send it as `X-Member-Token` with the public key headers. Handle a 401 with a clear message (log in again) rather than a silent empty state. Rebuild `dist/scripts` after editing `src/scripts`.
+Get the token with `await window.$memberstackDom.getMemberCookie()` (a JWT string; this Memberstack version has no `getMemberToken`, confirmed 2026-11-20) and send it as `X-Member-Token` with the public key headers. Handle a 401 with a clear message (log in again) rather than a silent empty state. Rebuild `dist/scripts` after editing `src/scripts`.
 
 ## 4. Deploy in this order
 

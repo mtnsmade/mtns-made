@@ -227,7 +227,9 @@
   // All inbox reads and writes go through the member-messages edge function,
   // which checks the member's Memberstack login server-side.
   async function callMessages(action, payload = {}) {
-    const token = (await window.$memberstackDom.getMemberToken())?.data?.token || '';
+    // Memberstack DOM v2 returns the login token from getMemberCookie()
+    const ms = window.$memberstackDom;
+    const token = (typeof ms.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
     const res = await fetch(SUPABASE_URL + '/functions/v1/member-messages', {
       method: 'POST',
       headers: {
