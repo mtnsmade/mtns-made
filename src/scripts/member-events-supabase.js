@@ -714,13 +714,15 @@
     const event = events.find(e => e.id === eventId);
     if (event?.webflow_id) {
       try {
+        const ms = window.$memberstackDom;
+        const memberToken = (typeof ms?.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
         await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'apikey': SUPABASE_ANON_KEY,
-            'X-Member-Token': (await window.$memberstackDom.getMemberToken())?.data?.token || '',
+            'X-Member-Token': memberToken,
           },
           body: JSON.stringify({ eventId, action: 'reject' }),
         });
