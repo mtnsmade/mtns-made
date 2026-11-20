@@ -8,6 +8,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { requireInternal, authErrorResponse } from '../_shared/auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { hasActivePlan, resolveMembershipTypeId, findAvailableMemberSlug } from '../_shared/memberstack.ts';
 
@@ -22,7 +23,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, x-member-token, x-internal-secret',
 };
 
 // Check and publish a Webflow member
@@ -154,6 +155,14 @@ async function completeProfile(email: string): Promise<{ success: boolean; messa
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    requireInternal(req);
+  } catch (err) {
+    const denied = authErrorResponse(err, corsHeaders);
+    if (denied) return denied;
+    throw err;
   }
 
   try {

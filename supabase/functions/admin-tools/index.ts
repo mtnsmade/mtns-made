@@ -14,6 +14,7 @@
 // the browser instead of routing through here.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { verifyStaffOrInternal, authErrorResponse } from '../_shared/auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -22,12 +23,20 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, x-member-token, x-internal-secret',
 };
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    await verifyStaffOrInternal(req);
+  } catch (err) {
+    const denied = authErrorResponse(err, corsHeaders);
+    if (denied) return denied;
+    throw err;
   }
 
   try {

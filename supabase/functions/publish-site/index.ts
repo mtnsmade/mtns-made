@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { requireInternal, authErrorResponse } from '../_shared/auth.ts';
 
 const WEBFLOW_API_TOKEN = Deno.env.get('MTNSMADE_NEW_API') || '';
 const SITE_ID = '64229aff3da29012f062753c';
@@ -9,9 +10,17 @@ serve(async (req: Request) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, x-member-token, x-internal-secret',
       },
     });
+  }
+
+  try {
+    requireInternal(req);
+  } catch (err) {
+    const denied = authErrorResponse(err, {});
+    if (denied) return denied;
+    throw err;
   }
 
   try {

@@ -7,6 +7,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { verifyMember, isStaffMember, isInternalCall, authErrorResponse } from '../_shared/auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
 
@@ -266,6 +267,30 @@ serve(async (req) => {
       );
     }
 
+    // Who may do this: staff (admin plan) or another function for either
+    // action; the item's own verified owner may only reject (delete) it.
+    let callerIsOwner = false;
+    if (!isInternalCall(req)) {
+      let caller;
+      try {
+        caller = await verifyMember(req);
+      } catch (err) {
+        const denied = authErrorResponse(err, corsHeaders);
+        if (denied) return denied;
+        throw err;
+      }
+      if (!isStaffMember(caller)) {
+        const ownsItem = !!event.memberstack_id && event.memberstack_id === caller.id;
+        if (body.action !== 'reject' || !ownsItem) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Not allowed' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        callerIsOwner = true;
+      }
+    }
+
     if (body.action === 'approve') {
       // Approve: Set is_draft to false (this triggers Webflow sync via database trigger)
       const { error: updateError } = await supabase
@@ -325,7 +350,7 @@ serve(async (req) => {
       }
 
       // Send rejection email to member
-      if (event.member_contact_email) {
+      if (event.member_contact_email && !callerIsOwner) {
         await sendRejectionEmail(event.member_contact_email, event.name, body.rejectionReason);
       }
 

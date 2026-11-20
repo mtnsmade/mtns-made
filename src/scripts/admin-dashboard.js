@@ -17,6 +17,40 @@
   let membershipTypes = [];
 
   // ============================================
+  // STAFF LOGIN
+  // Member records and admin actions go through edge functions that check
+  // the logged-in Memberstack account holds the admin plan.
+  // ============================================
+  class StaffAuthError extends Error {}
+
+  async function staffToken() {
+    const ms = window.$memberstackDom;
+    return (ms && typeof ms.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
+  }
+
+  // Headers for calls to admin edge functions (admin-tools, manage-event, ...)
+  async function staffHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+      'X-Member-Token': await staffToken()
+    };
+  }
+
+  async function adminData(action, params = {}) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-data`, {
+      method: 'POST',
+      headers: await staffHeaders(),
+      body: JSON.stringify({ action, ...params })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new StaffAuthError('Staff login required');
+    if (!res.ok) throw new Error(body.error || `admin-data ${action} failed`);
+    return body.data;
+  }
+
+  // ============================================
   // STYLES - Light Monotonal Theme
   // ============================================
   const styles = `
@@ -1145,31 +1179,21 @@ MTNS MADE Team`;
   }
 
   async function loadRecentMembers() {
-    const { data, error } = await supabase
-      .from('members')
-      .select(`
-        id, memberstack_id, name, email, first_name, last_name, slug,
-        subscription_status, profile_complete, webflow_id,
-        profile_image_url, header_image_url, bio, suburb_id,
-        membership_type_id, membership_types(id, name),
-        created_at, updated_at
-      `)
-      .neq('is_deleted', true)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (error) {
+    try {
+      return (await adminData('recent-members')) || [];
+    } catch (error) {
+      if (error instanceof StaffAuthError) throw error;
       console.error('Error loading recent members:', error);
       return [];
     }
-    return data || [];
   }
 
   async function loadMemberStats() {
-    const { data: all } = await supabase
-      .from('members')
-      .select('id, subscription_status, profile_complete, webflow_id')
-      .neq('is_deleted', true);
+    const all = await adminData('member-stats').catch(error => {
+      if (error instanceof StaffAuthError) throw error;
+      console.error('Error loading member stats:', error);
+      return [];
+    });
 
     const total = all?.length || 0;
     const active = all?.filter(m => m.subscription_status === 'active').length || 0;
@@ -1217,44 +1241,25 @@ MTNS MADE Team`;
   }
 
   async function loadIncompleteProfiles() {
-    const { data, error } = await supabase
-      .from('members')
-      .select(`
-        id, memberstack_id, name, email, first_name, slug, subscription_status,
-        profile_complete, profile_reminder_sent_at, created_at,
-        profile_image_url, header_image_url, bio, suburb_id
-      `)
-      .eq('profile_complete', false)
-      .eq('subscription_status', 'active')
-      .neq('is_deleted', true)
-      .order('created_at', { ascending: true });
-
-    if (error) {
+    try {
+      return (await adminData('incomplete-profiles')) || [];
+    } catch (error) {
+      if (error instanceof StaffAuthError) throw error;
       console.error('Error loading incomplete profiles:', error);
       return [];
     }
-    return data || [];
   }
 
   async function loadFailedSignups() {
     // Failed signups: members who don't have 'active' or 'lapsed' status
     // This catches: null, empty string, 'trialing', 'canceled', etc.
-    const { data, error } = await supabase
-      .from('members')
-      .select(`
-        id, memberstack_id, name, email, first_name, slug,
-        subscription_status, profile_complete, profile_reminder_sent_at, created_at
-      `)
-      .not('subscription_status', 'in', '("active","lapsed","deleted")')
-      .neq('is_deleted', true)
-      .order('created_at', { ascending: false })
-      .limit(30);
-
-    if (error) {
+    try {
+      return (await adminData('failed-signups')) || [];
+    } catch (error) {
+      if (error instanceof StaffAuthError) throw error;
       console.error('Error loading failed signups:', error);
       return [];
     }
-    return data || [];
   }
 
   async function loadRecentEvents() {
@@ -1309,10 +1314,7 @@ MTNS MADE Team`;
     // Enrich with member names
     const ids = [...new Set(opps.map(o => o.memberstack_id).filter(Boolean))];
     if (ids.length > 0) {
-      const { data: members } = await supabase
-        .from('members')
-        .select('memberstack_id, first_name, last_name, name')
-        .in('memberstack_id', ids);
+      const members = await adminData('names-by-memberstack-id', { ids }).catch(() => null);
       if (members) {
         const memberMap = Object.fromEntries(members.map(m => [m.memberstack_id, m]));
         opps.forEach(o => {
@@ -1375,10 +1377,7 @@ MTNS MADE Team`;
     let memberData = {};
 
     if (memberIds.length > 0) {
-      const { data: members } = await supabase
-        .from('members')
-        .select('id, name, first_name, last_name, profile_image_url')
-        .in('id', memberIds);
+      const members = await adminData('names-by-member-id', { ids: memberIds }).catch(() => null);
 
       if (members) {
         members.forEach(m => {
@@ -1524,10 +1523,8 @@ MTNS MADE Team`;
 
         if (result.success) {
           // Update profile_reminder_sent_at in Supabase
-          await supabase
-            .from('members')
-            .update({ profile_reminder_sent_at: new Date().toISOString() })
-            .eq('id', member.id);
+          await adminData('mark-reminder-sent', { id: member.id }).catch(err =>
+            console.error('Could not record reminder:', err));
 
           alert('Email sent successfully!');
           modal.remove();
@@ -1641,9 +1638,7 @@ MTNS MADE Team`;
         // Call the admin-update-member Edge Function
         const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-update-member`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: await staffHeaders(),
           body: JSON.stringify({
             memberId: memberId,
             newMembershipTypeId: newTypeId,
@@ -1813,11 +1808,7 @@ MTNS MADE Team`;
         saveBtn.textContent = 'Publishing...';
         const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'apikey': SUPABASE_ANON_KEY,
-          },
+          headers: await staffHeaders(),
           body: JSON.stringify({ opportunityId: created.id, action: 'approve' }),
         });
 
@@ -2127,11 +2118,7 @@ MTNS MADE Team`;
         try {
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'apikey': SUPABASE_ANON_KEY,
-            },
+            headers: await staffHeaders(),
             body: JSON.stringify({
               eventId: eventId,
               action: 'approve',
@@ -2175,11 +2162,7 @@ MTNS MADE Team`;
         try {
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-event`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'apikey': SUPABASE_ANON_KEY,
-            },
+            headers: await staffHeaders(),
             body: JSON.stringify({
               eventId: eventId,
               action: 'reject',
@@ -2241,11 +2224,7 @@ MTNS MADE Team`;
         try {
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'apikey': SUPABASE_ANON_KEY,
-            },
+            headers: await staffHeaders(),
             body: JSON.stringify({ opportunityId: oppId, action: 'approve' }),
           });
 
@@ -2286,11 +2265,7 @@ MTNS MADE Team`;
         try {
           const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'apikey': SUPABASE_ANON_KEY,
-            },
+            headers: await staffHeaders(),
             body: JSON.stringify({
               opportunityId: oppId,
               action: 'reject',
@@ -2342,18 +2317,7 @@ MTNS MADE Team`;
 
         try {
           // Soft delete: set is_deleted = true and subscription_status = 'deleted'
-          const { error } = await supabase
-            .from('members')
-            .update({
-              is_deleted: true,
-              subscription_status: 'deleted',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', memberId);
-
-          if (error) {
-            throw error;
-          }
+          await adminData('soft-delete-member', { id: memberId });
 
           alert(`"${memberName}" has been deleted.`);
           refreshDashboard(container);
@@ -2382,7 +2346,7 @@ MTNS MADE Team`;
         try {
           const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-tools`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await staffHeaders(),
             body: JSON.stringify({ action: 'delete-project', projectId }),
           });
 
@@ -2415,7 +2379,7 @@ MTNS MADE Team`;
         try {
           const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-tools`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await staffHeaders(),
             body: JSON.stringify({ action: 'delete-opportunity', opportunityId: oppId }),
           });
           const result = await response.json();
@@ -3446,11 +3410,7 @@ MTNS MADE Team`;
         let memberEmail = task.submitted_email || null;
         let memberDisplayName = task.member_name;
         if (!memberEmail && task.member_id) {
-          const { data: member } = await supabase
-            .from('members')
-            .select('email, name')
-            .eq('id', task.member_id)
-            .single();
+          const member = await adminData('member-email', { id: task.member_id }).catch(() => null);
           memberEmail = member?.email || null;
           memberDisplayName = member?.name || memberDisplayName;
         }
@@ -3480,12 +3440,7 @@ MTNS MADE Team`;
   let memberSearchTimer = null;
   async function searchMembers(query) {
     if (!query || query.length < 2) return [];
-    const { data } = await supabase
-      .from('members')
-      .select('id, name, slug, business_name')
-      .or(`name.ilike.%${query}%,business_name.ilike.%${query}%`)
-      .eq('subscription_status', 'active')
-      .limit(8);
+    const data = await adminData('search-members', { query }).catch(() => null);
     return data || [];
   }
 
@@ -3852,9 +3807,25 @@ MTNS MADE Team`;
     `;
 
     try {
+      // Memberstack loads asynchronously; wait briefly for it before checking
+      for (let i = 0; i < 20 && !window.$memberstackDom; i++) {
+        await new Promise(r => setTimeout(r, 250));
+      }
+      await adminData('whoami');
       dashboardData = await loadDashboardData();
       renderDashboard(container, dashboardData);
     } catch (error) {
+      if (error instanceof StaffAuthError) {
+        container.innerHTML = `
+          <div class="admin-dashboard">
+            <div class="admin-loading">
+              <div class="loading-text">Staff login required</div>
+              <div style="color: #666; font-size: 11px; margin-top: 8px;">Log in with your MTNS MADE account that has admin access, then reload this page.</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
       console.error('Error loading dashboard:', error);
       container.innerHTML = `
         <div class="admin-dashboard">

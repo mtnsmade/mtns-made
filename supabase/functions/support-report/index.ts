@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { requireInternal, authErrorResponse } from '../_shared/auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -43,6 +44,14 @@ function statusLabel(s: string): string {
 const ACTIVE_STATUSES = new Set(['not_started', 'in_progress', 'feedback_needed', 'stalled']);
 
 serve(async (req: Request) => {
+
+  try {
+    requireInternal(req);
+  } catch (err) {
+    const denied = authErrorResponse(err, {});
+    if (denied) return denied;
+    throw err;
+  }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: allTasks, error } = await supabase

@@ -99,13 +99,54 @@ export async function verifyMember(req: Request): Promise<VerifiedMember> {
   return member;
 }
 
-export async function verifyStaff(req: Request): Promise<VerifiedMember> {
-  const member = await verifyMember(req);
-  const isStaff = member.planConnections.some(
+export function isStaffMember(member: VerifiedMember): boolean {
+  return member.planConnections.some(
     (c) => c.planId === STAFF_PLAN_ID && c.status === 'ACTIVE',
   );
-  if (!isStaff) throw new AuthError('staff access required');
+}
+
+export async function verifyStaff(req: Request): Promise<VerifiedMember> {
+  const member = await verifyMember(req);
+  if (!isStaffMember(member)) throw new AuthError('staff access required');
   return member;
+}
+
+/** Length-safe constant-time compare. */
+export function constantTimeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const x = enc.encode(a);
+  const y = enc.encode(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  }
+  return diff === 0;
+}
+
+/**
+ * A call from another edge function or a scheduled job: either the service
+ * role key as the bearer token, or the shared internal secret header.
+ * Neither value is ever present in the browser.
+ */
+export function isInternalCall(req: Request): boolean {
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  const internalSecret = Deno.env.get('INTERNAL_FN_SECRET') || '';
+  const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const presented = req.headers.get('x-internal-secret') || '';
+  return (
+    (serviceKey.length > 0 && constantTimeEqual(bearer, serviceKey)) ||
+    (internalSecret.length > 0 && constantTimeEqual(presented, internalSecret))
+  );
+}
+
+export function requireInternal(req: Request): void {
+  if (!isInternalCall(req)) throw new AuthError('internal access only');
+}
+
+/** Internal callers pass straight through (returns null); browsers need a staff login. */
+export async function verifyStaffOrInternal(req: Request): Promise<VerifiedMember | null> {
+  if (isInternalCall(req)) return null;
+  return await verifyStaff(req);
 }
 
 export function authErrorResponse(err: unknown, corsHeaders: Record<string, string>): Response | null {
