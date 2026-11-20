@@ -245,7 +245,8 @@
     const opp = opportunities.find(o => o.id === id);
     if (opp?.webflow_id) {
       try {
-        const token = (await window.$memberstackDom.getMemberToken())?.data?.token || '';
+        const ms = window.$memberstackDom;
+        const token = (typeof ms?.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
         await fetch(`${SUPABASE_URL}/functions/v1/manage-opportunity`, {
           method: 'POST',
           headers: {
