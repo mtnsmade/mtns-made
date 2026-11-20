@@ -22,6 +22,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, FROM_HELLO } from '../_shared/gmail.ts';
 import { hasActivePlan } from '../_shared/memberstack.ts';
+import { requireInternal, authErrorResponse } from '../_shared/auth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -199,6 +200,17 @@ async function hardDeleteMember(memberstackId: string): Promise<boolean> {
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  // Internal callers only (service role key or x-internal-secret). Any cron
+  // job that runs this must send the secret from Vault, as the support
+  // report job does (migration 050).
+  try {
+    requireInternal(req);
+  } catch (err) {
+    const denied = authErrorResponse(err, corsHeaders);
+    if (denied) return denied;
+    throw err;
   }
 
   try {
