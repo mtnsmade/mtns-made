@@ -1,4 +1,4 @@
-(function(){const g="https://epszwomtxkpjegbjbixr.supabase.co",y="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTE5MzUsImV4cCI6MjA4NTg4NzkzNX0.TJPI5NQmWHR6F5eGVZH26Mzj601RDp5bgcpYZFVymwQ";let c,l=null,o=[];const b=`
+(function(){const u="https://epszwomtxkpjegbjbixr.supabase.co",p="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTE5MzUsImV4cCI6MjA4NTg4NzkzNX0.TJPI5NQmWHR6F5eGVZH26Mzj601RDp5bgcpYZFVymwQ";let f=null,o=[];const y=`
     .messages-section {
       font-family: inherit;
     }
@@ -195,7 +195,7 @@
       padding: 40px;
       color: #666;
     }
-  `;function h(){if(!document.getElementById("messages-styles")){const e=document.createElement("style");e.id="messages-styles",e.textContent=b,document.head.appendChild(e)}}async function m(){const e=document.querySelector(".messages-container")||document.getElementById("messages-container");if(!e){console.log("Messages container not found");return}if(h(),!window.supabase){console.error("Supabase library not loaded. Make sure to include the Supabase JS script."),e.innerHTML="<p>Error: Required library not loaded. Please refresh the page.</p>";return}c=window.supabase.createClient(g,y),console.log("Messages: Supabase client initialized");try{const s=window.$memberstackDom;if(!s){e.innerHTML="<p>Please log in to view your messages.</p>";return}const{data:t}=await s.getCurrentMember();if(!t){e.innerHTML="<p>Please log in to view your messages.</p>";return}l=t,console.log("Messages: Member loaded:",t.id),e.innerHTML='<div class="loading-spinner">Loading messages...</div>',await x(e)}catch(s){console.error("Messages init error:",s),e.innerHTML="<p>Error loading messages. Please refresh the page.</p>"}}async function x(e){try{console.log("Messages: Loading for memberstack_id:",l.id);const{data:s,error:t,status:r}=await c.from("messages").select("*").eq("memberstack_id",l.id).eq("is_archived",!1).order("created_at",{ascending:!1});if(console.log("Messages: Query response - status:",r,"error:",t,"data count:",s==null?void 0:s.length),t)throw console.error("Messages: Supabase error details:",{message:t.message,code:t.code,details:t.details,hint:t.hint}),t;o=s||[],p(e)}catch(s){console.error("Error loading messages:",s),e.innerHTML="<p>Error loading messages. Please try again.</p>"}}function p(e){const s=o.filter(r=>!r.is_read).length;if(s>0){const r=document.querySelector(".messages-page-title, h1");r&&!r.querySelector(".messages-badge")&&r.insertAdjacentHTML("beforeend",` <span class="messages-badge">${s} new</span>`)}let t=`
+  `;function b(){if(!document.getElementById("messages-styles")){const e=document.createElement("style");e.id="messages-styles",e.textContent=y,document.head.appendChild(e)}}async function d(e,s={}){var r,c;const t=((c=(r=await window.$memberstackDom.getMemberToken())==null?void 0:r.data)==null?void 0:c.token)||"",n=await fetch(u+"/functions/v1/member-messages",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+p,apikey:p,"X-Member-Token":t},body:JSON.stringify({action:e,...s})}),a=await n.json().catch(()=>({}));if(n.status===401)throw new Error("Your login has expired. Please log out and log in again.");if(!n.ok)throw new Error(a.error||"Request failed");return a}async function m(){const e=document.querySelector(".messages-container")||document.getElementById("messages-container");if(!e){console.log("Messages container not found");return}b();try{const s=window.$memberstackDom;if(!s){e.innerHTML="<p>Please log in to view your messages.</p>";return}const{data:t}=await s.getCurrentMember();if(!t){e.innerHTML="<p>Please log in to view your messages.</p>";return}f=t,console.log("Messages: Member loaded:",t.id),e.innerHTML='<div class="loading-spinner">Loading messages...</div>',await x(e)}catch(s){console.error("Messages init error:",s),e.innerHTML="<p>Error loading messages. Please refresh the page.</p>"}}async function x(e){try{const{messages:s}=await d("list");o=s||[],l(e)}catch(s){console.error("Error loading messages:",s),e.innerHTML="<p>Error loading messages. Please try again.</p>"}}function l(e){const s=o.filter(n=>!n.is_read).length;if(s>0){const n=document.querySelector(".messages-page-title, h1");n&&!n.querySelector(".messages-badge")&&n.insertAdjacentHTML("beforeend",` <span class="messages-badge">${s} new</span>`)}let t=`
       <div class="messages-section">
     `;o.length===0?t+=`
         <div class="messages-empty">
@@ -205,7 +205,7 @@
           <h3>No messages yet</h3>
           <p>When someone contacts you through your MTNS MADE profile, their messages will appear here.</p>
         </div>
-      `:(t+='<div class="messages-list">',o.forEach(r=>{t+=v(r)}),t+="</div>"),t+="</div>",e.innerHTML=t,w(e)}function v(e){const s=new Date(e.created_at),t=s.toLocaleDateString("en-AU",{day:"numeric",month:"short",year:s.getFullYear()!==new Date().getFullYear()?"numeric":void 0}),r=s.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"}),a=e.replies||[];return`
+      `:(t+='<div class="messages-list">',o.forEach(n=>{t+=h(n)}),t+="</div>"),t+="</div>",e.innerHTML=t,v(e)}function h(e){const s=new Date(e.created_at),t=s.toLocaleDateString("en-AU",{day:"numeric",month:"short",year:s.getFullYear()!==new Date().getFullYear()?"numeric":void 0}),n=s.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"}),a=e.replies||[];return`
       <div class="message-card ${e.is_read?"":"unread"}" data-message-id="${e.id}">
         <div class="message-card-header">
           <div>
@@ -213,7 +213,7 @@
             <p class="message-subject">${i(e.subject)}</p>
           </div>
           <div class="message-meta">
-            <span class="message-date">${t} ${r}</span>
+            <span class="message-date">${t} ${n}</span>
             ${e.is_read?"":'<span class="message-unread-dot"></span>'}
           </div>
         </div>
@@ -229,13 +229,13 @@
           ${a.length>0?`
             <div class="replies-section">
               <p class="replies-title">Conversation (${a.length} ${a.length===1?"reply":"replies"})</p>
-              ${a.map(n=>`
-                <div class="reply-item ${n.from==="member"?"from-member":""}">
+              ${a.map(r=>`
+                <div class="reply-item ${r.from==="member"?"from-member":""}">
                   <div class="reply-header">
-                    <span>${n.from==="member"?"You":e.sender_name}</span>
-                    <span>${new Date(n.created_at).toLocaleString("en-AU")}</span>
+                    <span>${r.from==="member"?"You":e.sender_name}</span>
+                    <span>${new Date(r.created_at).toLocaleString("en-AU")}</span>
                   </div>
-                  <div class="reply-content">${i(n.message)}</div>
+                  <div class="reply-content">${i(r.message)}</div>
                 </div>
               `).join("")}
             </div>
@@ -263,18 +263,4 @@
           </div>
         </div>
       </div>
-    `}function w(e){e.querySelectorAll(".message-card-header").forEach(s=>{s.addEventListener("click",async function(){var n;const t=this.closest(".message-card"),r=t.dataset.messageId,a=document.getElementById("message-body-"+r);a.classList.contains("expanded")?a.classList.remove("expanded"):(a.classList.add("expanded"),t.classList.contains("unread")&&(await M(r),t.classList.remove("unread"),(n=t.querySelector(".message-unread-dot"))==null||n.remove(),S()))})})}async function M(e){try{await c.from("messages").update({is_read:!0,read_at:new Date().toISOString()}).eq("id",e);const s=o.find(t=>t.id===e);s&&(s.is_read=!0)}catch(s){console.error("Error marking message as read:",s)}}function S(){const e=o.filter(t=>!t.is_read).length,s=document.querySelector(".messages-badge");e>0?s&&(s.textContent=e+" new"):s==null||s.remove()}window.toggleReplyForm=function(e){const s=document.getElementById("reply-form-"+e);s.classList.toggle("visible"),s.classList.contains("visible")&&document.getElementById("reply-text-"+e).focus()},window.sendReply=async function(e){var u;const t=document.getElementById("reply-text-"+e).value.trim();if(!t){alert("Please enter a reply message.");return}const r=o.find(d=>d.id===e);if(!r)return;const a={created_at:new Date().toISOString(),message:t,from:"member"},n=[...r.replies||[],a];try{const{error:d}=await c.from("messages").update({replies:n}).eq("id",e);if(d)throw d;await fetch(g+"/functions/v1/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:r.sender_email,subject:"Re: "+r.subject+" - Reply from MTNS MADE",html:`
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: #333; color: #fff; padding: 20px; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px;">Reply from MTNS MADE</h1>
-              </div>
-              <div style="padding: 30px; background: #f9f9f9;">
-                <p>Hi ${r.sender_name},</p>
-                <p>You've received a reply to your enquiry:</p>
-                <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                  <p style="white-space: pre-wrap;">${t.replace(/\n/g,"<br>")}</p>
-                </div>
-                <p style="color: #666; font-size: 14px;">You can reply directly to this email to continue the conversation.</p>
-              </div>
-            </div>
-          `,replyTo:(u=l.auth)==null?void 0:u.email})}),r.replies=n;const E=document.querySelector(".messages-container")||document.getElementById("messages-container");p(E);const f=document.getElementById("message-body-"+e);f&&f.classList.add("expanded")}catch(d){console.error("Error sending reply:",d),alert("Error sending reply. Please try again.")}},window.archiveMessage=async function(e){if(confirm("Archive this message? You can find it in your archived messages later."))try{await c.from("messages").update({is_archived:!0}).eq("id",e),o=o.filter(t=>t.id!==e);const s=document.querySelector(".messages-container")||document.getElementById("messages-container");p(s)}catch(s){console.error("Error archiving message:",s),alert("Error archiving message. Please try again.")}};function i(e){if(!e)return"";const s=document.createElement("div");return s.textContent=e,s.innerHTML}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",m):m()})();
+    `}function v(e){e.querySelectorAll(".message-card-header").forEach(s=>{s.addEventListener("click",async function(){var r;const t=this.closest(".message-card"),n=t.dataset.messageId,a=document.getElementById("message-body-"+n);a.classList.contains("expanded")?a.classList.remove("expanded"):(a.classList.add("expanded"),t.classList.contains("unread")&&(await w(n),t.classList.remove("unread"),(r=t.querySelector(".message-unread-dot"))==null||r.remove(),k()))})})}async function w(e){try{await d("mark-read",{messageId:e});const s=o.find(t=>t.id===e);s&&(s.is_read=!0)}catch(s){console.error("Error marking message as read:",s)}}function k(){const e=o.filter(t=>!t.is_read).length,s=document.querySelector(".messages-badge");e>0?s&&(s.textContent=e+" new"):s==null||s.remove()}window.toggleReplyForm=function(e){const s=document.getElementById("reply-form-"+e);s.classList.toggle("visible"),s.classList.contains("visible")&&document.getElementById("reply-text-"+e).focus()},window.sendReply=async function(e){const t=document.getElementById("reply-text-"+e).value.trim();if(!t){alert("Please enter a reply message.");return}const n=o.find(r=>r.id===e);if(!n)return;const a={created_at:new Date().toISOString(),message:t,from:"member"};try{const{replies:r}=await d("reply",{messageId:e,text:t});n.replies=r||[...n.replies||[],a];const c=document.querySelector(".messages-container")||document.getElementById("messages-container");l(c);const g=document.getElementById("message-body-"+e);g&&g.classList.add("expanded")}catch(r){console.error("Error sending reply:",r),alert("Error sending reply. Please try again.")}},window.archiveMessage=async function(e){if(confirm("Archive this message? You can find it in your archived messages later."))try{await d("archive",{messageId:e}),o=o.filter(t=>t.id!==e);const s=document.querySelector(".messages-container")||document.getElementById("messages-container");l(s)}catch(s){console.error("Error archiving message:",s),alert("Error archiving message. Please try again.")}};function i(e){if(!e)return"";const s=document.createElement("div");return s.textContent=e,s.innerHTML}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",m):m()})();

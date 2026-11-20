@@ -8,3 +8,10 @@ pricing-migration/
 docs/track2-member-migration-plan.md
 .claude/settings.local.json
 memberstack/
+reports-private/
+
+# Private MTNS MADE mailbox export: never commit (repo is public)
+sensitive/
+
+# Security working files (rollback SQL, test notes): never commit (repo is public)
+security-private/

@@ -1200,22 +1200,16 @@ MTNS MADE Team`;
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-      // Total messages
-      const { data: allMessages } = await supabase
-        .from('messages')
-        .select('id, is_read, created_at');
+      // Counts only; message rows are not readable from the browser
+      const { data, error } = await supabase.rpc('admin_message_stats', { month_start: monthStart });
+      if (error) throw error;
+      const row = (data && data[0]) || {};
 
-      // This month's messages
-      const { data: monthMessages } = await supabase
-        .from('messages')
-        .select('id')
-        .gte('created_at', monthStart);
-
-      const total = allMessages?.length || 0;
-      const unread = allMessages?.filter(m => !m.is_read).length || 0;
-      const thisMonth = monthMessages?.length || 0;
-
-      return { total, unread, thisMonth };
+      return {
+        total: Number(row.total) || 0,
+        unread: Number(row.unread) || 0,
+        thisMonth: Number(row.this_month) || 0
+      };
     } catch (error) {
       console.error('Error loading message stats:', error);
       return { total: 0, unread: 0, thisMonth: 0 };

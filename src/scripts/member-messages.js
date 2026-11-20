@@ -12,7 +12,6 @@
   const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwc3p3b210eGtwamVnYmpiaXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMTE5MzUsImV4cCI6MjA4NTg4NzkzNX0.TJPI5NQmWHR6F5eGVZH26Mzj601RDp5bgcpYZFVymwQ';
 
-  let supabase;
   let currentMember = null;
   let messages = [];
 
@@ -225,6 +224,26 @@
     }
   }
 
+  // All inbox reads and writes go through the member-messages edge function,
+  // which checks the member's Memberstack login server-side.
+  async function callMessages(action, payload = {}) {
+    const token = (await window.$memberstackDom.getMemberToken())?.data?.token || '';
+    const res = await fetch(SUPABASE_URL + '/functions/v1/member-messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY,
+        'X-Member-Token': token
+      },
+      body: JSON.stringify({ action, ...payload })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new Error('Your login has expired. Please log out and log in again.');
+    if (!res.ok) throw new Error(body.error || 'Request failed');
+    return body;
+  }
+
   async function init() {
     const container = document.querySelector('.messages-container') ||
                       document.getElementById('messages-container');
@@ -235,16 +254,6 @@
     }
 
     injectStyles();
-
-    // Initialize Supabase - check if library is loaded
-    if (!window.supabase) {
-      console.error('Supabase library not loaded. Make sure to include the Supabase JS script.');
-      container.innerHTML = '<p>Error: Required library not loaded. Please refresh the page.</p>';
-      return;
-    }
-
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Messages: Supabase client initialized');
 
     // Get current member from Memberstack
     try {
@@ -276,27 +285,7 @@
 
   async function loadMessages(container) {
     try {
-      console.log('Messages: Loading for memberstack_id:', currentMember.id);
-
-      const { data, error, status } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('memberstack_id', currentMember.id)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false });
-
-      console.log('Messages: Query response - status:', status, 'error:', error, 'data count:', data?.length);
-
-      if (error) {
-        console.error('Messages: Supabase error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
-      }
-
+      const { messages: data } = await callMessages('list');
       messages = data || [];
       renderMessages(container);
     } catch (error) {
@@ -444,13 +433,7 @@
 
   async function markAsRead(messageId) {
     try {
-      await supabase
-        .from('messages')
-        .update({
-          is_read: true,
-          read_at: new Date().toISOString()
-        })
-        .eq('id', messageId);
+      await callMessages('mark-read', { messageId });
 
       // Update local state
       const message = messages.find(m => m.id === messageId);
@@ -503,45 +486,12 @@
       from: 'member'
     };
 
-    const updatedReplies = [...(message.replies || []), newReply];
-
     try {
-      // Update in database
-      const { error } = await supabase
-        .from('messages')
-        .update({ replies: updatedReplies })
-        .eq('id', messageId);
-
-      if (error) throw error;
-
-      // Send email notification to sender
-      await fetch(SUPABASE_URL + '/functions/v1/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: message.sender_email,
-          subject: 'Re: ' + message.subject + ' - Reply from MTNS MADE',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: #333; color: #fff; padding: 20px; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px;">Reply from MTNS MADE</h1>
-              </div>
-              <div style="padding: 30px; background: #f9f9f9;">
-                <p>Hi ${message.sender_name},</p>
-                <p>You've received a reply to your enquiry:</p>
-                <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                  <p style="white-space: pre-wrap;">${replyText.replace(/\n/g, '<br>')}</p>
-                </div>
-                <p style="color: #666; font-size: 14px;">You can reply directly to this email to continue the conversation.</p>
-              </div>
-            </div>
-          `,
-          replyTo: currentMember.auth?.email
-        })
-      });
+      // Saves the reply and emails the sender, server-side
+      const { replies: updatedReplies } = await callMessages('reply', { messageId, text: replyText });
 
       // Update local state
-      message.replies = updatedReplies;
+      message.replies = updatedReplies || [...(message.replies || []), newReply];
 
       // Re-render the container
       const container = document.querySelector('.messages-container') ||
@@ -564,10 +514,7 @@
     }
 
     try {
-      await supabase
-        .from('messages')
-        .update({ is_archived: true })
-        .eq('id', messageId);
+      await callMessages('archive', { messageId });
 
       // Remove from local state
       messages = messages.filter(m => m.id !== messageId);
