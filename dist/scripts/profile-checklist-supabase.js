@@ -1,4 +1,4 @@
-(function(){console.log("Profile checklist Supabase script loaded");const l="https://epszwomtxkpjegbjbixr.supabase.co",p="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH";let c=null;const f=`
+(function(){console.log("Profile checklist Supabase script loaded");const p="https://epszwomtxkpjegbjbixr.supabase.co",s="sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH";async function f(o,e={}){try{const t=window.$memberstackDom,i=(t&&typeof t.getMemberCookie=="function"?await t.getMemberCookie():"")||"",n=await fetch(`${p}/functions/v1/member-self`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${s}`,apikey:s,"X-Member-Token":i},body:JSON.stringify({action:o,...e})}),r=await n.json().catch(()=>({}));return n.ok?{data:"member"in r?r.member:r,error:null}:{data:null,error:{message:r.error||`member-self ${o} failed`,status:n.status}}}catch(t){return{data:null,error:t}}}let l=null;const u=`
     .pc-container {
       font-family: inherit;
     }
@@ -155,41 +155,34 @@
       margin: 0 0 8px 0;
       padding-left: 20px;
     }
-  `;function u(){return new Promise((t,e)=>{let o=0;const i=50,n=setInterval(()=>{o++,window.$memberstackDom&&window.supabase?(clearInterval(n),t()):o>=i&&(clearInterval(n),e(new Error("Dependencies not loaded")))},100)})}async function g(t){try{const{data:e,error:o}=await c.from("members").select(`
-          id,
-          profile_image_url,
-          header_image_url,
-          bio,
-          profile_complete,
-          suburb_id
-        `).eq("memberstack_id",t).single();if(o)throw o;if(!e)return null;const{count:i}=await c.from("member_sub_directories").select("*",{count:"exact",head:!0}).eq("member_id",e.id),{count:n}=await c.from("projects").select("*",{count:"exact",head:!0}).eq("memberstack_id",t).eq("is_deleted",!1);return{...e,hasCategories:i>0,projectCount:n||0}}catch(e){return console.error("Error loading member profile:",e),null}}function x(t,e){if(!e){t.innerHTML='<div class="pc-loading">Unable to load profile data.</div>';return}const o=[{name:"Profile Picture",complete:!!e.profile_image_url,link:"/profile/edit-profile",completeText:"Profile picture added",incompleteText:"No profile picture"},{name:"Feature Image",complete:!!e.header_image_url,link:"/profile/edit-profile",completeText:"Feature image added",incompleteText:"No feature image"},{name:"Bio",complete:e.bio&&e.bio.length>=50,link:"/profile/edit-profile",completeText:"Bio added",incompleteText:"No bio added"},{name:"Categories",complete:e.hasCategories,link:"/profile/edit-profile",completeText:"Categories selected",incompleteText:"No categories selected"},{name:"Location",complete:!!e.suburb_id,link:"/profile/edit-profile",completeText:"Location set",incompleteText:"No location set"},{name:"Projects",complete:e.projectCount>0,link:"/profile/edit-portfolio",completeText:`${e.projectCount} project${e.projectCount!==1?"s":""} added`,incompleteText:"No projects added"}],i=o.filter(a=>a.complete).length,n=o.length,s=i===n,m=Math.round(i/n*100);let r='<div class="pc-container">';s?r+=`
+  `;function g(){return new Promise((o,e)=>{let t=0;const i=50,n=setInterval(()=>{t++,window.$memberstackDom&&window.supabase?(clearInterval(n),o()):t>=i&&(clearInterval(n),e(new Error("Dependencies not loaded")))},100)})}async function x(o){try{let{data:e,error:t}=await f("get");if(!t&&!e&&(t={message:"Member record not found"}),t)throw t;if(!e)return null;const{count:i}=await l.from("member_sub_directories").select("*",{count:"exact",head:!0}).eq("member_id",e.id),{count:n}=await l.from("projects").select("*",{count:"exact",head:!0}).eq("memberstack_id",o).eq("is_deleted",!1);return{...e,hasCategories:i>0,projectCount:n||0}}catch(e){return console.error("Error loading member profile:",e),null}}function b(o,e){if(!e){o.innerHTML='<div class="pc-loading">Unable to load profile data.</div>';return}const t=[{name:"Profile Picture",complete:!!e.profile_image_url,link:"/profile/edit-profile",completeText:"Profile picture added",incompleteText:"No profile picture"},{name:"Feature Image",complete:!!e.header_image_url,link:"/profile/edit-profile",completeText:"Feature image added",incompleteText:"No feature image"},{name:"Bio",complete:e.bio&&e.bio.length>=50,link:"/profile/edit-profile",completeText:"Bio added",incompleteText:"No bio added"},{name:"Categories",complete:e.hasCategories,link:"/profile/edit-profile",completeText:"Categories selected",incompleteText:"No categories selected"},{name:"Location",complete:!!e.suburb_id,link:"/profile/edit-profile",completeText:"Location set",incompleteText:"No location set"},{name:"Projects",complete:e.projectCount>0,link:"/profile/edit-portfolio",completeText:`${e.projectCount} project${e.projectCount!==1?"s":""} added`,incompleteText:"No projects added"}],i=t.filter(c=>c.complete).length,n=t.length,r=i===n,m=Math.round(i/n*100);let a='<div class="pc-container">';r?a+=`
         <div class="pc-complete-banner">
           <span class="pc-complete-icon">&#10003;</span>
           <span class="pc-complete-text">Your profile is complete! You're all set.</span>
         </div>
-      `:r+=`
+      `:a+=`
         <div class="pc-progress">
           <div class="pc-progress-bar">
             <div class="pc-progress-fill" style="width: ${m}%"></div>
           </div>
           <div class="pc-progress-text">${i} of ${n} complete (${m}%)</div>
         </div>
-      `,r+='<div class="pc-items">',o.forEach(a=>{a.complete?r+=`
+      `,a+='<div class="pc-items">',t.forEach(c=>{c.complete?a+=`
           <div class="pc-item complete">
             <span class="pc-item-icon">&#10003;</span>
-            <span class="pc-item-text">${a.completeText}</span>
+            <span class="pc-item-text">${c.completeText}</span>
           </div>
-        `:r+=`
+        `:a+=`
           <div class="pc-item incomplete">
             <span class="pc-item-icon">&#10007;</span>
-            <span class="pc-item-text">${a.incompleteText} - <a href="${a.link}" class="pc-item-link">Add now</a></span>
+            <span class="pc-item-text">${c.incompleteText} - <a href="${c.link}" class="pc-item-link">Add now</a></span>
           </div>
-        `}),r+="</div></div>",t.innerHTML=r}function b(t){if(!t)return"";const e=document.createElement("div");return e.textContent=t,e.innerHTML}async function h(t){try{const o=await(await fetch(`${l}/functions/v1/get-member-faqs`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${p}`,apikey:p},body:"{}"})).json();if(!o.success||!o.faqs||o.faqs.length===0)return;const i=document.querySelector(".pc-faq");i&&i.remove();const n=document.createElement("div");n.className="pc-faq",n.innerHTML=`
+        `}),a+="</div></div>",o.innerHTML=a}function h(o){if(!o)return"";const e=document.createElement("div");return e.textContent=o,e.innerHTML}async function w(o){try{const t=await(await fetch(`${p}/functions/v1/get-member-faqs`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${s}`,apikey:s},body:"{}"})).json();if(!t.success||!t.faqs||t.faqs.length===0)return;const i=document.querySelector(".pc-faq");i&&i.remove();const n=document.createElement("div");n.className="pc-faq",n.innerHTML=`
         <h3 class="pc-faq-title">Member FAQs</h3>
-        ${o.faqs.map(s=>`
+        ${t.faqs.map(r=>`
           <details>
-            <summary>${b(s.question)}</summary>
-            <div class="pc-faq-answer">${s.answer}</div>
+            <summary>${h(r.question)}</summary>
+            <div class="pc-faq-answer">${r.answer}</div>
           </details>
         `).join("")}
-      `,t.insertAdjacentElement("afterend",n)}catch(e){console.error("Member FAQ load error:",e)}}async function d(){const t=document.querySelector(".profile-completeness");if(!t){console.log("No checklist container found");return}const e=document.createElement("style");e.textContent=f,document.head.appendChild(e),t.innerHTML='<div class="pc-loading">Loading profile...</div>';try{await u(),c=window.supabase.createClient(l,p);const{data:o}=await window.$memberstackDom.getCurrentMember();if(!o){t.innerHTML='<div class="pc-loading">Please log in to view your profile.</div>';return}const i=await g(o.id);x(t,i),h(t)}catch(o){console.error("Checklist init error:",o),t.innerHTML='<div class="pc-loading">Error loading profile checklist.</div>'}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",d):d()})();
+      `,o.insertAdjacentElement("afterend",n)}catch(e){console.error("Member FAQ load error:",e)}}async function d(){const o=document.querySelector(".profile-completeness");if(!o){console.log("No checklist container found");return}const e=document.createElement("style");e.textContent=u,document.head.appendChild(e),o.innerHTML='<div class="pc-loading">Loading profile...</div>';try{await g(),l=window.supabase.createClient(p,s);const{data:t}=await window.$memberstackDom.getCurrentMember();if(!t){o.innerHTML='<div class="pc-loading">Please log in to view your profile.</div>';return}const i=await x(t.id);b(o,i),w(o)}catch(t){console.error("Checklist init error:",t),o.innerHTML='<div class="pc-loading">Error loading profile checklist.</div>'}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",d):d()})();

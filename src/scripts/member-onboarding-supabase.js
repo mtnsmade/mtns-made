@@ -11,6 +11,31 @@
   // ============================================
   const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
+
+  // The member's own record goes through the member-self edge function,
+  // which checks the Memberstack login server-side. Returns { data, error }
+  // like a Supabase query so callers keep their existing handling.
+  async function selfQuery(action, payload = {}) {
+    try {
+      const ms = window.$memberstackDom;
+      const token = (ms && typeof ms.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/member-self`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'X-Member-Token': token
+        },
+        body: JSON.stringify({ action, ...payload })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) return { data: null, error: { message: body.error || `member-self ${action} failed`, status: res.status } };
+      return { data: 'member' in body ? body.member : body, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
   const STORAGE_BUCKET = 'member-images';
 
   // Membership type classifications
@@ -972,41 +997,11 @@
   }
 
   async function getOrCreateMember(memberstackId) {
-    const { data: existing } = await supabase
-      .from('members')
-      .select('*')
-      .eq('memberstack_id', memberstackId)
-      .maybeSingle();
-
-    if (existing) return existing;
-
-    // Resolve membership type now, same lookup saveOnboardingData() uses later —
-    // without this, members who never complete the full onboarding form are left
-    // with membership_type_id permanently null.
-    const membershipSlug = memberData.customFields?.['membership-type'];
-    const membershipTypeId = await getMembershipTypeId(membershipSlug);
-
-    const { data: created, error } = await supabase
-      .from('members')
-      .insert({
-        memberstack_id: memberstackId,
-        email: memberData.auth?.email || null,
-        first_name: memberData.customFields?.['first-name'] || null,
-        last_name: memberData.customFields?.['last-name'] || null,
-        subscription_status: 'active',
-        membership_type_id: membershipTypeId,
-        profile_complete: false,
-        is_deleted: false,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('getOrCreateMember failed:', error);
-      return null;
-    }
-    console.warn('Member record created in onboarding (webhook had not fired):', memberstackId);
-    return created;
+    // Fetches the member's own row, creating it server-side if missing
+    const { data: ensured, error: ensureError } = await selfQuery('ensure');
+    if (ensured) return ensured;
+    console.error('getOrCreateMember failed:', ensureError);
+    return null;
   }
 
   async function getMembershipTypeId(membershipSlug) {
@@ -1039,19 +1034,15 @@
     let suffix = 1;
 
     while (true) {
-      const { data, error } = await supabase
-        .from('members')
-        .select('memberstack_id')
-        .eq('slug', slug)
-        .maybeSingle();
+      const { data, error } = await selfQuery('slug-check', { slug });
 
       if (error) {
         console.error('Error checking slug:', error);
-        return slug; // Return as-is, let the upsert handle any conflict
+        return slug; // Return as-is, let the save handle any conflict
       }
 
       // Slug is available (no member has it) or belongs to current member
-      if (!data || data.memberstack_id === currentMemberstackId) {
+      if (data?.available) {
         return slug;
       }
 
@@ -1239,10 +1230,7 @@
       if (formData.tiktok) progressData.tiktok = formData.tiktok;
       if (formData.youtube) progressData.youtube = formData.youtube;
 
-      const { error } = await supabase
-        .from('members')
-        .update(progressData)
-        .eq('memberstack_id', memberstackId);
+      const { error } = await selfQuery('save', { fields: progressData });
 
       if (error) {
         console.warn('Error saving progress:', error);
@@ -1260,11 +1248,7 @@
     if (!memberData?.id || !supabase) return null;
 
     try {
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('*')
-        .eq('memberstack_id', memberData.id)
-        .single();
+      const { data: member, error } = await selfQuery('get');
 
       if (error || !member) return null;
 
@@ -1386,11 +1370,7 @@
       // existing value defensively rather than assume - re-stamping on
       // every save would break project-reminder's "complete for 7+ days"
       // targeting, which relies on this being a real, stable date.
-      const { data: existingCompletion } = await supabase
-        .from('members')
-        .select('profile_completed_at')
-        .eq('memberstack_id', memberstackId)
-        .maybeSingle();
+      const { data: existingCompletion } = await selfQuery('get');
       const profileCompletedAt = existingCompletion?.profile_completed_at
         || (isProfileComplete ? new Date().toISOString() : null);
 
@@ -1441,19 +1421,14 @@
       };
 
       // Update or insert the member
-      const { data: updatedMember, error: updateError } = await supabase
-        .from('members')
-        .upsert({
-          memberstack_id: memberstackId,
-          email: memberData.auth?.email,
+      // Email, membership type and completion date are set server-side
+      const { data: updatedMember, error: updateError } = await selfQuery('save', {
+        fields: {
           first_name: memberData.customFields?.['first-name'] || null,
           last_name: memberData.customFields?.['last-name'] || null,
           ...updateData
-        }, {
-          onConflict: 'memberstack_id'
-        })
-        .select()
-        .single();
+        }
+      });
 
       if (updateError) throw updateError;
 
@@ -1517,13 +1492,9 @@
   async function syncToWebflow(memberId) {
     try {
       // Get the full member record to send to the webhook
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('*')
-        .eq('id', memberId)
-        .single();
+      const { data: member, error } = await selfQuery('get');
 
-      if (error) {
+      if (error || !member) {
         console.warn('Failed to fetch member for Webflow sync:', error);
         return;
       }

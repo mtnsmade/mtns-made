@@ -11,6 +11,32 @@
   // ============================================
   const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
+
+  // The member's own record goes through the member-self edge function,
+  // which checks the Memberstack login server-side. Returns { data, error }
+  // like a Supabase query so callers keep their existing handling.
+  async function selfQuery(action, payload = {}) {
+    try {
+      const ms = window.$memberstackDom;
+      const token = (ms && typeof ms.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/member-self`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'X-Member-Token': token
+        },
+        body: JSON.stringify({ action, ...payload })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) return { data: null, error: { message: body.error || `member-self ${action} failed`, status: res.status } };
+      return { data: 'member' in body ? body.member : body, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
   const STORAGE_BUCKET = 'member-images';
 
   // Membership type classifications
@@ -817,11 +843,8 @@
       // display name is the business name or the personal name. Without this
       // embed that value was always empty, so every business member's save
       // overwrote their name with first + last name (found 2026-10-15).
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('*, membership_type:membership_types(id, name, slug)')
-        .eq('memberstack_id', memberstackId)
-        .single();
+      let { data: member, error } = await selfQuery('get');
+      if (!error && !member) error = { message: 'Member record not found' };
 
       console.log('Loaded member data:', member, error);
 
@@ -1171,18 +1194,15 @@
 
       // Upsert member — handles the edge case where the Memberstack webhook
       // failed to create the Supabase record during signup (e.g. Link payment flow).
-      const { data: savedMember, error: updateError } = await supabase
-        .from('members')
-        .upsert({
-          memberstack_id: memberstackId,
-          email: memberData.auth?.email || null,
+      // Email, membership type and completion date are set server-side;
+      // creates the row if the signup webhook never did
+      const { data: savedMember, error: updateError } = await selfQuery('save', {
+        fields: {
           first_name: memberData.customFields?.['first-name'] || formData.firstName || null,
           last_name: memberData.customFields?.['last-name'] || formData.lastName || null,
-          ...(resolvedMembershipTypeId ? { membership_type_id: resolvedMembershipTypeId } : {}),
           ...updateData
-        }, { onConflict: 'memberstack_id' })
-        .select('id')
-        .single();
+        }
+      });
 
       if (updateError) throw updateError;
 
@@ -1237,13 +1257,9 @@
   async function syncToWebflow(memberId) {
     try {
       // Get the full member record to send to the webhook
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('*')
-        .eq('id', memberId)
-        .single();
+      const { data: member, error } = await selfQuery('get');
 
-      if (error) {
+      if (error || !member) {
         console.warn('Failed to fetch member for Webflow sync:', error);
         return;
       }

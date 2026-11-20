@@ -20,6 +20,7 @@ const cache = new Map<string, { at: number; member: VerifiedMember }>();
 
 export interface PlanConnection {
   planId: string;
+  planName?: string;
   status: string;
   type?: string;
 }
@@ -28,6 +29,7 @@ export interface VerifiedMember {
   id: string; // Memberstack member id (mem_...)
   email: string;
   planConnections: PlanConnection[];
+  customFields: Record<string, unknown>;
 }
 
 export class AuthError extends Error {
@@ -89,9 +91,11 @@ export async function verifyMember(req: Request): Promise<VerifiedMember> {
     email: m.auth?.email || '',
     planConnections: (m.planConnections || []).map((c: PlanConnection) => ({
       planId: c.planId,
+      planName: c.planName,
       status: c.status,
       type: c.type,
     })),
+    customFields: (m.customFields && typeof m.customFields === 'object') ? m.customFields : {},
   };
 
   if (cache.size > 500) cache.clear();

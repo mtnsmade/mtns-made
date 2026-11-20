@@ -8,6 +8,31 @@
   const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
 
+  // The member's own record goes through the member-self edge function,
+  // which checks the Memberstack login server-side. Returns { data, error }
+  // like a Supabase query so callers keep their existing handling.
+  async function selfQuery(action, payload = {}) {
+    try {
+      const ms = window.$memberstackDom;
+      const token = (ms && typeof ms.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/member-self`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'X-Member-Token': token
+        },
+        body: JSON.stringify({ action, ...payload })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) return { data: null, error: { message: body.error || `member-self ${action} failed`, status: res.status } };
+      return { data: 'member' in body ? body.member : body, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
   let supabase = null;
 
   const styles = `
@@ -189,18 +214,8 @@
   async function getMemberProfile(memberstackId) {
     try {
       // Get member with category counts
-      const { data: member, error } = await supabase
-        .from('members')
-        .select(`
-          id,
-          profile_image_url,
-          header_image_url,
-          bio,
-          profile_complete,
-          suburb_id
-        `)
-        .eq('memberstack_id', memberstackId)
-        .single();
+      let { data: member, error } = await selfQuery('get');
+      if (!error && !member) error = { message: 'Member record not found' };
 
       if (error) throw error;
       if (!member) return null;

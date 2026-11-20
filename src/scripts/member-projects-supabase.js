@@ -10,6 +10,31 @@
   // ============================================
   const SUPABASE_URL = 'https://epszwomtxkpjegbjbixr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_567NLTP3qU8_ONMFs44eow_WoNrIlCH';
+
+  // The member's own record goes through the member-self edge function,
+  // which checks the Memberstack login server-side. Returns { data, error }
+  // like a Supabase query so callers keep their existing handling.
+  async function selfQuery(action, payload = {}) {
+    try {
+      const ms = window.$memberstackDom;
+      const token = (ms && typeof ms.getMemberCookie === 'function' ? await ms.getMemberCookie() : '') || '';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/member-self`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'X-Member-Token': token
+        },
+        body: JSON.stringify({ action, ...payload })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) return { data: null, error: { message: body.error || `member-self ${action} failed`, status: res.status } };
+      return { data: 'member' in body ? body.member : body, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
   const STORAGE_BUCKET = 'project-images';
   const MAX_GALLERY_IMAGES = 20;
 
@@ -2371,11 +2396,7 @@
       console.log('Current member:', currentMember.id);
 
       // Check if member's profile is complete
-      const { data: memberData } = await supabase
-        .from('members')
-        .select('profile_complete')
-        .eq('memberstack_id', member.id)
-        .single();
+      const { data: memberData } = await selfQuery('get');
       isProfileComplete = memberData?.profile_complete || false;
       console.log('Profile complete:', isProfileComplete);
 

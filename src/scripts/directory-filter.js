@@ -344,14 +344,13 @@
     const { data: members, error: memError } = await supabase
       .from('members')
       .select(`
-        id, name, slug, business_name, memberstack_id, webflow_id,
+        id, name, slug, business_name, webflow_id,
         profile_image_url, header_image_url, short_summary,
         suburb_id, suburbs(name, slug),
         status, subscription_status, membership_type_id,
         membership_types(name)
       `)
       .in('id', Array.from(memberIds))
-      .not('memberstack_id', 'is', null)
       .not('webflow_id', 'is', null)
       .in('subscription_status', ['active', 'trialing'])
       .order('name');
@@ -373,8 +372,6 @@
     // Filter to only show real members with valid accounts, Webflow pages, and active subscriptions
     allMembers = (members || [])
       .filter(m => {
-        // Must have a Memberstack account (real member)
-        if (!m.memberstack_id) return false;
         // Must have a Webflow CMS page (so profile link works)
         if (!m.webflow_id) return false;
         // Must have active or trialing subscription
