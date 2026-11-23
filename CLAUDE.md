@@ -26,6 +26,19 @@ Supabase Management API personal access token is in macOS keychain (`security fi
 - `src/scripts/member-events-supabase.js` - Event submissions
 - `src/scripts/admin-dashboard.js` - Admin interface
 
+## Which script version the live site loads
+
+Pushing to `main` does not always change what the live site runs. Webflow pages embed scripts in three ways, set in each page's or template's custom code:
+- `cdn.jsdelivr.net/gh/mtnsmade/mtns-made@main/...`: follows `main` (jsDelivr can cache for a while).
+- `cdn.jsdelivr.net/gh/mtnsmade/mtns-made@<commit>/...`: **pinned**. Never changes until someone edits the embed in Webflow and publishes.
+- `mtnsmade.github.io/mtns-made/scripts/...`: GitHub Pages build of `dist/`, follows `main`.
+
+Before relying on a script change being live, and always before any database permission change that an old script version could hit, fetch the live pages and list every `mtns-made` script URL. If a page is pinned, the fix has to include updating the embed in Webflow (template Page settings > Custom code; also check Embed elements and Site settings) and publishing to the custom domain. Then confirm the live HTML serves the new URL.
+
+Pinned embeds as of 2026-11-23: Directories template (`/directories/*`) `directory-filter.js@73e9a29`; homepage `page-loader.js@f5c5003`.
+
+Incident 2026-11-20 to 23: `directory-filter.js` was fixed on `main`, but the Directories template was still pinned to a February commit, so all 10 directory pages showed "Error loading members" after a database change. Fixed by updating the embed to the new commit and republishing.
+
 ## Pending Tasks
 
 See `ROADMAP.md` for all planned work, priorities, and implementation notes.

@@ -21,6 +21,8 @@ For each hit, record the verb (select, insert, update, delete, upsert), the colu
 
 Decide per call: stays public (only public columns, no private data), or moves behind a function.
 
+Then find out which copy of each script the live site actually loads. Pages embed scripts from jsDelivr (`cdn.jsdelivr.net/gh/mtnsmade/mtns-made@<ref>/...`) or GitHub Pages, and some embeds are pinned to an old commit, so a fix on `main` may never be served. Fetch the live pages and list every `mtns-made` script URL; any pinned embed has to be updated in Webflow before the revoke. (2026-11-20: the directory pages were pinned to a February commit, and the members revoke broke all 10 of them.)
+
 ## 2. Server side: verify, then scope
 
 Use `supabase/functions/_shared/auth.ts`:
